@@ -51,8 +51,9 @@ async def build_apk(req: BuildRequest):
         # 4. 写入项目文件
         (project_dir / "watchface.xml").write_text(wff_xml, encoding="utf-8")
 
-        # 5. 生成预览图 (临时占位)
-        _generate_preview(project_dir / "preview.png", req.cdm)
+        # 5. 生成预览图
+        from api.services.preview_renderer import render_preview
+        render_preview(project_dir / "preview.png", req.cdm)
 
         # 6. 写入 project.yaml
         import yaml
@@ -71,8 +72,9 @@ async def build_apk(req: BuildRequest):
         builder = WFFBuilder(str(project_dir), verbose=False)
         apk_path = builder.build()
 
-        # 8. 复制到输出目录
-        final_apk = APK_OUTPUT_DIR / f"{req.cdm.metadata.package_name}-{task_id}.apk"
+        # 8. 复制到输出目录 (文件名用表盘名, 友好可读)
+        safe_name = req.cdm.metadata.name.replace(" ", "_").lower()
+        final_apk = APK_OUTPUT_DIR / f"{safe_name}-{task_id}.apk"
         shutil.copy2(apk_path, final_apk)
 
         # 9. 清理临时目录
@@ -106,47 +108,3 @@ async def download_apk(filename: str):
         media_type="application/vnd.android.package-archive",
         filename=filename,
     )
-
-
-def _generate_preview(path: Path, cdm):
-    """生成预览图 (简单纯色圆形)"""
-    from PIL import Image, ImageDraw
-
-    size = 384
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 255))
-    draw = ImageDraw.Draw(img)
-
-    # 背景色
-    bg_color = cdm.background.color if cdm.background.type != "image" else "#ff000000"
-    # 解析 #ffRRGGBB
-    bg_r = int(bg_color[2:4], 16)
-    bg_g = int(bg_color[4:6], 16)
-    bg_b = int(bg_color[6:8], 16)
-
-    # 径向渐变
-    cx, cy = size // 2, size // 2
-    for r in range(size // 2, 0, -1):
-        t = r / (size // 2)
-        cr = int(bg_r * (1 - t) + 0 * t)
-        cg = int(bg_g * (1 - t) + 0 * t)
-        cb = int(bg_b * (1 - t) + 0 * t)
-        draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(cr, cg, cb, 255))
-
-    # 时间颜色文字
-    time_color = cdm.digital_time.font.color if cdm.digital_time.enabled else "#ffffffff"
-    tr = int(time_color[2:4], 16)
-    tg = int(time_color[4:6], 16)
-    tb = int(time_color[6:8], 16)
-
-    try:
-        from PIL import ImageFont
-        font = ImageFont.truetype(
-            "/usr/share/fonts/truetype/chinese/NotoSansSC-Bold.otf", 60
-        )
-    except Exception:
-        font = ImageFont.load_default()
-
-    draw.text((size // 2 - 60, size // 2 - 30), "10:08",
-              fill=(tr, tg, tb, 255), font=font)
-
-    img.save(path, "PNG", optimize=True)

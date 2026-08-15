@@ -10,9 +10,12 @@ Phase 1 端点:
   GET  /api/health              — 健康检查
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from api.routes import templates, compile as compile_route, build, health, qrcode
+from api.routes.error_handlers import validation_exception_handler, general_exception_handler
 
 app = FastAPI(
     title="WatchFace Forge API",
@@ -20,7 +23,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS — 开发环境允许前端
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,7 +32,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 注册路由
+# 错误处理
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
+
+# 路由
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(templates.router, prefix="/api", tags=["templates"])
 app.include_router(compile_route.router, prefix="/api", tags=["compile"])

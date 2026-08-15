@@ -100,6 +100,23 @@ class WFFCompiler:
         if bg.type == "solid":
             # backgroundColor 已在 Scene 上声明, 这里不需要额外元素
             pass
+        elif bg.type == "gradient" and bg.gradient_start and bg.gradient_end:
+            # 渐变背景: 用多个 DrawOval 模拟径向渐变
+            lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
+            lines.append(f'      <DrawList>')
+            start_r, start_g, start_b = int(bg.gradient_start[2:4], 16), int(bg.gradient_start[4:6], 16), int(bg.gradient_start[6:8], 16)
+            end_r, end_g, end_b = int(bg.gradient_end[2:4], 16), int(bg.gradient_end[4:6], 16), int(bg.gradient_end[6:8], 16)
+            steps = 20
+            for i in range(steps):
+                t = i / steps
+                r = int(start_r * (1 - t) + end_r * t)
+                g = int(start_g * (1 - t) + end_g * t)
+                b = int(start_b * (1 - t) + end_b * t)
+                radius = int(self.CANVAS_SIZE * (1 - t) / 2)
+                x = self.CANVAS_SIZE // 2 - radius
+                lines.append(f'        <DrawOval x="{x}" y="{x}" width="{radius*2}" height="{radius*2}" color="#ff{r:02x}{g:02x}{b:02x}"/>')
+            lines.append(f'      </DrawList>')
+            lines.append('    </PartDraw>')
         elif bg.type == "image" and bg.image_resource:
             lines.append(f'    <PartImage x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}"'
                          f' resource="drawable/{bg.image_resource}"/>')
@@ -132,18 +149,65 @@ class WFFCompiler:
         lines.append('    </DigitalClock>')
 
     def _emit_analog_clock(self, lines: list, at: AnalogTime):
-        """生成模拟时钟 (指针表盘)"""
-        # 使用 PartDraw 绘制指针
-        # 时针
+        """生成模拟时钟 (指针表盘)
+
+        WFF 指针使用 PartDraw + DrawList + DrawArc,
+        通过表达式动态计算角度。
+        """
+        cx, cy = at.center_x, at.center_y
+
+        lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
+        lines.append(f'      <Variant mode="AMBIENT" target="alpha" value="0"/>')
+
+        # 时针: 360° / 12 = 30° per hour, + 分钟的精细偏移
+        # WFF 表达式: ([HOUR_1_12] + [MINUTE_Z]/60) * 30
+        lines.append(f'      <DrawList>')
+        lines.append(f'        <!-- Hour hand -->')
+        lines.append(f'        <DrawArc')
+        lines.append(f'          x="{cx - 6}" y="{cy - at.hour_hand_length}"')
+        lines.append(f'          width="12" height="{at.hour_hand_length * 2}"')
+        lines.append(f'          startAngle="0" sweepAngle="1"')
+        lines.append(f'          color="{at.hour_hand_color}"/>')
+        lines.append(f'      </DrawList>')
+        lines.append(f'      <Transform rotation="([HOUR_1_12] + [MINUTE_Z] / 60.0) * 30.0" pivotX="{cx}" pivotY="{cy}"/>')
+        lines.append('    </PartDraw>')
+
+        # 分针
         lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
         lines.append(f'      <Variant mode="AMBIENT" target="alpha" value="0"/>')
         lines.append(f'      <DrawList>')
-        lines.append(f'        <DrawOval x="{at.center_x - 4}" y="{at.center_y - 4}" width="8" height="8" color="{at.hour_hand_color}"/>')
-        lines.append(f'        <DrawOval x="{at.center_x - 4}" y="{at.center_y - 4}" width="8" height="8" color="{at.hour_hand_color}"/>')
+        lines.append(f'        <!-- Minute hand -->')
+        lines.append(f'        <DrawArc')
+        lines.append(f'          x="{cx - 4}" y="{cy - at.minute_hand_length}"')
+        lines.append(f'          width="8" height="{at.minute_hand_length * 2}"')
+        lines.append(f'          startAngle="0" sweepAngle="1"')
+        lines.append(f'          color="{at.minute_hand_color}"/>')
+        lines.append(f'      </DrawList>')
+        lines.append(f'      <Transform rotation="[MINUTE_Z] * 6.0" pivotX="{cx}" pivotY="{cy}"/>')
+        lines.append('    </PartDraw>')
+
+        # 秒针 (如果有)
+        if at.second_hand_length > 0:
+            lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
+            lines.append(f'      <Variant mode="AMBIENT" target="alpha" value="0"/>')
+            lines.append(f'      <DrawList>')
+            lines.append(f'        <!-- Second hand -->')
+            lines.append(f'        <DrawArc')
+            lines.append(f'          x="{cx - 2}" y="{cy - at.second_hand_length}"')
+            lines.append(f'          width="4" height="{at.second_hand_length * 2}"')
+            lines.append(f'          startAngle="0" sweepAngle="1"')
+            lines.append(f'          color="{at.second_hand_color}"/>')
+            lines.append(f'      </DrawList>')
+            lines.append(f'      <Transform rotation="[SECOND_Z] * 6.0" pivotX="{cx}" pivotY="{cy}"/>')
+            lines.append('    </PartDraw>')
+
+        # 中心点
+        lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
+        lines.append(f'      <Variant mode="AMBIENT" target="alpha" value="255"/>')
+        lines.append(f'      <DrawList>')
+        lines.append(f'        <DrawOval x="{cx - 5}" y="{cy - 5}" width="10" height="10" color="{at.hour_hand_color}"/>')
         lines.append(f'      </DrawList>')
         lines.append('    </PartDraw>')
-        # 注意: 完整的指针表盘需要更复杂的绘制逻辑
-        # 这里先输出基本结构, 后续迭代完善
 
     def _emit_date(self, lines: list, dd: DateDisplay):
         """生成日期显示"""
