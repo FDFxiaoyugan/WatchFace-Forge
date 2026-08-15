@@ -150,8 +150,21 @@ export default function TemplateGallery() {
               >
                 下载 APK
               </a>
+
+              {/* QR Code */}
+              <div className="mt-6 flex flex-col items-center">
+                <img
+                  src={`/api/qrcode${result.download_url!.replace("/api/download", "")}`}
+                  alt="QR Code"
+                  className="w-40 h-40 rounded-lg bg-white p-2"
+                />
+                <p className="text-xs text-forge-muted mt-2">
+                  手表扫码下载安装
+                </p>
+              </div>
+
               <p className="text-xs text-forge-muted mt-4">
-                安装方式: adb install -r xxx.apk
+                或使用 ADB: adb install -r xxx.apk
               </p>
             </div>
           ) : (

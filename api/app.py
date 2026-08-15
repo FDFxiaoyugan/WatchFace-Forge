@@ -12,7 +12,7 @@ Phase 1 端点:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import templates, compile as compile_route, build, health
+from api.routes import templates, compile as compile_route, build, health, qrcode
 
 app = FastAPI(
     title="WatchFace Forge API",
@@ -34,6 +34,7 @@ app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(templates.router, prefix="/api", tags=["templates"])
 app.include_router(compile_route.router, prefix="/api", tags=["compile"])
 app.include_router(build.router, prefix="/api", tags=["build"])
+app.include_router(qrcode.router, prefix="/api", tags=["qrcode"])
 
 
 @app.get("/")
