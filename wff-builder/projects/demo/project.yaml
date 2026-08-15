@@ -1,0 +1,6 @@
+# WFF 表盘项目配置
+package_name: com.watchface.demo
+version_code: 8
+version_name: "2.2"
+watch_face_name: Demo Digital
+wff_version: 1
