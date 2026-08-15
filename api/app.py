@@ -14,7 +14,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from api.routes import templates, compile as compile_route, build, health, qrcode
+from api.routes import templates, compile as compile_route, build, health, qrcode, generate
 from api.routes.error_handlers import validation_exception_handler, general_exception_handler
 
 app = FastAPI(
@@ -42,6 +42,7 @@ app.include_router(templates.router, prefix="/api", tags=["templates"])
 app.include_router(compile_route.router, prefix="/api", tags=["compile"])
 app.include_router(build.router, prefix="/api", tags=["build"])
 app.include_router(qrcode.router, prefix="/api", tags=["qrcode"])
+app.include_router(generate.router, prefix="/api", tags=["generate"])
 
 
 @app.get("/")

@@ -1,6 +1,27 @@
+"use client";
+
+import { useState } from "react";
 import TemplateGallery from "@/components/TemplateGallery";
+import PromptInput from "@/components/PromptInput";
+
+type Tab = "templates" | "ai";
+
+interface GenerateResult {
+  task_id: string;
+  status: "success" | "failed";
+  cdm?: any;
+  fixes?: string[];
+  backend?: string;
+  attempts?: number;
+  apk_filename?: string;
+  apk_size?: number;
+  download_url?: string;
+  error?: string;
+}
 
 export default function HomePage() {
+  const [tab, setTab] = useState<Tab>("templates");
+
   return (
     <main className="container mx-auto max-w-4xl px-4 py-12">
       {/* Header */}
@@ -9,16 +30,40 @@ export default function HomePage() {
           <span className="text-forge-accent">WatchFace</span> Forge
         </h1>
         <p className="text-forge-muted text-lg">
-          选择模板，一键生成你的 Wear OS 表盘
+          AI 驱动的 Wear OS 表盘生成平台
         </p>
       </div>
 
-      {/* Template Gallery */}
-      <TemplateGallery />
+      {/* Tab Switch */}
+      <div className="flex justify-center gap-2 mb-8">
+        <button
+          onClick={() => setTab("templates")}
+          className={`px-6 py-2 rounded-lg font-medium transition-all ${
+            tab === "templates"
+              ? "bg-forge-accent/20 border border-forge-accent text-forge-accent"
+              : "border border-forge-border text-forge-muted hover:text-forge-text"
+          }`}
+        >
+          模板选择
+        </button>
+        <button
+          onClick={() => setTab("ai")}
+          className={`px-6 py-2 rounded-lg font-medium transition-all ${
+            tab === "ai"
+              ? "bg-forge-accent/20 border border-forge-accent text-forge-accent"
+              : "border border-forge-border text-forge-muted hover:text-forge-text"
+          }`}
+        >
+          AI 生成
+        </button>
+      </div>
+
+      {/* Content */}
+      {tab === "templates" ? <TemplateGallery /> : <PromptInput onResult={() => {}} />}
 
       {/* Footer */}
       <footer className="mt-16 text-center text-forge-muted text-sm">
-        <p>Phase 1 — MVP · WFF 构建引擎已验证</p>
+        <p>Phase 2 — AI 接入 · 自然语言生成闭环</p>
       </footer>
     </main>
   );

@@ -1,0 +1,198 @@
+"""
+Generate 路由 — 自然语言 → CDM → APK
+
+POST /api/generate
+  body: {prompt: "霓虹蓝赛博朋克数字表盘", user_id?: "default"}
+  → 异步: LLM 生成 CDM → 自动修复 → 编译 WFF → 构建 APK
+  → 同步返回: CDM + 下载 URL
+
+WebSocket /api/ws/{task_id}
+  → 实时推送生成进度
+"""
+
+import sys
+import uuid
+import json
+import asyncio
+from pathlib import Path
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
+
+from api.models import BuildResponse
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "wff-builder"))
+
+from services.cdm_generator import CDMGenerator
+from compiler.wff.compiler import WFFCompiler
+from wff_builder import WFFBuilder, validate_watchface_xml
+
+router = APIRouter()
+
+# 进度存储 (task_id → progress list)
+_progress_store: dict[str, list[dict]] = {}
+
+
+class ProgressTracker:
+    """WebSocket 进度推送"""
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+        _progress_store[task_id] = []
+
+    def emit(self, stage: str, progress: int, message: str = ""):
+        event = {"task_id": self.task_id, "stage": stage, "progress": progress, "message": message}
+        _progress_store[self.task_id].append(event)
+
+    def get_history(self) -> list[dict]:
+        return _progress_store.get(self.task_id, [])
+
+
+import tempfile
+import shutil
+from api.routes.build import APK_OUTPUT_DIR
+
+
+@router.post("/generate")
+async def generate_watchface(req: dict):
+    """自然语言 → CDM → APK 全流程"""
+    prompt = req.get("prompt", "").strip()
+    user_id = req.get("user_id", "default")
+
+    if not prompt:
+        return JSONResponse(status_code=400, content={
+            "status": "error",
+            "error_type": "invalid_input",
+            "message": "prompt is required",
+        })
+
+    task_id = str(uuid.uuid4())[:8]
+    tracker = ProgressTracker(task_id)
+
+    # 1. LLM 生成 CDM
+    tracker.emit("llm_generating", 20, "正在调用 AI 生成表盘设计...")
+
+    generator = CDMGenerator()
+    gen_result = generator.generate(prompt, user_id=user_id)
+
+    if not gen_result["success"]:
+        tracker.emit("failed", 100, f"生成失败: {gen_result.get('error', '')[:100]}")
+        return {
+            "task_id": task_id,
+            "status": "failed",
+            "error": gen_result.get("error", "Unknown error"),
+            "stage": "llm_generating",
+        }
+
+    cdm_dict = gen_result["cdm"]
+    tracker.emit("cdm_generated", 50, f"CDM 生成完成 (backend: {gen_result['backend']}, {gen_result['attempts']} 次尝试)")
+
+    if gen_result["fixes"]:
+        tracker.emit("auto_fixed", 60, f"自动修复 {len(gen_result['fixes'])} 处问题")
+
+    # 2. 编译 CDM → WFF XML
+    tracker.emit("compiling", 70, "正在编译 WFF XML...")
+    from schema.cdm.models import WatchFaceCDM
+    cdm = WatchFaceCDM(**cdm_dict)
+    compiler = WFFCompiler()
+    wff_xml = compiler.compile(cdm)
+
+    failures = validate_watchface_xml(wff_xml)
+    errors = [f for f in failures if f["severity"] == "error"]
+    if errors:
+        tracker.emit("failed", 100, f"WFF 校验失败: {len(errors)} 个错误")
+        return {
+            "task_id": task_id,
+            "status": "failed",
+            "error": f"WFF validation failed: {errors[0]['detail']}",
+            "cdm": cdm_dict,
+        }
+
+    tracker.emit("compiled", 80, "WFF XML 校验通过")
+
+    # 3. 构建 APK
+    tracker.emit("building_apk", 85, "正在构建 APK...")
+
+    try:
+        from api.services.preview_renderer import render_preview
+
+        project_dir = APK_OUTPUT_DIR / task_id
+        project_dir.mkdir(exist_ok=True)
+
+        (project_dir / "watchface.xml").write_text(wff_xml, encoding="utf-8")
+        render_preview(project_dir / "preview.png", cdm)
+
+        import yaml
+        config = {
+            "package_name": cdm.metadata.package_name,
+            "version_code": cdm.metadata.version_code,
+            "version_name": cdm.metadata.version_name,
+            "watch_face_name": cdm.metadata.name,
+            "wff_version": 1,
+        }
+        with open(project_dir / "project.yaml", "w") as f:
+            yaml.dump(config, f)
+
+        builder = WFFBuilder(str(project_dir), verbose=False)
+        apk_path = builder.build()
+
+        safe_name = cdm.metadata.name.replace(" ", "_").lower()
+        final_apk = APK_OUTPUT_DIR / f"{safe_name}-{task_id}.apk"
+        shutil.copy2(apk_path, final_apk)
+        shutil.rmtree(project_dir, ignore_errors=True)
+
+        tracker.emit("done", 100, f"构建完成! APK {final_apk.stat().st_size:,} bytes")
+
+        return {
+            "task_id": task_id,
+            "status": "success",
+            "cdm": cdm_dict,
+            "fixes": gen_result["fixes"],
+            "backend": gen_result["backend"],
+            "attempts": gen_result["attempts"],
+            "apk_filename": final_apk.name,
+            "apk_size": final_apk.stat().st_size,
+            "download_url": f"/api/download/{final_apk.name}",
+        }
+
+    except Exception as e:
+        tracker.emit("failed", 100, f"APK 构建失败: {str(e)[:100]}")
+        return {
+            "task_id": task_id,
+            "status": "failed",
+            "error": str(e),
+            "cdm": cdm_dict,
+        }
+
+
+@router.websocket("/ws/{task_id}")
+async def websocket_progress(websocket: WebSocket, task_id: str):
+    """WebSocket 实时推送生成进度"""
+    await websocket.accept()
+
+    # 发送已有历史
+    history = _progress_store.get(task_id, [])
+    for event in history:
+        await websocket.send_json(event)
+
+    # 如果已完成, 关闭连接
+    if history and history[-1]["stage"] in ("done", "failed"):
+        await websocket.close()
+        return
+
+    # 轮询新事件
+    last_index = len(history)
+    try:
+        while True:
+            await asyncio.sleep(0.5)
+            events = _progress_store.get(task_id, [])
+            while last_index < len(events):
+                await websocket.send_json(events[last_index])
+                last_index += 1
+
+            if events and events[-1]["stage"] in ("done", "failed"):
+                break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await websocket.close()
