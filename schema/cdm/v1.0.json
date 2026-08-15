@@ -1,0 +1,480 @@
+{
+  "$defs": {
+    "AnalogTime": {
+      "description": "模拟时间显示 (指针表盘)",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "center_x": {
+          "default": 225,
+          "maximum": 450,
+          "minimum": 0,
+          "title": "Center X",
+          "type": "integer"
+        },
+        "center_y": {
+          "default": 225,
+          "maximum": 450,
+          "minimum": 0,
+          "title": "Center Y",
+          "type": "integer"
+        },
+        "hour_hand_color": {
+          "default": "#ffffffff",
+          "pattern": "^#[0-9a-fA-F]{8}$",
+          "title": "Hour Hand Color",
+          "type": "string"
+        },
+        "minute_hand_color": {
+          "default": "#ff00F5FF",
+          "pattern": "^#[0-9a-fA-F]{8}$",
+          "title": "Minute Hand Color",
+          "type": "string"
+        },
+        "second_hand_color": {
+          "default": "#ffFF6B6B",
+          "pattern": "^#[0-9a-fA-F]{8}$",
+          "title": "Second Hand Color",
+          "type": "string"
+        },
+        "hour_hand_length": {
+          "default": 120,
+          "maximum": 200,
+          "minimum": 10,
+          "title": "Hour Hand Length",
+          "type": "integer"
+        },
+        "minute_hand_length": {
+          "default": 160,
+          "maximum": 200,
+          "minimum": 10,
+          "title": "Minute Hand Length",
+          "type": "integer"
+        },
+        "second_hand_length": {
+          "default": 180,
+          "maximum": 200,
+          "minimum": 10,
+          "title": "Second Hand Length",
+          "type": "integer"
+        }
+      },
+      "title": "AnalogTime",
+      "type": "object"
+    },
+    "Background": {
+      "description": "背景层",
+      "properties": {
+        "type": {
+          "default": "solid",
+          "description": "背景类型: solid | gradient | image",
+          "title": "Type",
+          "type": "string"
+        },
+        "color": {
+          "default": "#ff000000",
+          "description": "纯色背景颜色",
+          "pattern": "^#[0-9a-fA-F]{8}$",
+          "title": "Color",
+          "type": "string"
+        },
+        "gradient_start": {
+          "anyOf": [
+            {
+              "pattern": "^#[0-9a-fA-F]{8}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "渐变起始色",
+          "title": "Gradient Start"
+        },
+        "gradient_end": {
+          "anyOf": [
+            {
+              "pattern": "^#[0-9a-fA-F]{8}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "渐变结束色",
+          "title": "Gradient End"
+        },
+        "image_resource": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "背景图片资源名",
+          "title": "Image Resource"
+        }
+      },
+      "title": "Background",
+      "type": "object"
+    },
+    "ClockType": {
+      "enum": [
+        "DIGITAL",
+        "ANALOG"
+      ],
+      "title": "ClockType",
+      "type": "string"
+    },
+    "ComplicationSlot": {
+      "description": "并发复杂功能槽位",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "slot_type": {
+          "default": "SHORT_TEXT",
+          "description": "SHORT_TEXT | LONG_TEXT | RANGED_VALUE | ICON",
+          "title": "Slot Type",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        },
+        "tint_color": {
+          "default": "#ffffffff",
+          "pattern": "^#[0-9a-fA-F]{8}$",
+          "title": "Tint Color",
+          "type": "string"
+        }
+      },
+      "title": "ComplicationSlot",
+      "type": "object"
+    },
+    "DataSource": {
+      "description": "已验证的 WFF 数据源表达式\n\nCDM 中用简写名 (如 MONTH), 编译器自动加方括号变为 [MONTH]。",
+      "enum": [
+        "HOUR_0_23",
+        "HOUR_1_12",
+        "MINUTE_Z",
+        "SECOND_Z",
+        "AMPM_STRING",
+        "DAY",
+        "DAY_Z",
+        "DAY_OF_WEEK_S",
+        "MONTH",
+        "MONTH_S",
+        "YEAR",
+        "BATTERY_PERCENT",
+        "HEART_RATE"
+      ],
+      "title": "DataSource",
+      "type": "string"
+    },
+    "DateDisplay": {
+      "description": "日期显示",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "format": {
+          "default": "%s/%s",
+          "description": "日期格式模板, 使用 %s 占位",
+          "title": "Format",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        },
+        "font": {
+          "$ref": "#/$defs/FontStyle"
+        },
+        "align": {
+          "$ref": "#/$defs/HorizontalAlign",
+          "default": "CENTER"
+        },
+        "params": {
+          "description": "日期参数数据源",
+          "items": {
+            "$ref": "#/$defs/DataSource"
+          },
+          "title": "Params",
+          "type": "array"
+        }
+      },
+      "title": "DateDisplay",
+      "type": "object"
+    },
+    "DigitalTime": {
+      "description": "数字时间显示",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "format": {
+          "default": "HH:mm",
+          "description": "时间格式: HH:mm / hh:mm / HH:mm:ss",
+          "title": "Format",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        },
+        "font": {
+          "$ref": "#/$defs/FontStyle"
+        },
+        "align": {
+          "$ref": "#/$defs/HorizontalAlign",
+          "default": "CENTER"
+        },
+        "ambient_color": {
+          "default": "#ff888888",
+          "description": "暗屏颜色",
+          "pattern": "^#[0-9a-fA-F]{8}$",
+          "title": "Ambient Color",
+          "type": "string"
+        }
+      },
+      "title": "DigitalTime",
+      "type": "object"
+    },
+    "FontStyle": {
+      "description": "字体配置",
+      "properties": {
+        "family": {
+          "default": "SYNC_TO_DEVICE",
+          "description": "字体族, 默认同步设备",
+          "title": "Family",
+          "type": "string"
+        },
+        "size": {
+          "default": 48,
+          "description": "字号",
+          "maximum": 200,
+          "minimum": 8,
+          "title": "Size",
+          "type": "integer"
+        },
+        "weight": {
+          "$ref": "#/$defs/FontWeight",
+          "default": "NORMAL"
+        },
+        "color": {
+          "default": "#ffffffff",
+          "description": "8位 ARGB 颜色, 如 #ff00F5FF",
+          "pattern": "^#[0-9a-fA-F]{8}$",
+          "title": "Color",
+          "type": "string"
+        }
+      },
+      "title": "FontStyle",
+      "type": "object"
+    },
+    "FontWeight": {
+      "enum": [
+        "THIN",
+        "NORMAL",
+        "BOLD"
+      ],
+      "title": "FontWeight",
+      "type": "string"
+    },
+    "HorizontalAlign": {
+      "enum": [
+        "LEFT",
+        "CENTER",
+        "RIGHT"
+      ],
+      "title": "HorizontalAlign",
+      "type": "string"
+    },
+    "InfoLine": {
+      "description": "信息行 (电量/心率等)",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "label": {
+          "default": "BAT",
+          "description": "前缀标签, 如 BAT/HR",
+          "title": "Label",
+          "type": "string"
+        },
+        "data_source": {
+          "$ref": "#/$defs/DataSource",
+          "default": "BATTERY_PERCENT"
+        },
+        "suffix": {
+          "default": "%%",
+          "description": "后缀, %% 表示百分号",
+          "title": "Suffix",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        },
+        "font": {
+          "$ref": "#/$defs/FontStyle"
+        },
+        "align": {
+          "$ref": "#/$defs/HorizontalAlign",
+          "default": "CENTER"
+        }
+      },
+      "title": "InfoLine",
+      "type": "object"
+    },
+    "Position": {
+      "description": "元素位置和尺寸 (WFF 画布 450x450)",
+      "properties": {
+        "x": {
+          "default": 0,
+          "description": "X 坐标",
+          "maximum": 450,
+          "minimum": 0,
+          "title": "X",
+          "type": "integer"
+        },
+        "y": {
+          "default": 0,
+          "description": "Y 坐标",
+          "maximum": 450,
+          "minimum": 0,
+          "title": "Y",
+          "type": "integer"
+        },
+        "width": {
+          "default": 450,
+          "description": "宽度",
+          "maximum": 450,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "default": 50,
+          "description": "高度",
+          "maximum": 450,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        }
+      },
+      "title": "Position",
+      "type": "object"
+    },
+    "WatchFaceMetadata": {
+      "description": "表盘元信息",
+      "properties": {
+        "name": {
+          "description": "表盘名称",
+          "maxLength": 50,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "package_name": {
+          "description": "Android 包名, 如 com.example.mywatch",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+          "title": "Package Name",
+          "type": "string"
+        },
+        "version_code": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Version Code",
+          "type": "integer"
+        },
+        "version_name": {
+          "default": "1.0.0",
+          "title": "Version Name",
+          "type": "string"
+        },
+        "author": {
+          "default": "WatchFace Forge",
+          "description": "作者/生成来源",
+          "title": "Author",
+          "type": "string"
+        },
+        "preview_time": {
+          "default": "10:08:32",
+          "description": "预览图显示时间",
+          "title": "Preview Time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "package_name"
+      ],
+      "title": "WatchFaceMetadata",
+      "type": "object"
+    }
+  },
+  "description": "表盘设计 CDM 模型 — AI 生成的目标格式",
+  "properties": {
+    "schema_version": {
+      "default": "1.0",
+      "description": "CDM 版本号",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "metadata": {
+      "$ref": "#/$defs/WatchFaceMetadata"
+    },
+    "clock_type": {
+      "$ref": "#/$defs/ClockType",
+      "default": "DIGITAL"
+    },
+    "background": {
+      "$ref": "#/$defs/Background"
+    },
+    "digital_time": {
+      "$ref": "#/$defs/DigitalTime"
+    },
+    "analog_time": {
+      "$ref": "#/$defs/AnalogTime"
+    },
+    "date_display": {
+      "$ref": "#/$defs/DateDisplay"
+    },
+    "info_line": {
+      "$ref": "#/$defs/InfoLine"
+    },
+    "complications": {
+      "items": {
+        "$ref": "#/$defs/ComplicationSlot"
+      },
+      "maxItems": 4,
+      "title": "Complications",
+      "type": "array"
+    },
+    "ambient_dim_mode": {
+      "default": true,
+      "description": "暗屏是否降低亮度",
+      "title": "Ambient Dim Mode",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "metadata"
+  ],
+  "title": "WatchFaceCDM",
+  "type": "object"
+}
