@@ -1,0 +1,21 @@
+# WatchFace Forge — Python 依赖
+# Python >= 3.9 (DevSpace: 3.9.9 / 本地: 3.12)
+
+# Web 框架
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+
+# 异步任务队列 (Phase 3)
+celery[redis]>=5.3
+redis>=5.0
+flower>=2.0
+
+# 图像处理 (Phase 3 — Pillow 抠图方案, 替代 rembg)
+Pillow>=10.2
+
+# 二维码 (APK 下载页)
+qrcode>=7.4
+
+# 配置
+PyYAML>=6.0
