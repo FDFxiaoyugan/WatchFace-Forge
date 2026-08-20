@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import TemplateGallery from "@/components/TemplateGallery";
 import PromptInput from "@/components/PromptInput";
 
@@ -21,6 +22,7 @@ interface GenerateResult {
 
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>("templates");
+  const router = useRouter();
 
   return (
     <main className="container mx-auto max-w-4xl px-4 py-12">
@@ -32,6 +34,12 @@ export default function HomePage() {
         <p className="text-forge-muted text-lg">
           AI 驱动的 Wear OS 表盘生成平台
         </p>
+        <button
+          onClick={() => router.push("/editor")}
+          className="mt-4 px-5 py-2 rounded-lg border border-forge-accent text-forge-accent hover:bg-forge-accent/10 transition-all text-sm font-medium"
+        >
+          🎨 打开可视化编辑器
+        </button>
       </div>
 
       {/* Tab Switch */}
@@ -63,7 +71,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="mt-16 text-center text-forge-muted text-sm">
-        <p>Phase 2 — AI 接入 · 自然语言生成闭环</p>
+        <p>Phase 3 — 可视化编辑 · Fabric.js + Celery 异步管线</p>
       </footer>
     </main>
   );

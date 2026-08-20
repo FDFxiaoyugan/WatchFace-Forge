@@ -8,13 +8,20 @@ Phase 1 端点:
   POST /api/build               — CDM → WFF XML → APK
   GET  /api/download/{task_id}  — 下载 APK
   GET  /api/health              — 健康检查
+Phase 3 新增端点:
+  POST /api/editor/image/process — 图片异步处理 (抠图/裁剪/压缩)
+  POST /api/editor/image/upload  — 图片同步快速处理
+  GET  /api/editor/task/{id}     — 异步任务状态查询
+  GET  /api/editor/cdm/{task_id} — 获取生成任务 CDM (编辑器导入)
+  POST /api/editor/cdm/validate  — CDM 实时校验
+  GET  /api/editor/queue/info    — Celery 队列拓扑
 """
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from api.routes import templates, compile as compile_route, build, health, qrcode, generate
+from api.routes import templates, compile as compile_route, build, health, qrcode, generate, editor
 from api.routes.error_handlers import validation_exception_handler, general_exception_handler
 
 app = FastAPI(
@@ -43,6 +50,7 @@ app.include_router(compile_route.router, prefix="/api", tags=["compile"])
 app.include_router(build.router, prefix="/api", tags=["build"])
 app.include_router(qrcode.router, prefix="/api", tags=["qrcode"])
 app.include_router(generate.router, prefix="/api", tags=["generate"])
+app.include_router(editor.router, prefix="/api/editor", tags=["editor"])
 
 
 @app.get("/")
