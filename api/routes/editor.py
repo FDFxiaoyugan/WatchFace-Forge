@@ -206,8 +206,9 @@ async def validate_cdm(req: CDMValidateRequest):
         return CDMValidateResponse(valid=False, errors=errors, warnings=warnings)
 
     # 语义级 warning
-    if cdm.clock_type == ClockType.ANALOG and not cdm.analog_time.hands:
-        warnings.append("ANALOG 表盘未配置表针")
+    if cdm.clock_type == ClockType.ANALOG and cdm.analog_time.enabled:
+        if cdm.analog_time.hour_hand_length > cdm.analog_time.minute_hand_length:
+            warnings.append("时针长度大于分针, 视觉上可能违和")
     if cdm.clock_type == ClockType.DIGITAL and cdm.digital_time.enabled:
         if cdm.digital_time.font.size > 120:
             warnings.append("数字时间字号超过 120, 可能超出画布")
