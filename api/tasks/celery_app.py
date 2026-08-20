@@ -63,6 +63,11 @@ celery_app.conf.update(
 )
 
 
+# 设为当前进程默认 app — 保证 shared_task 绑定到本 app (redis broker)
+# 否则独立导入 api.tasks.tasks 时 shared_task 会落到默认 amqp:// app
+celery_app.set_default()
+
+
 def get_queue_info() -> dict:
     """返回队列拓扑信息 (供健康检查/文档)"""
     return {

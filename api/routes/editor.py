@@ -69,8 +69,9 @@ async def process_image(req: ImageProcessRequest):
         }
         async_result = process_image_task.delay(req.image_b64, options)
         return {"success": True, "task_id": async_result.id, "queue": "image"}
-    except ImportError:
-        # celery/redis 不可用时降级为同步处理
+    except Exception:
+        # celery 不可用/broker 掉线/导入失败 → 降级为同步处理
+        # (kombu OperationalError / ConnectionRefusedError / ImportError 统一走此路径)
         from api.services.image.processor import ProcessOptions, process_image
         try:
             raw = base64.b64decode(req.image_b64)
@@ -102,8 +103,6 @@ async def process_image(req: ImageProcessRequest):
             raise
         except Exception as e:
             raise HTTPException(500, f"image process failed: {e}")
-    except Exception as e:
-        raise HTTPException(500, f"submit failed: {e}")
 
 
 @router.post("/image/upload")
