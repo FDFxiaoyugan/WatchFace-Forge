@@ -5,6 +5,7 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
 pydantic>=2.6
+python-multipart>=0.0.9
 
 # 异步任务队列 (Phase 3)
 celery[redis]>=5.3
