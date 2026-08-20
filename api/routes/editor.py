@@ -193,7 +193,7 @@ async def get_cdm(task_id: str):
 @router.post("/cdm/validate", response_model=CDMValidateResponse)
 async def validate_cdm(req: CDMValidateRequest):
     """校验 CDM (编辑器实时校验 + 导出前校验)"""
-    from schema.cdm.models import WatchFaceCDM
+    from schema.cdm.models import WatchFaceCDM, ClockType
     from pydantic import ValidationError
 
     errors, warnings = [], []
@@ -206,10 +206,11 @@ async def validate_cdm(req: CDMValidateRequest):
         return CDMValidateResponse(valid=False, errors=errors, warnings=warnings)
 
     # 语义级 warning
-    if cdm.clock_type == cdm.ClockType.ANALOG and not cdm.analog_time.hands:
+    if cdm.clock_type == ClockType.ANALOG and not cdm.analog_time.hands:
         warnings.append("ANALOG 表盘未配置表针")
-    if not cdm.time.text_config and cdm.clock_type == cdm.ClockType.DIGITAL:
-        warnings.append("DIGITAL 表盘未配置文本样式")
+    if cdm.clock_type == ClockType.DIGITAL and cdm.digital_time.enabled:
+        if cdm.digital_time.font.size > 120:
+            warnings.append("数字时间字号超过 120, 可能超出画布")
     if len(cdm.complications) > 4:
         warnings.append("complications 超过 4 个, WFF 最多支持 4 个")
 
