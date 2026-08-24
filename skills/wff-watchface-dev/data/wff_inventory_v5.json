@@ -1,0 +1,4812 @@
+{
+  "spec_version": 5,
+  "spec_path": "/home/z/my-project/tools/google-watchface/watchface/third_party/wff/specification/documents/5",
+  "total_xsd_files": 99,
+  "total_elements": 90,
+  "total_enums": 29,
+  "elements": {
+    "AnalogClock": {
+      "name": "AnalogClock",
+      "doc": "AnalogClock is a container that represents a traditional clock with\n        rotating hands.",
+      "attributes": [
+        {
+          "name": "angle",
+          "type": "angleType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "scaleX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "scaleY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "renderMode",
+          "type": "renderModeType",
+          "use": "optional",
+          "default": "SOURCE",
+          "doc": ""
+        },
+        {
+          "name": "tintColor",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "HourHand",
+          "min_occurs": "0",
+          "max_occurs": "2"
+        },
+        {
+          "ref": "MinuteHand",
+          "min_occurs": "0",
+          "max_occurs": "2"
+        },
+        {
+          "ref": "SecondHand",
+          "min_occurs": "0",
+          "max_occurs": "2"
+        },
+        {
+          "ref": "Localization",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Variant",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "clock/analogClock.xsd"
+    },
+    "AnimatableImageElement": {
+      "name": "AnimatableImageElement",
+      "doc": "",
+      "attributes": [],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/animatedImage/partAnimatedImageElement.xsd"
+    },
+    "AnimatedImage": {
+      "name": "AnimatedImage",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "resource",
+          "type": "resourcePathType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "format",
+          "type": null,
+          "use": "required",
+          "default": null,
+          "doc": "",
+          "enum": [
+            "IMAGE",
+            "AGIF",
+            "WEBP"
+          ]
+        },
+        {
+          "name": "thumbnail",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/animatedImage/animatedImageElement.xsd"
+    },
+    "AnimatedImages": {
+      "name": "AnimatedImages",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "changeDirection",
+          "type": "directionType",
+          "use": "optional",
+          "default": "FORWARD",
+          "doc": ""
+        },
+        {
+          "name": "change",
+          "type": "eventTriggerListType",
+          "use": "optional",
+          "default": "TAP",
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "AnimatedImage",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "SequenceImages",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/animatedImage/animatedImagesElement.xsd"
+    },
+    "Animation": {
+      "name": "Animation",
+      "doc": "Animation for parent element.\n        Use \"ANIMATION_VALUE\" from the parent element's arithmetic attribute.",
+      "attributes": [
+        {
+          "name": "interpolation",
+          "type": null,
+          "use": "optional",
+          "default": "LINEAR",
+          "doc": "Interpolation method. Default is linear.",
+          "enum": [
+            "LINEAR",
+            "EASE_IN",
+            "EASE_OUT",
+            "EASE_IN_OUT",
+            "OVERSHOOT",
+            "CUBIC_BEZIER"
+          ]
+        },
+        {
+          "name": "controls",
+          "type": "vector4fType",
+          "use": "optional",
+          "default": "0.5 0.5 0.5 0.5",
+          "doc": ""
+        },
+        {
+          "name": "angleDirection",
+          "type": null,
+          "use": "optional",
+          "default": "NONE",
+          "doc": "",
+          "enum": [
+            "NONE",
+            "CLOCKWISE",
+            "COUNTER_CLOCKWISE"
+          ]
+        },
+        {
+          "name": "repeat",
+          "type": null,
+          "use": "optional",
+          "default": "0",
+          "doc": "Sets how many times the animation should be repeated. If the repeat\n            count is 0, the animation is never repeated. If the repeat count is\n            -1 then the animation will loop indefinitely.\n            The repeat count is 0 by default."
+        },
+        {
+          "name": "fps",
+          "type": "xs:int",
+          "use": "optional",
+          "default": "15",
+          "doc": ""
+        },
+        {
+          "name": "duration",
+          "type": "nonNegativeFloatType",
+          "use": "required",
+          "default": null,
+          "doc": "Duration in seconds"
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "common/animationElement.xsd"
+    },
+    "AnimationController": {
+      "name": "AnimationController",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "play",
+          "type": "eventTriggerListType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "delayPlay",
+          "type": "nonNegativeFloatType",
+          "use": "optional",
+          "default": "0",
+          "doc": ""
+        },
+        {
+          "name": "delayRepeat",
+          "type": "nonNegativeFloatType",
+          "use": "optional",
+          "default": "0",
+          "doc": ""
+        },
+        {
+          "name": "repeat",
+          "type": "booleanType",
+          "use": "optional",
+          "default": "FALSE",
+          "doc": ""
+        },
+        {
+          "name": "loopCount",
+          "type": "xs:nonNegativeInteger",
+          "use": "optional",
+          "default": "1",
+          "doc": ""
+        },
+        {
+          "name": "resumePlayBack",
+          "type": "booleanType",
+          "use": "optional",
+          "default": "FALSE",
+          "doc": ""
+        },
+        {
+          "name": "beforePlaying",
+          "type": "frameOptionType",
+          "use": "optional",
+          "default": "DO_NOTHING",
+          "doc": ""
+        },
+        {
+          "name": "afterPlaying",
+          "type": "frameOptionType",
+          "use": "optional",
+          "default": "DO_NOTHING",
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/animatedImage/animationControllerElement.xsd"
+    },
+    "Arc": {
+      "name": "Arc",
+      "doc": "Draw arc line with given bound. Center point of arc is the center of the bounds.\n        Angle is given in degrees with 0 indicating 12 o'clock.",
+      "attributes": [
+        {
+          "name": "centerX",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "centerY",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "width",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "height",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "direction",
+          "type": null,
+          "use": "optional",
+          "default": "CLOCKWISE",
+          "doc": "",
+          "enum": [
+            "CLOCKWISE",
+            "COUNTER_CLOCKWISE"
+          ]
+        }
+      ],
+      "children": [
+        {
+          "ref": "Stroke",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "WeightedStroke",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Transform",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/shape/arcElement.xsd"
+    },
+    "BitmapFont": {
+      "name": "BitmapFont",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Character",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Word",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "bitmapFontsElement.xsd"
+    },
+    "BitmapFonts": {
+      "name": "BitmapFonts",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "BitmapFont",
+          "min_occurs": "1",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Character",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Word",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "bitmapFontsElement.xsd"
+    },
+    "BooleanConfiguration": {
+      "name": "BooleanConfiguration",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "booleanType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "BooleanOption",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Group",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Condition",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "AnalogClock",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "DigitalClock",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/groupElement.xsd"
+    },
+    "BooleanOption": {
+      "name": "BooleanOption",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "booleanType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Group",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Condition",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "AnalogClock",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "DigitalClock",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "userConfiguration/booleanConfigurationElement.xsd"
+    },
+    "BoundingArc": {
+      "name": "BoundingArc",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "centerX",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "centerY",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "width",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "height",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "thickness",
+          "type": "nonNegativeFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "isRoundEdge",
+          "type": "booleanType",
+          "use": "optional",
+          "default": "FALSE",
+          "doc": ""
+        },
+        {
+          "name": "outlinePadding",
+          "type": "nonNegativeFloatType",
+          "use": "optional",
+          "default": "0",
+          "doc": ""
+        },
+        {
+          "name": "direction",
+          "type": null,
+          "use": "optional",
+          "default": "CLOCKWISE",
+          "doc": "",
+          "enum": [
+            "CLOCKWISE",
+            "COUNTER_CLOCKWISE"
+          ]
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "complication/boundingElement.xsd"
+    },
+    "BoundingBox": {
+      "name": "BoundingBox",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "outlinePadding",
+          "type": "nonNegativeFloatType",
+          "use": "optional",
+          "default": "0",
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "complication/boundingElement.xsd"
+    },
+    "BoundingOval": {
+      "name": "BoundingOval",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "outlinePadding",
+          "type": "nonNegativeFloatType",
+          "use": "optional",
+          "default": "0",
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "complication/boundingElement.xsd"
+    },
+    "BoundingRoundBox": {
+      "name": "BoundingRoundBox",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "cornerRadius",
+          "type": "xs:float",
+          "use": "optional",
+          "default": "0",
+          "doc": ""
+        },
+        {
+          "name": "outlinePadding",
+          "type": "nonNegativeFloatType",
+          "use": "optional",
+          "default": "0",
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "complication/boundingElement.xsd"
+    },
+    "BoundingShape": {
+      "name": "BoundingShape",
+      "doc": "",
+      "attributes": [],
+      "children": [],
+      "type": null,
+      "defined_in": "complication/boundingElement.xsd"
+    },
+    "Character": {
+      "name": "Character",
+      "doc": "",
+      "attributes": [],
+      "children": [],
+      "type": "_characterBitmapImportDataType",
+      "defined_in": "bitmapFontsElement.xsd"
+    },
+    "ColorConfiguration": {
+      "name": "ColorConfiguration",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "ColorOption",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Group",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "userConfiguration/colorConfigurationElement.xsd"
+    },
+    "ColorOption": {
+      "name": "ColorOption",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Group",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "userConfiguration/colorConfigurationElement.xsd"
+    },
+    "Compare": {
+      "name": "Compare",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "expression",
+          "type": "arithmeticExpressionType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "common/conditionElement.xsd"
+    },
+    "Complication": {
+      "name": "Complication",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "type",
+          "type": "complicationType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Group",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Condition",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "complication/complicationElement.xsd"
+    },
+    "ComplicationSlot": {
+      "name": "ComplicationSlot",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "angle",
+          "type": "angleType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "scaleX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "scaleY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "tintColor",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "slotId",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "supportedTypes",
+          "type": "complicationListType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "displayName",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "isCustomizable",
+          "type": "booleanType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "blendMode",
+          "type": "blendModeType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "DefaultProviderPolicy",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "BoundingShape",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Complication",
+          "min_occurs": "1",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Variant",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "ScreenReader",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "complication/complicationSlotElement.xsd"
+    },
+    "Condition": {
+      "name": "Condition",
+      "doc": "The Condition element provides the ability to provide a list of options - Compare\n        Elements - each of which is evaluated against an expression, in turn. Only the first\n        successful Compare element is selected, the others are not rendered or enabled.\n        If none of the Compare elements evaluate successfully, the Default Element is shown.",
+      "attributes": [
+        {
+          "name": "expression",
+          "type": "arithmeticExpressionType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Expressions",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Compare",
+          "min_occurs": "1",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Default",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "common/conditionElement.xsd"
+    },
+    "Configuration": {
+      "name": "Configuration",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": "Identifier of the configuration. It must be the ID that is present in a\n                      configuration within UserConfiguration tag."
+        },
+        {
+          "name": "optionId",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": "Identifier of the option. It must be one of the options present in the\n                      configuration specified as id."
+        },
+        {
+          "name": "screenReaderText",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "Description text to be read by screen reader for accessibility. It is\n                      recommended to use string resource id for localization."
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "userConfiguration/flavorElement.xsd"
+    },
+    "Default": {
+      "name": "Default",
+      "doc": "The Default element is enabled when no Compare element evaluates successfully.",
+      "attributes": [],
+      "children": [],
+      "type": null,
+      "defined_in": "common/conditionElement.xsd"
+    },
+    "DefaultProviderPolicy": {
+      "name": "DefaultProviderPolicy",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "defaultSystemProvider",
+          "type": "defaultProviderType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "defaultSystemProviderType",
+          "type": "complicationType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "primaryProvider",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "primaryProviderType",
+          "type": "complicationType",
+          "use": "optional",
+          "default": "EMPTY",
+          "doc": ""
+        },
+        {
+          "name": "secondaryProvider",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "secondaryProviderType",
+          "type": "complicationType",
+          "use": "optional",
+          "default": "EMPTY",
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "complication/complicationSlotElement.xsd"
+    },
+    "DigitalClock": {
+      "name": "DigitalClock",
+      "doc": "DigitalClock is a container for text-based formatted time.",
+      "attributes": [
+        {
+          "name": "angle",
+          "type": "angleType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "scaleX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "scaleY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "renderMode",
+          "type": "renderModeType",
+          "use": "optional",
+          "default": "SOURCE",
+          "doc": ""
+        },
+        {
+          "name": "tintColor",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Localization",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Variant",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "TimeText",
+          "min_occurs": "1",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "clock/digitalClock.xsd"
+    },
+    "DrawElement": {
+      "name": "DrawElement",
+      "doc": "",
+      "attributes": [],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/draw/partDrawElement.xsd"
+    },
+    "Ellipse": {
+      "name": "Ellipse",
+      "doc": "Draw (fill or stroke) ellipse shape with given bound.",
+      "attributes": [
+        {
+          "name": "x",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "y",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "width",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "height",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Stroke",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Fill",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Transform",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/shape/ellipseElement.xsd"
+    },
+    "Expression": {
+      "name": "Expression",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "common/expressionsElement.xsd"
+    },
+    "Expressions": {
+      "name": "Expressions",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Expression",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "common/conditionElement.xsd"
+    },
+    "Fill": {
+      "name": "Fill",
+      "doc": "Element with an attribute about fill color. It supports gradient colors with a child element,\n        LinearGradient, RadialGradient or SweepGradient. If more than one gradient is added, the\n        gradient added at the last is only valid.",
+      "attributes": [
+        {
+          "name": "color",
+          "type": "colorAttributeType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "LinearGradient",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "RadialGradient",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "SweepGradient",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/shape/ellipseElement.xsd"
+    },
+    "Flavor": {
+      "name": "Flavor",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": "Identifier of the configuration. It must be the ID that is present in a\n                      configuration within UserConfiguration tag."
+        },
+        {
+          "name": "optionId",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": "Identifier of the option. It must be one of the options present in the\n                      configuration specified as id."
+        },
+        {
+          "name": "screenReaderText",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "Description text to be read by screen reader for accessibility. It is\n                      recommended to use string resource id for localization."
+        },
+        {
+          "name": "slotId",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": "Identifier of the complication slot. It must be one of the ComplicationSlots\n                      present in the Scene tag."
+        }
+      ],
+      "children": [
+        {
+          "ref": "Configuration",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "ComplicationSlot",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "DefaultProviderPolicy",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "userConfiguration/flavorElement.xsd"
+    },
+    "Flavors": {
+      "name": "Flavors",
+      "doc": "",
+      "attributes": [],
+      "children": [
+        {
+          "ref": "Flavor",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "userConfiguration/userConfigurationsElement.xsd"
+    },
+    "Font": {
+      "name": "Font",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "family",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "size",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "color",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": "#FFFFFF",
+          "doc": ""
+        },
+        {
+          "name": "slant",
+          "type": null,
+          "use": "optional",
+          "default": "NORMAL",
+          "doc": "",
+          "enum": [
+            "NORMAL",
+            "ITALIC"
+          ]
+        },
+        {
+          "name": "width",
+          "type": null,
+          "use": "optional",
+          "default": "NORMAL",
+          "doc": "",
+          "enum": [
+            "ULTRA_CONDENSED",
+            "EXTRA_CONDENSED",
+            "CONDENSED",
+            "SEMI_CONDENSED",
+            "NORMAL",
+            "SEMI_EXPANDED",
+            "EXPANDED",
+            "EXTRA_EXPANDED",
+            "ULTRA_EXPANDED"
+          ]
+        },
+        {
+          "name": "weight",
+          "type": null,
+          "use": "optional",
+          "default": "NORMAL",
+          "doc": "",
+          "enum": [
+            "THIN",
+            "ULTRA_LIGHT",
+            "EXTRA_LIGHT",
+            "LIGHT",
+            "NORMAL",
+            "MEDIUM",
+            "SEMI_BOLD",
+            "BOLD",
+            "ULTRA_BOLD",
+            "EXTRA_BOLD",
+            "BLACK",
+            "EXTRA_BLACK"
+          ]
+        }
+      ],
+      "children": [
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "clock/timeText.xsd"
+    },
+    "Group": {
+      "name": "Group",
+      "doc": "The Group element contains other groups or parts as children.\n        This is an important node in the scene graph that lays out the components on the scene.\n        The group does not have the ability to draw on its own, but it affects the position, size,\n        angle or color of the child hierarchies.",
+      "attributes": [
+        {
+          "name": "id",
+          "type": null,
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "name",
+          "type": null,
+          "use": "required",
+          "default": null,
+          "doc": "Name of this group."
+        },
+        {
+          "name": "angle",
+          "type": "angleType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "scaleX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "scaleY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "renderMode",
+          "type": "renderModeType",
+          "use": "optional",
+          "default": "SOURCE",
+          "doc": ""
+        },
+        {
+          "name": "tintColor",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "blendMode",
+          "type": "blendModeType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Localization",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Gyro",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Launch",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Transform",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Variant",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "PartText",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "PartImage",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "PartAnimatedImage",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "PartDraw",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "ScreenReader",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Condition",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "ListConfiguration",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "BooleanConfiguration",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "AnalogClock",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "DigitalClock",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "common/conditionElement.xsd"
+    },
+    "Gyro": {
+      "name": "Gyro",
+      "doc": "The Gyro element adjusts some attributes of the parent Group or Part according to an expression\n        using gyro sensor data source.\n        ex. x=\"(5/90)* clamp([ACCELEROMETER_ANGLE_X], 0, 90) + (-5/-90)* clamp([ACCELEROMETER_ANGLE_X], -90, 0)\"",
+      "attributes": [
+        {
+          "name": "x",
+          "type": "gyroArithmeticExpressionType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "y",
+          "type": "gyroArithmeticExpressionType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "scaleX",
+          "type": "gyroArithmeticExpressionType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "scaleY",
+          "type": "gyroArithmeticExpressionType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "angle",
+          "type": "gyroArithmeticExpressionType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "alpha",
+          "type": "gyroArithmeticExpressionType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "common/transform/gyroElements.xsd"
+    },
+    "HourHand": {
+      "name": "HourHand",
+      "doc": "A image that represents an hour hand, it rotates 360 degree in 12 hours.",
+      "attributes": [
+        {
+          "name": "resource",
+          "type": "resourcePathType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "tintColor",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Variant",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "clock/analogClock.xsd"
+    },
+    "HsbFilter": {
+      "name": "HsbFilter",
+      "doc": "A filter that adjusts pixels by hue, saturate or brightness",
+      "attributes": [
+        {
+          "name": "hueRotate",
+          "type": "angleType",
+          "use": "optional",
+          "default": "0",
+          "doc": ""
+        },
+        {
+          "name": "saturate",
+          "type": "normalizedType",
+          "use": "optional",
+          "default": "1",
+          "doc": ""
+        },
+        {
+          "name": "brightness",
+          "type": "normalizedType",
+          "use": "optional",
+          "default": "1",
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/image/imageFilter/hsbFilterElement.xsd"
+    },
+    "Image": {
+      "name": "Image",
+      "doc": "An element for an image.",
+      "attributes": [
+        {
+          "name": "resource",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": "Drawable id of image resource\n            or\n            Source of image. e.g., Some complications could have a source of image such as ICON,\n            SMALL_IMAGE or LARGE_IMAGE."
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/animatedImage/sequenceImageElement.xsd"
+    },
+    "ImageElement": {
+      "name": "ImageElement",
+      "doc": "",
+      "attributes": [],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/image/partImageElement.xsd"
+    },
+    "ImageFilters": {
+      "name": "ImageFilters",
+      "doc": "ImageFilters is a container for filters that affect the pixels in the bitmap.",
+      "attributes": [],
+      "children": [
+        {
+          "ref": "HsbFilter",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/image/imageFilter/imageFiltersElement.xsd"
+    },
+    "Images": {
+      "name": "Images",
+      "doc": "Images is a container that has a series of image resources.\n        Only one image is shown at a time, and is changed using by tap.",
+      "attributes": [
+        {
+          "name": "change",
+          "type": "eventTriggerListType",
+          "use": "optional",
+          "default": "TAP",
+          "doc": ""
+        },
+        {
+          "name": "changeDirection",
+          "type": "directionType",
+          "use": "optional",
+          "default": "FORWARD",
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Image",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/image/imagesElement.xsd"
+    },
+    "InlineImage": {
+      "name": "InlineImage",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "resource",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "source",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "color",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": "#FFFFFFFF",
+          "doc": ""
+        },
+        {
+          "name": "overlapLeft",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "overlapRight",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/text/formatter/formatterGroup.xsd"
+    },
+    "Launch": {
+      "name": "Launch",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "target",
+          "type": "launchTargetType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "common/launchElement.xsd"
+    },
+    "Line": {
+      "name": "Line",
+      "doc": "Draw line from start point to end point",
+      "attributes": [
+        {
+          "name": "startX",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "startY",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "endX",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "endY",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Stroke",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "WeightedStroke",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Transform",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/shape/lineElement.xsd"
+    },
+    "LinearGradient": {
+      "name": "LinearGradient",
+      "doc": "Set a gradient color consisting of a progressive transition between two or more colors along a straight line",
+      "attributes": [
+        {
+          "name": "startX",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "startY",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "endX",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "endY",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "colors",
+          "type": "colorListType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "positions",
+          "type": "floatListType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/gradient/linearGradientElement.xsd"
+    },
+    "ListConfiguration": {
+      "name": "ListConfiguration",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "ListOption",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Group",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Condition",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "AnalogClock",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "DigitalClock",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/groupElement.xsd"
+    },
+    "ListOption": {
+      "name": "ListOption",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Group",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Condition",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "AnalogClock",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "DigitalClock",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "userConfiguration/listConfigurationElement.xsd"
+    },
+    "Localization": {
+      "name": "Localization",
+      "doc": "The Localization is used to fix the date or time to a specific locale or timezone when\n        a parent node such as a part or group has an action related to the date or time.",
+      "attributes": [
+        {
+          "name": "timeZone",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "timezone\n          e.g., \"Asia/Seoul\" or \"Europe/London\""
+        },
+        {
+          "name": "locales",
+          "type": "stringListType",
+          "use": "optional",
+          "default": null,
+          "doc": "if one of the given locales is matched to the system locale, it uses the matched locale,\n            otherwise, it uses the firstly added locale. If it is empty, it always follows the system\n            locale. e.g., \"ko_KR\" or \"en_US en_GB fr_CH\""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "clock/analogClock.xsd"
+    },
+    "Lower": {
+      "name": "Lower",
+      "doc": "",
+      "attributes": [],
+      "children": [
+        {
+          "ref": "Template",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/text/formatter/formatterGroup.xsd"
+    },
+    "Metadata": {
+      "name": "Metadata",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "key",
+          "type": null,
+          "use": "required",
+          "default": null,
+          "doc": "Any unique key"
+        },
+        {
+          "name": "value",
+          "type": null,
+          "use": "required",
+          "default": null,
+          "doc": "Any value"
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "metadataElement.xsd"
+    },
+    "MinuteHand": {
+      "name": "MinuteHand",
+      "doc": "A image that represent a minute hand, it rotates 360 degree in 1 hour.",
+      "attributes": [
+        {
+          "name": "resource",
+          "type": "resourcePathType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "tintColor",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Variant",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "clock/analogClock.xsd"
+    },
+    "OutGlow": {
+      "name": "OutGlow",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "radius",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "color",
+          "type": "colorAttributeType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/text/decoration/decorationGroup.xsd"
+    },
+    "Outline": {
+      "name": "Outline",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "width",
+          "type": "positiveFloatType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "color",
+          "type": "colorAttributeType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/text/decoration/decorationGroup.xsd"
+    },
+    "Parameter": {
+      "name": "Parameter",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "expression",
+          "type": "arithmeticExpressionType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "common/screenReaderElement.xsd"
+    },
+    "PartAnimatedImage": {
+      "name": "PartAnimatedImage",
+      "doc": "",
+      "attributes": [],
+      "children": [
+        {
+          "ref": "Thumbnail",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "AnimationController",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "AnimatableImageElement",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/groupElement.xsd"
+    },
+    "PartDraw": {
+      "name": "PartDraw",
+      "doc": "PartDraw is element that draws primitive types of figure like line, rect, arc, circle and rounded rectangle.",
+      "attributes": [],
+      "children": [
+        {
+          "ref": "DrawElement",
+          "min_occurs": "1",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/groupElement.xsd"
+    },
+    "PartImage": {
+      "name": "PartImage",
+      "doc": "",
+      "attributes": [],
+      "children": [
+        {
+          "ref": "ImageFilters",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "ImageElement",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/groupElement.xsd"
+    },
+    "PartText": {
+      "name": "PartText",
+      "doc": "",
+      "attributes": [],
+      "children": [
+        {
+          "ref": "TextElement",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/groupElement.xsd"
+    },
+    "Photos": {
+      "name": "Photos",
+      "doc": "An element for photos.",
+      "attributes": [
+        {
+          "name": "source",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": "Source of image. This can only be pointed to a PhotosConfiguration."
+        },
+        {
+          "name": "defaultImageResource",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": "Resource for default image."
+        },
+        {
+          "name": "change",
+          "type": "photoEventTriggerListType",
+          "use": "optional",
+          "default": "TAP",
+          "doc": "Event trigger for changing photos."
+        },
+        {
+          "name": "changeAfterEvery",
+          "type": null,
+          "use": "optional",
+          "default": null,
+          "doc": "Number of times of the change event before the actual change takes place.\n                        Only works with ON_VISIBLE."
+        },
+        {
+          "name": "width",
+          "type": "xs:positiveInteger",
+          "use": "optional",
+          "default": null,
+          "doc": "Size of the crop in pixels (width, height), if any of these are zero,\n                        the original crop (device width, device height) is retained."
+        },
+        {
+          "name": "height",
+          "type": "xs:positiveInteger",
+          "use": "optional",
+          "default": null,
+          "doc": "Size of the crop in pixels (width, height), if any of these are zero,\n                        the original crop (device width, device height) is retained."
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/image/photosElement.xsd"
+    },
+    "PhotosConfiguration": {
+      "name": "PhotosConfiguration",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": "Identifier of the configuration, this must be an unique value."
+        },
+        {
+          "name": "displayName",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "Title of the configuration. This text will be shown in the configuration activity. It is\n                recommended to use string resource id for localization."
+        },
+        {
+          "name": "icon",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "Icon of the configuration, this will be used as an item of option list in the\n                  configuration activity."
+        },
+        {
+          "name": "screenReaderText",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "Description text to be read by screen reader for accessibility. It is recommended to use\n                  string resource id for localization."
+        },
+        {
+          "name": "highlight",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "Highlight image indicating where this configuration changes. Since it will be laid on the\n                watch face preview, some restrictions should be considered:\n                1. Background MUST be transparent.\n                2. It SHOULD be tint-able.\n                3. The content SHOULD show the boundary of a part where will be changed by user style\n                selection.\n           "
+        },
+        {
+          "name": "configType",
+          "type": null,
+          "use": "required",
+          "default": null,
+          "doc": "How the user will select the images on companion (SINGLE, MULTIPLE)",
+          "enum": [
+            "SINGLE",
+            "MULTIPLE"
+          ]
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "userConfiguration/userConfigurationsElement.xsd"
+    },
+    "RadialGradient": {
+      "name": "RadialGradient",
+      "doc": "Set a gradient color consisting of a progressive transition between two or more colors that radiate from an origin",
+      "attributes": [
+        {
+          "name": "centerX",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "centerY",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "radius",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "colors",
+          "type": "colorListType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "positions",
+          "type": "floatListType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/gradient/radialGradientElement.xsd"
+    },
+    "Rectangle": {
+      "name": "Rectangle",
+      "doc": "Draw (fill or stroke) rectangle shape with given bound.",
+      "attributes": [
+        {
+          "name": "x",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "y",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "width",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "height",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Stroke",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Fill",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Transform",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/shape/rectangleElement.xsd"
+    },
+    "Reference": {
+      "name": "Reference",
+      "doc": "Reference is a new element which can be placed under any scene object supporting Transform.\n        Reference allows you to publish Transformable attributes from a source element,\n        which can be consumed as a DataSource in other expressions within your Scene.\n        The element has three attributes: name, source attribute's name and default value.\n\n        \"Reference\" can be referenced in o",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "source",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "defaultValue",
+          "type": "_defaultValueType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "common/reference/referenceElements.xsd"
+    },
+    "RoundRectangle": {
+      "name": "RoundRectangle",
+      "doc": "Draw (fill or stroke) rectangle shape that has rounded corners with given bounds.",
+      "attributes": [
+        {
+          "name": "x",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "y",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "width",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "height",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "cornerRadiusX",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "cornerRadiusY",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Stroke",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Fill",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Transform",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/shape/roundRectangleElement.xsd"
+    },
+    "Scene": {
+      "name": "Scene",
+      "doc": "Scene is a container of Visual tags. A watch face MUST include at least one Scene.",
+      "attributes": [
+        {
+          "name": "backgroundColor",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": null,
+          "doc": "The color of the scene's background.\n            Default value is #ff000000 (Black)."
+        }
+      ],
+      "children": [
+        {
+          "ref": "Group",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "PartText",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "PartImage",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "PartAnimatedImage",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "PartDraw",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Condition",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "ListConfiguration",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "BooleanConfiguration",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Variant",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Transform",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "ComplicationSlot",
+          "min_occurs": "0",
+          "max_occurs": "8"
+        },
+        {
+          "ref": "AnalogClock",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "DigitalClock",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "sceneElement.xsd"
+    },
+    "ScreenReader": {
+      "name": "ScreenReader",
+      "doc": "The user may turn on the talkback screen reader to interact with the watch face\n        with touch and voice feedback. ScreenReader can be attached to any group or\n        part to let user know how they work.",
+      "attributes": [
+        {
+          "name": "expression",
+          "type": "arithmeticExpressionType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "stringId",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Parameter",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "common/screenReaderElement.xsd"
+    },
+    "SecondHand": {
+      "name": "SecondHand",
+      "doc": "A image that represents a second hand, it rotates 360 degree in 1 minute.",
+      "attributes": [
+        {
+          "name": "resource",
+          "type": "resourcePathType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "tintColor",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Variant",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "Sweep",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Tick",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "clock/analogClock.xsd"
+    },
+    "SequenceImages": {
+      "name": "SequenceImages",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "loopCount",
+          "type": "xs:positiveInteger",
+          "use": "optional",
+          "default": "1",
+          "doc": ""
+        },
+        {
+          "name": "thumbnail",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "frameRate",
+          "type": "frameRateRangeType",
+          "use": "optional",
+          "default": "15",
+          "doc": "This allows users to set the speed at which frames included in the SequenceImages should\n            be played. For example, if the frameRate of SequenceImages with 30 images is set to 15,\n            it is animated to show 30 frames in 2 seconds. If the frameRate is set to 30, 30 frames\n            are played during 1 second.\n            This specifies the play speed of the content, and it doesn'"
+        }
+      ],
+      "children": [
+        {
+          "ref": "Image",
+          "min_occurs": "1",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/animatedImage/animatedImagesElement.xsd"
+    },
+    "Shadow": {
+      "name": "Shadow",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "color",
+          "type": "colorAttributeType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "offsetX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "offsetY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "radius",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/text/decoration/decorationGroup.xsd"
+    },
+    "StrikeThrough": {
+      "name": "StrikeThrough",
+      "doc": "",
+      "attributes": [],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/text/decoration/abstractDecorationType.xsd"
+    },
+    "Stroke": {
+      "name": "Stroke",
+      "doc": "Element with attributes for a stroke style. It supports gradient colors with a child element,\n        LinearGradient, RadialGradient or SweepGradient. If more than one gradient is added, the\n        gradient added at the last is only valid.",
+      "attributes": [
+        {
+          "name": "color",
+          "type": "colorAttributeType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "thickness",
+          "type": "nonNegativeFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "dashIntervals",
+          "type": "floatListType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "dashPhase",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "cap",
+          "type": null,
+          "use": "optional",
+          "default": "BUTT",
+          "doc": "",
+          "enum": [
+            "BUTT",
+            "ROUND",
+            "SQUARE"
+          ]
+        },
+        {
+          "name": "join",
+          "type": null,
+          "use": "optional",
+          "default": "MITER",
+          "doc": "The Join specifies the treatment where lines and curve segments join on a stroked path. The default is MITER.",
+          "enum": [
+            "MITER",
+            "ROUND",
+            "BEVEL"
+          ]
+        }
+      ],
+      "children": [
+        {
+          "ref": "LinearGradient",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "RadialGradient",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "SweepGradient",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/shape/arcElement.xsd"
+    },
+    "Sweep": {
+      "name": "Sweep",
+      "doc": "Definition of second hand movement.\n      The angle of the second hand will be updated by the given frequency for one second.\n\n      SYNC_TO_DEVICE means that the angle is updated smoothly as allowed by the device. (Since V2)",
+      "attributes": [
+        {
+          "name": "frequency",
+          "type": null,
+          "use": "required",
+          "default": null,
+          "doc": "",
+          "enum": [
+            "2",
+            "5",
+            "10",
+            "15",
+            "SYNC_TO_DEVICE"
+          ]
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "clock/secondHand.xsd"
+    },
+    "SweepGradient": {
+      "name": "SweepGradient",
+      "doc": "Set a gradient color consisting of a progressive transition between two or more colors that\n        sweep an angle from startAngle to endAngle",
+      "attributes": [
+        {
+          "name": "centerX",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "centerY",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "colors",
+          "type": "colorListType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "positions",
+          "type": "floatListType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "direction",
+          "type": null,
+          "use": "optional",
+          "default": "CLOCKWISE",
+          "doc": "",
+          "enum": [
+            "CLOCKWISE",
+            "COUNTER_CLOCKWISE"
+          ]
+        }
+      ],
+      "children": [
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/gradient/sweepGradientElement.xsd"
+    },
+    "Template": {
+      "name": "Template",
+      "doc": "",
+      "attributes": [],
+      "children": [
+        {
+          "ref": "Parameter",
+          "min_occurs": "1",
+          "max_occurs": "unbounded"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/text/formatter/formatterGroup.xsd"
+    },
+    "Text": {
+      "name": "Text",
+      "doc": "Specifies Plain Text configuration for any text",
+      "attributes": [
+        {
+          "name": "ellipsis",
+          "type": "booleanType",
+          "use": "optional",
+          "default": "FALSE",
+          "doc": ""
+        },
+        {
+          "name": "maxLines",
+          "type": "xs:integer",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "lineSpacing",
+          "type": null,
+          "use": "optional",
+          "default": null,
+          "doc": "Negative spacing is supported, but Restricts the minimum lineSpacing value to -5 to\n            prevent excessive text clipping or inverted rendering issues\n            that may occur with large negative line spacing values"
+        },
+        {
+          "name": "isAutoSize",
+          "type": "booleanType",
+          "use": "optional",
+          "default": "FALSE",
+          "doc": "Whether text auto scale.\n            The min size is 12px and the size will be reduced to prevent the text from overflowing.\n            If used with ellipsis, First, text auto scale is applied.\n            Afterwards, if text is exceeded, ellipsis is applied."
+        }
+      ],
+      "children": [
+        {
+          "ref": "Font",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "BitmapFont",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/text/textElement.xsd"
+    },
+    "TextCircular": {
+      "name": "TextCircular",
+      "doc": "Specifies Circular Text configuration",
+      "attributes": [
+        {
+          "name": "centerX",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "centerY",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "direction",
+          "type": "circularDirectionType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "width",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "height",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "ellipsis",
+          "type": "booleanType",
+          "use": "optional",
+          "default": "FALSE",
+          "doc": ""
+        },
+        {
+          "name": "isAutoSize",
+          "type": "booleanType",
+          "use": "optional",
+          "default": "FALSE",
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Font",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "BitmapFont",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/text/textCircularElement.xsd"
+    },
+    "TextElement": {
+      "name": "TextElement",
+      "doc": "",
+      "attributes": [],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/text/partTextElement.xsd"
+    },
+    "Thumbnail": {
+      "name": "Thumbnail",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "resource",
+          "type": "resourcePathType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/animatedImage/partAnimatedImageElement.xsd"
+    },
+    "Tick": {
+      "name": "Tick",
+      "doc": "Definition of second hand movement. It has 2 attributes below.\n\n        Strength means intensity that exceeded the final value.\n        0.5 : has 125% peek value of the final value.\n        1.0 : has 200% peek value of the final value.\n\n        Duration means how long the animation is interpolated.\n        0.2 :   0 ~ 200 (ms) - interpolated value by given strength and time\n              200 ~ 800",
+      "attributes": [
+        {
+          "name": "strength",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "duration",
+          "type": "xs:float",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "clock/secondHand.xsd"
+    },
+    "TimeText": {
+      "name": "TimeText",
+      "doc": "TimeText renders the time within the DigitalClock container.",
+      "attributes": [
+        {
+          "name": "family",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "size",
+          "type": "positiveFloatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "color",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": "#FFFFFF",
+          "doc": ""
+        },
+        {
+          "name": "slant",
+          "type": null,
+          "use": "optional",
+          "default": "NORMAL",
+          "doc": "",
+          "enum": [
+            "NORMAL",
+            "ITALIC"
+          ]
+        },
+        {
+          "name": "width",
+          "type": null,
+          "use": "optional",
+          "default": "NORMAL",
+          "doc": "",
+          "enum": [
+            "ULTRA_CONDENSED",
+            "EXTRA_CONDENSED",
+            "CONDENSED",
+            "SEMI_CONDENSED",
+            "NORMAL",
+            "SEMI_EXPANDED",
+            "EXPANDED",
+            "EXTRA_EXPANDED",
+            "ULTRA_EXPANDED"
+          ]
+        },
+        {
+          "name": "weight",
+          "type": null,
+          "use": "optional",
+          "default": "NORMAL",
+          "doc": "",
+          "enum": [
+            "THIN",
+            "ULTRA_LIGHT",
+            "EXTRA_LIGHT",
+            "LIGHT",
+            "NORMAL",
+            "MEDIUM",
+            "SEMI_BOLD",
+            "BOLD",
+            "ULTRA_BOLD",
+            "EXTRA_BOLD",
+            "BLACK",
+            "EXTRA_BLACK"
+          ]
+        },
+        {
+          "name": "format",
+          "type": "timeFormatType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "hourFormat",
+          "type": "hourFormatType",
+          "use": "optional",
+          "default": "SYNC_TO_DEVICE",
+          "doc": ""
+        },
+        {
+          "name": "angle",
+          "type": "angleType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "tintColor",
+          "type": "colorAttributeType",
+          "use": "optional",
+          "default": null,
+          "doc": ""
+        }
+      ],
+      "children": [
+        {
+          "ref": "Variant",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "BitmapFont",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Font",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "clock/digitalClock.xsd"
+    },
+    "Transform": {
+      "name": "Transform",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "target",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "value",
+          "type": "arithmeticExpressionType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "mode",
+          "type": null,
+          "use": "optional",
+          "default": "TO",
+          "doc": "",
+          "enum": [
+            "TO",
+            "BY"
+          ]
+        }
+      ],
+      "children": [
+        {
+          "ref": "Animation",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "common/transform/transformElements.xsd"
+    },
+    "Underline": {
+      "name": "Underline",
+      "doc": "",
+      "attributes": [],
+      "children": [],
+      "type": null,
+      "defined_in": "group/part/text/decoration/abstractDecorationType.xsd"
+    },
+    "Upper": {
+      "name": "Upper",
+      "doc": "",
+      "attributes": [],
+      "children": [
+        {
+          "ref": "Template",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/text/formatter/formatterGroup.xsd"
+    },
+    "UserConfigurations": {
+      "name": "UserConfigurations",
+      "doc": "UserConfigurations is a set of Configuration to support various appearance options.\n        These can be used for Colors, Type of Hands, Background, Complication etc.",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": "Identifier of the option, it should be an unique value."
+        },
+        {
+          "name": "displayName",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "Name of the option.This text will be shown in the configuration activity.\n                            It is recommended to use string resource id for localization."
+        },
+        {
+          "name": "screenReaderText",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "Description text to be read by screen reader for accessibility. It is\n                            recommended to use string resource id for localization."
+        },
+        {
+          "name": "icon",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "Icon of the option, this drawable will be shown in the configuration\n                            activity."
+        },
+        {
+          "name": "childSettingIds",
+          "type": "stringListType",
+          "use": "optional",
+          "default": null,
+          "doc": "A list of child user style settings that can be edited only when the\n                            current ListOption is selected."
+        },
+        {
+          "name": "complicationSlotIds",
+          "type": "stringListType",
+          "use": "optional",
+          "default": null,
+          "doc": "A list of complication slot IDs that are enabled and visible only when\n                            the current ListOption is selected. Complication Slots that are not\n                            referenced by any ListOption are always enabled."
+        },
+        {
+          "name": "colors",
+          "type": "userStyleColorOptionType",
+          "use": "optional",
+          "default": null,
+          "doc": "List of color values"
+        },
+        {
+          "name": "highlight",
+          "type": "xs:string",
+          "use": "optional",
+          "default": null,
+          "doc": "Highlight image indicating where this configuration changes. Since it will be laid on the\n                watch face preview, some restrictions should be considered:\n                1. Background MUST be transparent.\n                2. It SHOULD be tint-able.\n                3. The content SHOULD show the boundary of a part where will be changed by user style\n                selection.\n           "
+        },
+        {
+          "name": "configType",
+          "type": null,
+          "use": "required",
+          "default": null,
+          "doc": "How the user will select the images on companion (SINGLE, MULTIPLE)",
+          "enum": [
+            "SINGLE",
+            "MULTIPLE"
+          ]
+        }
+      ],
+      "children": [
+        {
+          "ref": "ListConfiguration",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "ListOption",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "BooleanConfiguration",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "ColorConfiguration",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "ColorOption",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Flavors",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Flavor",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "PhotosConfiguration",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "userConfiguration/userConfigurationsElement.xsd"
+    },
+    "Variant": {
+      "name": "Variant",
+      "doc": "",
+      "attributes": [
+        {
+          "name": "target",
+          "type": "xs:string",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "value",
+          "type": "arithmeticExpressionType",
+          "use": "required",
+          "default": null,
+          "doc": ""
+        },
+        {
+          "name": "mode",
+          "type": null,
+          "use": "required",
+          "default": null,
+          "doc": "",
+          "enum": [
+            "AMBIENT"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": null,
+          "use": "optional",
+          "default": "1.0",
+          "doc": "Normalized duration value to [0.0, 1.0]\n            The duration is the effect time when switching between the interactive and ambient mode.\n            It is dependent on each vendor's ambient transition time.\n            The actual effect duration is determined as a normalized value, scaled proportionally based on the ambient transition time set by the vendor."
+        },
+        {
+          "name": "startOffset",
+          "type": null,
+          "use": "optional",
+          "default": "0.0",
+          "doc": "Normalized delay value to [0.0, 1.0]\n            If the sum of duration and startOffset is greater than 1.0, startOffset will be ignored."
+        },
+        {
+          "name": "interpolation",
+          "type": null,
+          "use": "optional",
+          "default": "LINEAR",
+          "doc": "Interpolation method. Default is linear.",
+          "enum": [
+            "LINEAR",
+            "EASE_IN",
+            "EASE_OUT",
+            "EASE_IN_OUT",
+            "OVERSHOOT",
+            "CUBIC_BEZIER"
+          ]
+        },
+        {
+          "name": "controls",
+          "type": "vector4fType",
+          "use": "optional",
+          "default": "0.5 0.5 0.5 0.5",
+          "doc": "controls attribute is meaningful only when interpolation type is CUBIC_BEZIER."
+        },
+        {
+          "name": "angleDirection",
+          "type": null,
+          "use": "optional",
+          "default": "NONE",
+          "doc": "The direction of animation while an element rotates.\n            It doesn't change the the final value of the animation.\n            It is affected only when the target is an angle.",
+          "enum": [
+            "NONE",
+            "CLOCKWISE",
+            "COUNTER_CLOCKWISE"
+          ]
+        }
+      ],
+      "children": [],
+      "type": null,
+      "defined_in": "clock/analogClock.xsd"
+    },
+    "WatchFace": {
+      "name": "WatchFace",
+      "doc": "WatchFace is a root element of watchface.xml. It contains scheme version of the xml\n        specification and the information of the virtual screen used when the sub-elements are\n        created.",
+      "attributes": [
+        {
+          "name": "width",
+          "type": "xs:positiveInteger",
+          "use": "required",
+          "default": null,
+          "doc": "Size of the visual screen in which watch face components are drawn. It is not related to\n            the display resolution of the real device, and all figures related to geometry(position\n            and dimension) among the attributes of the child elements indicate the relative position\n            and size in the virtual screen."
+        },
+        {
+          "name": "height",
+          "type": "xs:positiveInteger",
+          "use": "required",
+          "default": null,
+          "doc": "Size of the visual screen in which watch face components are drawn. It is not related to\n            the display resolution of the real device, and all figures related to geometry(position\n            and dimension) among the attributes of the child elements indicate the relative position\n            and size in the virtual screen."
+        },
+        {
+          "name": "clipShape",
+          "type": null,
+          "use": "optional",
+          "default": null,
+          "doc": "Creators can require a shape that clips the result. This can be useful, for example, when\n            creators want to produce a circular result on a rectangular device. In some cases, there\n            may be objects that span outside the desired shape.\n            RECTANGLE shape with cornerRadiusX and cornerRadiusY attributes makes round-rectangle.\n            Default value is CIRCLE.",
+          "enum": [
+            "NONE",
+            "CIRCLE",
+            "RECTANGLE"
+          ]
+        },
+        {
+          "name": "cornerRadiusX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "The x-radius of the rounded corners on the rectangle.\n            It is available when the shape type is RECTANGLE."
+        },
+        {
+          "name": "cornerRadiusY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "The y-radius of the rounded corners on the rectangle.\n            It is available when the shape type is RECTANGLE."
+        }
+      ],
+      "children": [
+        {
+          "ref": "Metadata",
+          "min_occurs": "0",
+          "max_occurs": "unbounded"
+        },
+        {
+          "ref": "UserConfigurations",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "BitmapFonts",
+          "min_occurs": "0",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Scene",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "watchface.xsd"
+    },
+    "WeightedStroke": {
+      "name": "WeightedStroke",
+      "doc": "Stroke style with weight, each element can have different colors.",
+      "attributes": [
+        {
+          "name": "colors",
+          "type": "colorListType",
+          "use": "required",
+          "default": null,
+          "doc": "Series of color in hexadecimal like \"#FF0000 #00FF00 #0000FF\"."
+        },
+        {
+          "name": "weights",
+          "type": "colorWeightListType",
+          "use": "optional",
+          "default": "0.0",
+          "doc": "Series of weight in float like \"3.0 4.0 5.0\". Each value represents a\n                        portion of the stroke range."
+        },
+        {
+          "name": "discreteGap",
+          "type": "nonNegativeFloatType",
+          "use": "optional",
+          "default": "0.0",
+          "doc": "This indicates the gap between elements. It is useful when the strokes\n                        split by weight are clearly divided, especially when there is a round cap.\n                        This is because each cap of the divided stroke overlaps each other as they\n                        are placed outside the stroke. To prevent overlapping caps, this value can\n                        be set t"
+        },
+        {
+          "name": "interpolate",
+          "type": "interpolateBooleanType",
+          "use": "optional",
+          "default": "false",
+          "doc": "If it is true, the stroke is drawn as a gradient color. Each segment takes\n                        two colors for gradation: from and to. It means that the number of colors should\n                        be one more than the number of weights. For example, two weights requires\n                        three colors to show a color gradient across all segments of the stroke."
+        },
+        {
+          "name": "thickness",
+          "type": "nonNegativeFloatType",
+          "use": "required",
+          "default": null,
+          "doc": "Width of stroke. Center of thickness is given arc geometry."
+        },
+        {
+          "name": "cap",
+          "type": null,
+          "use": "optional",
+          "default": "BUTT",
+          "doc": "The Cap specifies the treatment for the beginning and ending of stroked lines and paths.",
+          "enum": [
+            "BUTT",
+            "ROUND",
+            "SQUARE"
+          ]
+        },
+        {
+          "name": "join",
+          "type": null,
+          "use": "optional",
+          "default": "MITER",
+          "doc": "The Join specifies the treatment where lines and curve segments join on a stroked path. The default is MITER.",
+          "enum": [
+            "MITER",
+            "ROUND",
+            "BEVEL"
+          ]
+        }
+      ],
+      "children": [
+        {
+          "ref": "Transform",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        },
+        {
+          "ref": "Reference",
+          "min_occurs": "1",
+          "max_occurs": "1"
+        }
+      ],
+      "type": null,
+      "defined_in": "group/part/draw/shape/arcElement.xsd"
+    },
+    "Word": {
+      "name": "Word",
+      "doc": "",
+      "attributes": [],
+      "children": [],
+      "type": "_wordBitmapImportDataType",
+      "defined_in": "bitmapFontsElement.xsd"
+    }
+  },
+  "enums": {
+    "_angleTypeValuePreferences": {
+      "base": "xs:float",
+      "values": [
+        "0",
+        "180",
+        "360"
+      ],
+      "doc": ""
+    },
+    "_anyExpressionType": {
+      "base": "xs:string",
+      "values": [
+        "[",
+        "]"
+      ],
+      "doc": ""
+    },
+    "_colorValuePreferences": {
+      "base": "unsignedCharacterType",
+      "values": [
+        "0",
+        "128",
+        "255"
+      ],
+      "doc": ""
+    },
+    "_functionType": {
+      "base": "xs:string",
+      "values": [
+        "round()",
+        "floor()",
+        "ceil()",
+        "fract()",
+        "sin()",
+        "cos()",
+        "tan()",
+        "asin()",
+        "acos()",
+        "atan()",
+        "abs()",
+        "clamp(,,)",
+        "rand(,)",
+        "log()",
+        "log2()",
+        "log10()",
+        "sqrt()",
+        "cbrt()",
+        "exp()",
+        "expm1()",
+        "deg()",
+        "rad()",
+        "pow(,)",
+        "numberFormat(,)",
+        "icuText()",
+        "icuBestText()",
+        "icuText(,)",
+        "icuBestText(,)",
+        "subText(,,)",
+        "textLength()",
+        "colorArgb(,,,)",
+        "colorRgb(,,)",
+        "extractColorFromColors(,,)",
+        "extractColorFromWeightedColors(,,,)"
+      ],
+      "doc": ""
+    },
+    "_normalizedValuePreferences": {
+      "base": "_normalizedValueType",
+      "values": [
+        "0.0",
+        "0.5",
+        "1.0"
+      ],
+      "doc": ""
+    },
+    "_operatorType": {
+      "base": "xs:string",
+      "values": [
+        "+",
+        "-",
+        "*",
+        "/",
+        "%",
+        "~",
+        "!",
+        "|",
+        "||",
+        "&",
+        "&&",
+        "(",
+        ")",
+        ">",
+        ">=",
+        "?",
+        ":",
+        "=="
+      ],
+      "doc": ""
+    },
+    "_predefinedMetadataKeys": {
+      "base": "xs:string",
+      "values": [
+        "PREVIEW_TIME",
+        "CLOCK_TYPE",
+        "STEP_GOAL"
+      ],
+      "doc": ""
+    },
+    "_predefinedMetadataValues": {
+      "base": "xs:string",
+      "values": [
+        "DIGITAL",
+        "ANALOG"
+      ],
+      "doc": ""
+    },
+    "_systemShortcutType": {
+      "base": "xs:string",
+      "values": [
+        "ALARM",
+        "BATTERY_STATUS",
+        "CALENDAR",
+        "MESSAGE",
+        "MUSIC_PLAYER",
+        "PHONE",
+        "SETTINGS",
+        "HEALTH_HEART_RATE"
+      ],
+      "doc": "System shortcuts"
+    },
+    "_timeSourceType": {
+      "base": "xs:string",
+      "values": [
+        "UTC_TIMESTAMP",
+        "SECOND_MILLISECOND",
+        "SECONDS_IN_DAY",
+        "SECONDS_SINCE_EPOCH",
+        "MINUTE_SECOND",
+        "MINUTES_SINCE_EPOCH",
+        "HOUR_0_11",
+        "HOUR_0_11_Z",
+        "HOUR_0_11_MINUTE",
+        "HOUR_1_12",
+        "HOUR_1_12_Z",
+        "HOUR_1_12_MINUTE",
+        "HOUR_0_23",
+        "HOUR_0_23_Z",
+        "HOUR_0_23_MINUTE",
+        "HOUR_1_24",
+        "HOUR_1_24_Z",
+        "HOUR_1_24_MINUTE",
+        "HOURS_SINCE_EPOCH",
+        "DAY_HOUR",
+        "DAY_0_30",
+        "DAY_0_30_HOUR",
+        "DAY_OF_YEAR",
+        "DAY_OF_WEEK",
+        "DAY_OF_WEEK_F",
+        "DAY_OF_WEEK_S",
+        "FIRST_DAY_OF_WEEK",
+        "DAYS_IN_MONTH",
+        "MONTH_DAY",
+        "MONTH_0_11",
+        "MONTH_0_11_DAY",
+        "YEAR_MONTH",
+        "YEAR_MONTH_DAY",
+        "WEEK_IN_MONTH",
+        "WEEK_IN_YEAR",
+        "IS_24_HOUR_MODE",
+        "IS_DAYLIGHT_SAVING_TIME",
+        "TIMEZONE",
+        "TIMEZONE_ABB",
+        "TIMEZONE_ID",
+        "TIMEZONE_OFFSET",
+        "TIMEZONE_OFFSET_DST",
+        "TIMEZONE_OFFSET_MINUTES",
+        "TIMEZONE_OFFSET_MINUTES_DST",
+        "AMPM_POSITION",
+        "AMPM_STRING",
+        "AMPM_STRING_ENG",
+        "AMPM_STRING_SHORT"
+      ],
+      "doc": ""
+    },
+    "_weatherSourceEnums": {
+      "base": "xs:string",
+      "values": [
+        "WEATHER.IS_AVAILABLE",
+        "WEATHER.IS_ERROR",
+        "WEATHER.CONDITION",
+        "WEATHER.CONDITION_NAME",
+        "WEATHER.IS_DAY",
+        "WEATHER.TEMPERATURE",
+        "WEATHER.TEMPERATURE_UNIT",
+        "WEATHER.TEMPERATURE_LOW",
+        "WEATHER.TEMPERATURE_HIGH",
+        "WEATHER.CHANCE_OF_PRECIPITATION",
+        "WEATHER.UV_INDEX",
+        "WEATHER.LAST_UPDATED"
+      ],
+      "doc": "Weather source enumeration values"
+    },
+    "batterySourceType": {
+      "base": "xs:string",
+      "values": [
+        "BATTERY_PERCENT",
+        "BATTERY_CHARGING_STATUS",
+        "BATTERY_IS_LOW",
+        "BATTERY_TEMPERATURE_CELSIUS",
+        "BATTERY_TEMPERATURE_FAHRENHEIT"
+      ],
+      "doc": "Sources related to battery"
+    },
+    "blendModeType": {
+      "base": "xs:string",
+      "values": [
+        "CLEAR",
+        "COLOR",
+        "COLOR_BURN",
+        "COLOR_DODGE",
+        "DARKEN",
+        "DIFFERENCE",
+        "DST",
+        "DST_ATOP",
+        "DST_IN",
+        "DST_OUT",
+        "DST_OVER",
+        "EXCLUSION",
+        "HARD_LIGHT",
+        "HUE",
+        "LIGHTEN",
+        "LUMINOSITY",
+        "MODULATE",
+        "MULTIPLY",
+        "OVERLAY",
+        "PLUS",
+        "SATURATION",
+        "SCREEN",
+        "SOFT_LIGHT",
+        "SRC",
+        "SRC_ATOP",
+        "SRC_IN",
+        "SRC_OUT",
+        "SRC_OVER",
+        "XOR"
+      ],
+      "doc": ""
+    },
+    "booleanType": {
+      "base": "xs:string",
+      "values": [
+        "TRUE",
+        "FALSE"
+      ],
+      "doc": ""
+    },
+    "circularDirectionType": {
+      "base": "xs:string",
+      "values": [
+        "CLOCKWISE",
+        "COUNTER_CLOCKWISE"
+      ],
+      "doc": ""
+    },
+    "complicationType": {
+      "base": "xs:string",
+      "values": [
+        "SHORT_TEXT",
+        "LONG_TEXT",
+        "MONOCHROMATIC_IMAGE",
+        "SMALL_IMAGE",
+        "PHOTO_IMAGE",
+        "RANGED_VALUE",
+        "GOAL_PROGRESS",
+        "WEIGHTED_ELEMENTS",
+        "EMPTY"
+      ],
+      "doc": ""
+    },
+    "defaultProviderType": {
+      "base": "xs:string",
+      "values": [
+        "APP_SHORTCUT",
+        "DATE",
+        "DAY_OF_WEEK",
+        "FAVORITE_CONTACT",
+        "NEXT_EVENT",
+        "STEP_COUNT",
+        "SUNRISE_SUNSET",
+        "TIME_AND_DATE",
+        "UNREAD_NOTIFICATION_COUNT",
+        "WATCH_BATTERY",
+        "WORLD_CLOCK",
+        "DAY_AND_DATE",
+        "EMPTY",
+        "HEART_RATE"
+      ],
+      "doc": "System complication providers.\n        See\n        https://developer.android.com/reference/android/support/wearable/complications/SystemProviders"
+    },
+    "directionType": {
+      "base": "xs:string",
+      "values": [
+        "FORWARD",
+        "BACKWARD",
+        "RANDOM"
+      ],
+      "doc": ""
+    },
+    "eventTriggerType": {
+      "base": "xs:string",
+      "values": [
+        "TAP",
+        "ON_VISIBLE",
+        "ON_NEXT_SECOND",
+        "ON_NEXT_MINUTE",
+        "ON_NEXT_HOUR"
+      ],
+      "doc": ""
+    },
+    "frameOptionType": {
+      "base": "xs:string",
+      "values": [
+        "DO_NOTHING",
+        "FIRST_FRAME",
+        "THUMBNAIL",
+        "HIDE"
+      ],
+      "doc": ""
+    },
+    "healthSourceType": {
+      "base": "xs:string",
+      "values": [
+        "STEP_COUNT",
+        "STEP_GOAL",
+        "STEP_PERCENT",
+        "HEART_RATE",
+        "HEART_RATE_Z"
+      ],
+      "doc": "Sources related to health data"
+    },
+    "hourFormatType": {
+      "base": "xs:string",
+      "values": [
+        "12",
+        "24",
+        "SYNC_TO_DEVICE"
+      ],
+      "doc": ""
+    },
+    "languageSourceType": {
+      "base": "xs:string",
+      "values": [
+        "LANGUAGE_CODE",
+        "LANGUAGE_COUNTRY_CODE",
+        "LANGUAGE_LOCALE_NAME",
+        "LANGUAGE_TEXT_DIRECTION"
+      ],
+      "doc": "Sources related to language"
+    },
+    "moonPhaseSourceType": {
+      "base": "xs:string",
+      "values": [
+        "MOON_PHASE_POSITION",
+        "MOON_PHASE_TYPE",
+        "MOON_PHASE_TYPE_STRING"
+      ],
+      "doc": "Sources related to moon phase"
+    },
+    "notificationSourceType": {
+      "base": "xs:string",
+      "values": [
+        "UNREAD_NOTIFICATION_COUNT"
+      ],
+      "doc": "Sources of notification data"
+    },
+    "photoEventTriggerType": {
+      "base": "xs:string",
+      "values": [
+        "TAP",
+        "ON_VISIBLE"
+      ],
+      "doc": ""
+    },
+    "renderModeType": {
+      "base": "xs:string",
+      "values": [
+        "SOURCE",
+        "MASK",
+        "ALL"
+      ],
+      "doc": ""
+    },
+    "sensorSourceType": {
+      "base": "xs:string",
+      "values": [
+        "ACCELEROMETER_IS_SUPPORTED",
+        "ACCELEROMETER_X",
+        "ACCELEROMETER_Y",
+        "ACCELEROMETER_Z",
+        "ACCELEROMETER_ANGLE_X",
+        "ACCELEROMETER_ANGLE_Y",
+        "ACCELEROMETER_ANGLE_Z",
+        "ACCELEROMETER_ANGLE_XY"
+      ],
+      "doc": "Sources related to sensor"
+    },
+    "timeUnitSourceType": {
+      "base": "xs:string",
+      "values": [
+        "MILLISECOND",
+        "SECOND",
+        "SECOND_Z",
+        "MINUTE",
+        "MINUTE_Z",
+        "AMPM_STATE",
+        "DAY",
+        "DAY_Z",
+        "MONTH",
+        "MONTH_Z",
+        "MONTH_F",
+        "MONTH_S",
+        "YEAR",
+        "YEAR_S"
+      ],
+      "doc": "Sources related to time unit"
+    }
+  },
+  "files": {
+    "bitmapFontsElement.xsd": {
+      "includes": [
+        "common/attributes/geometricAttributes.xsd",
+        "common/simpleTypes/resourceType.xsd"
+      ],
+      "element_count": 4
+    },
+    "clock/analogClock.xsd": {
+      "includes": [
+        "../group/renderModeType.xsd",
+        "../common/attributes/geometricAttributes.xsd",
+        "../common/transform/pivotType.xsd",
+        "../common/variant/variantElements.xsd",
+        "hourHand.xsd",
+        "minuteHand.xsd",
+        "secondHand.xsd"
+      ],
+      "element_count": 6
+    },
+    "clock/digitalClock.xsd": {
+      "includes": [
+        "../group/renderModeType.xsd",
+        "../common/attributes/geometricAttributes.xsd",
+        "../common/transform/pivotType.xsd",
+        "../userConfiguration/listConfigurationElement.xsd",
+        "../common/variant/variantElements.xsd",
+        "timeText.xsd"
+      ],
+      "element_count": 4
+    },
+    "clock/hourHand.xsd": {
+      "includes": [
+        "../common/attributes/geometricAttributes.xsd",
+        "../common/transform/pivotType.xsd",
+        "../userConfiguration/listConfigurationElement.xsd",
+        "../common/variant/variantElements.xsd",
+        "../common/simpleTypes/resourceType.xsd"
+      ],
+      "element_count": 2
+    },
+    "clock/minuteHand.xsd": {
+      "includes": [
+        "../common/attributes/geometricAttributes.xsd",
+        "../common/transform/pivotType.xsd",
+        "../userConfiguration/listConfigurationElement.xsd",
+        "../common/variant/variantElements.xsd"
+      ],
+      "element_count": 2
+    },
+    "clock/secondHand.xsd": {
+      "includes": [
+        "../common/attributes/geometricAttributes.xsd",
+        "../common/transform/pivotType.xsd",
+        "../userConfiguration/listConfigurationElement.xsd",
+        "../common/variant/variantElements.xsd"
+      ],
+      "element_count": 6
+    },
+    "clock/timeText.xsd": {
+      "includes": [
+        "../group/renderModeType.xsd",
+        "../common/attributes/geometricAttributes.xsd",
+        "../common/transform/pivotType.xsd",
+        "../common/variant/variantElements.xsd",
+        "../common/attributes/colorAttribute.xsd",
+        "../common/simpleTypes/angleType.xsd",
+        "../common/attributes/alignmentAttribute.xsd"
+      ],
+      "element_count": 4
+    },
+    "common/animationElement.xsd": {
+      "includes": [
+        "simpleTypes/primitiveListTypes.xsd",
+        "simpleTypes/variousFloatType.xsd"
+      ],
+      "element_count": 1
+    },
+    "common/attributes/alignmentAttribute.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/attributes/angleAttributes.xsd": {
+      "includes": [
+        "../simpleTypes/arithmeticExpressionType.xsd",
+        "../simpleTypes/angleType.xsd"
+      ],
+      "element_count": 0
+    },
+    "common/attributes/calendarAttribute.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/attributes/colorAttribute.xsd": {
+      "includes": [
+        "../simpleTypes/colorType.xsd"
+      ],
+      "element_count": 0
+    },
+    "common/attributes/geometricAttributes.xsd": {
+      "includes": [
+        "../simpleTypes/variousFloatType.xsd"
+      ],
+      "element_count": 0
+    },
+    "common/conditionElement.xsd": {
+      "includes": [
+        "expressionsElement.xsd",
+        "../group/groupElement.xsd",
+        "../group/part/partElementGroup.xsd",
+        "../clock/analogClock.xsd",
+        "../clock/digitalClock.xsd"
+      ],
+      "element_count": 8
+    },
+    "common/expressionsElement.xsd": {
+      "includes": [
+        "simpleTypes/arithmeticExpressionType.xsd"
+      ],
+      "element_count": 2
+    },
+    "common/launchElement.xsd": {
+      "includes": [],
+      "element_count": 1
+    },
+    "common/localizationElement.xsd": {
+      "includes": [
+        "attributes/calendarAttribute.xsd",
+        "simpleTypes/primitiveListTypes.xsd"
+      ],
+      "element_count": 1
+    },
+    "common/reference/referenceElements.xsd": {
+      "includes": [
+        "../simpleTypes/colorType.xsd",
+        "../simpleTypes/variousFloatType.xsd"
+      ],
+      "element_count": 1
+    },
+    "common/screenReaderElement.xsd": {
+      "includes": [
+        "attributes/geometricAttributes.xsd",
+        "simpleTypes/arithmeticExpressionType.xsd"
+      ],
+      "element_count": 2
+    },
+    "common/simpleTypes/angleType.xsd": {
+      "includes": [
+        "../simpleTypes/arithmeticExpressionType.xsd"
+      ],
+      "element_count": 0
+    },
+    "common/simpleTypes/arithmeticExpressionType.xsd": {
+      "includes": [
+        "sourceType.xsd"
+      ],
+      "element_count": 0
+    },
+    "common/simpleTypes/booleanType.xsd": {
+      "includes": [
+        "../attributes/geometricAttributes.xsd"
+      ],
+      "element_count": 0
+    },
+    "common/simpleTypes/circularDirectionType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/simpleTypes/colorType.xsd": {
+      "includes": [
+        "unsignedCharacterType.xsd",
+        "arithmeticExpressionType.xsd"
+      ],
+      "element_count": 0
+    },
+    "common/simpleTypes/directionType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/simpleTypes/eventTriggerType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/simpleTypes/interpolateType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/simpleTypes/normalizedType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/simpleTypes/primitiveListTypes.xsd": {
+      "includes": [
+        "../simpleTypes/colorType.xsd"
+      ],
+      "element_count": 0
+    },
+    "common/simpleTypes/resourceType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/simpleTypes/sourceType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/simpleTypes/unsignedCharacterType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/simpleTypes/variousFloatType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "common/transform/gyroElements.xsd": {
+      "includes": [
+        "../simpleTypes/arithmeticExpressionType.xsd"
+      ],
+      "element_count": 1
+    },
+    "common/transform/pivotType.xsd": {
+      "includes": [
+        "../simpleTypes/normalizedType.xsd"
+      ],
+      "element_count": 0
+    },
+    "common/transform/transformElements.xsd": {
+      "includes": [
+        "../animationElement.xsd",
+        "../simpleTypes/arithmeticExpressionType.xsd"
+      ],
+      "element_count": 2
+    },
+    "common/variant/variantElements.xsd": {
+      "includes": [
+        "../simpleTypes/arithmeticExpressionType.xsd",
+        "../simpleTypes/primitiveListTypes.xsd"
+      ],
+      "element_count": 1
+    },
+    "complication/boundingElement.xsd": {
+      "includes": [
+        "../common/attributes/geometricAttributes.xsd",
+        "../common/attributes/angleAttributes.xsd",
+        "../common/simpleTypes/booleanType.xsd"
+      ],
+      "element_count": 5
+    },
+    "complication/complicationElement.xsd": {
+      "includes": [
+        "../group/part/partElementGroup.xsd",
+        "../common/conditionElement.xsd"
+      ],
+      "element_count": 3
+    },
+    "complication/complicationSlotElement.xsd": {
+      "includes": [
+        "defaultProviderPolicyElement.xsd",
+        "../group/blendModeType.xsd",
+        "boundingElement.xsd",
+        "complicationElement.xsd",
+        "../common/variant/variantElements.xsd",
+        "../common/attributes/geometricAttributes.xsd",
+        "../common/transform/pivotType.xsd",
+        "../common/simpleTypes/angleType.xsd",
+        "../common/attributes/colorAttribute.xsd",
+        "../common/simpleTypes/booleanType.xsd"
+      ],
+      "element_count": 6
+    },
+    "complication/defaultProviderPolicyElement.xsd": {
+      "includes": [
+        "complicationElement.xsd"
+      ],
+      "element_count": 1
+    },
+    "group/blendModeType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "group/groupElement.xsd": {
+      "includes": [
+        "renderModeType.xsd",
+        "blendModeType.xsd",
+        "part/partElementGroup.xsd",
+        "../common/attributes/geometricAttributes.xsd",
+        "../common/launchElement.xsd",
+        "../common/transform/pivotType.xsd",
+        "../common/conditionElement.xsd",
+        "../common/transform/transformElements.xsd",
+        "../common/transform/gyroElements.xsd",
+        "../common/reference/referenceElements.xsd",
+        "../userConfiguration/listConfigurationElement.xsd",
+        "../userConfiguration/booleanConfigurationElement.xsd",
+        "../common/variant/variantElements.xsd",
+        "../common/localizationElement.xsd",
+        "../common/screenReaderElement.xsd",
+        "../clock/analogClock.xsd",
+        "../clock/digitalClock.xsd"
+      ],
+      "element_count": 18
+    },
+    "group/part/abstractPartType.xsd": {
+      "includes": [
+        "../renderModeType.xsd",
+        "../blendModeType.xsd",
+        "../../common/localizationElement.xsd",
+        "../../common/simpleTypes/angleType.xsd",
+        "../../common/attributes/colorAttribute.xsd",
+        "../../common/attributes/geometricAttributes.xsd",
+        "../../common/transform/transformElements.xsd",
+        "../../common/transform/gyroElements.xsd",
+        "../../common/transform/pivotType.xsd",
+        "../../common/reference/referenceElements.xsd",
+        "../../common/variant/variantElements.xsd",
+        "../../common/launchElement.xsd",
+        "../../common/screenReaderElement.xsd"
+      ],
+      "element_count": 7
+    },
+    "group/part/animatedImage/animatedImageElement.xsd": {
+      "includes": [
+        "partAnimatedImageElement.xsd",
+        "../../../common/simpleTypes/resourceType.xsd"
+      ],
+      "element_count": 1
+    },
+    "group/part/animatedImage/animatedImagesElement.xsd": {
+      "includes": [
+        "partAnimatedImageElement.xsd",
+        "animatedImageElement.xsd",
+        "sequenceImageElement.xsd",
+        "../../../common/simpleTypes/eventTriggerType.xsd",
+        "../../../common/simpleTypes/directionType.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/animatedImage/animationControllerElement.xsd": {
+      "includes": [
+        "../../../common/simpleTypes/booleanType.xsd",
+        "../../../common/simpleTypes/variousFloatType.xsd",
+        "../../../common/simpleTypes/eventTriggerType.xsd"
+      ],
+      "element_count": 1
+    },
+    "group/part/animatedImage/partAnimatedImageElement.xsd": {
+      "includes": [
+        "../abstractPartType.xsd",
+        "../image/thumbnailElement.xsd",
+        "animatedImageElement.xsd",
+        "animatedImagesElement.xsd",
+        "animationControllerElement.xsd",
+        "sequenceImageElement.xsd"
+      ],
+      "element_count": 5
+    },
+    "group/part/animatedImage/sequenceImageElement.xsd": {
+      "includes": [
+        "partAnimatedImageElement.xsd",
+        "../image/imageElement.xsd"
+      ],
+      "element_count": 2
+    },
+    "group/part/draw/gradient/linearGradientElement.xsd": {
+      "includes": [
+        "../../../../common/simpleTypes/primitiveListTypes.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/draw/gradient/radialGradientElement.xsd": {
+      "includes": [
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd",
+        "linearGradientElement.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/draw/gradient/sweepGradientElement.xsd": {
+      "includes": [
+        "../../../../common/attributes/angleAttributes.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd",
+        "linearGradientElement.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/draw/partDrawElement.xsd": {
+      "includes": [
+        "../abstractPartType.xsd",
+        "shape/lineElement.xsd",
+        "shape/arcElement.xsd",
+        "shape/rectangleElement.xsd",
+        "shape/roundRectangleElement.xsd",
+        "shape/ellipseElement.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/draw/shape/arcElement.xsd": {
+      "includes": [
+        "../partDrawElement.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd",
+        "../../../../common/attributes/angleAttributes.xsd",
+        "../style/strokeElement.xsd",
+        "../style/weightedStrokeElement.xsd"
+      ],
+      "element_count": 5
+    },
+    "group/part/draw/shape/ellipseElement.xsd": {
+      "includes": [
+        "../partDrawElement.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd",
+        "../style/strokeElement.xsd",
+        "../style/fillElement.xsd"
+      ],
+      "element_count": 5
+    },
+    "group/part/draw/shape/lineElement.xsd": {
+      "includes": [
+        "../partDrawElement.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd",
+        "../style/strokeElement.xsd",
+        "../style/weightedStrokeElement.xsd"
+      ],
+      "element_count": 5
+    },
+    "group/part/draw/shape/rectangleElement.xsd": {
+      "includes": [
+        "../partDrawElement.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd",
+        "../style/strokeElement.xsd",
+        "../style/fillElement.xsd"
+      ],
+      "element_count": 5
+    },
+    "group/part/draw/shape/roundRectangleElement.xsd": {
+      "includes": [
+        "../partDrawElement.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd",
+        "../style/strokeElement.xsd",
+        "../style/fillElement.xsd"
+      ],
+      "element_count": 5
+    },
+    "group/part/draw/style/fillElement.xsd": {
+      "includes": [
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd",
+        "../gradient/linearGradientElement.xsd",
+        "../gradient/radialGradientElement.xsd",
+        "../gradient/sweepGradientElement.xsd"
+      ],
+      "element_count": 6
+    },
+    "group/part/draw/style/strokeElement.xsd": {
+      "includes": [
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd",
+        "../gradient/linearGradientElement.xsd",
+        "../gradient/radialGradientElement.xsd",
+        "../gradient/sweepGradientElement.xsd"
+      ],
+      "element_count": 6
+    },
+    "group/part/draw/style/weightedStrokeElement.xsd": {
+      "includes": [
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd",
+        "../../../../common/attributes/colorAttribute.xsd",
+        "../../../../common/simpleTypes/interpolateType.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/image/imageElement.xsd": {
+      "includes": [
+        "partImageElement.xsd"
+      ],
+      "element_count": 1
+    },
+    "group/part/image/imageFilter/hsbFilterElement.xsd": {
+      "includes": [
+        "hsbFilterElement.xsd",
+        "../../../../common/simpleTypes/angleType.xsd",
+        "../../../../common/simpleTypes/normalizedType.xsd"
+      ],
+      "element_count": 1
+    },
+    "group/part/image/imageFilter/imageFiltersElement.xsd": {
+      "includes": [
+        "../partImageElement.xsd",
+        "hsbFilterElement.xsd"
+      ],
+      "element_count": 2
+    },
+    "group/part/image/imagesElement.xsd": {
+      "includes": [
+        "imageElement.xsd",
+        "../../../common/simpleTypes/eventTriggerType.xsd",
+        "../../../common/simpleTypes/directionType.xsd"
+      ],
+      "element_count": 2
+    },
+    "group/part/image/partImageElement.xsd": {
+      "includes": [
+        "../abstractPartType.xsd",
+        "imageElement.xsd",
+        "imagesElement.xsd",
+        "photosElement.xsd",
+        "imageFilter/imageFiltersElement.xsd"
+      ],
+      "element_count": 4
+    },
+    "group/part/image/photosElement.xsd": {
+      "includes": [
+        "partImageElement.xsd"
+      ],
+      "element_count": 1
+    },
+    "group/part/image/thumbnailElement.xsd": {
+      "includes": [
+        "../../../common/simpleTypes/resourceType.xsd"
+      ],
+      "element_count": 1
+    },
+    "group/part/partElementGroup.xsd": {
+      "includes": [
+        "text/partTextElement.xsd",
+        "image/partImageElement.xsd",
+        "draw/partDrawElement.xsd",
+        "animatedImage/partAnimatedImageElement.xsd"
+      ],
+      "element_count": 4
+    },
+    "group/part/text/bitmapFontElement.xsd": {
+      "includes": [
+        "textComponentGroup.xsd",
+        "../../../common/transform/transformElements.xsd",
+        "../../../common/reference/referenceElements.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/text/decoration/abstractDecorationType.xsd": {
+      "includes": [
+        "../formatter/formatterGroup.xsd",
+        "underlineElement.xsd",
+        "strikethroughElement.xsd"
+      ],
+      "element_count": 2
+    },
+    "group/part/text/decoration/decorationGroup.xsd": {
+      "includes": [
+        "shadowElement.xsd",
+        "outlineElement.xsd",
+        "outGlowElement.xsd",
+        "underlineElement.xsd",
+        "strikethroughElement.xsd"
+      ],
+      "element_count": 5
+    },
+    "group/part/text/decoration/outGlowElement.xsd": {
+      "includes": [
+        "abstractDecorationType.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/text/decoration/outlineElement.xsd": {
+      "includes": [
+        "abstractDecorationType.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/text/decoration/shadowElement.xsd": {
+      "includes": [
+        "abstractDecorationType.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/text/decoration/strikethroughElement.xsd": {
+      "includes": [
+        "decorationGroup.xsd"
+      ],
+      "element_count": 1
+    },
+    "group/part/text/decoration/underlineElement.xsd": {
+      "includes": [
+        "decorationGroup.xsd"
+      ],
+      "element_count": 1
+    },
+    "group/part/text/fontElement.xsd": {
+      "includes": [
+        "textComponentGroup.xsd",
+        "../../../common/transform/transformElements.xsd",
+        "../../../common/reference/referenceElements.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/text/formatter/formatterGroup.xsd": {
+      "includes": [
+        "inlineImageElement.xsd",
+        "templateElement.xsd",
+        "upperElement.xsd",
+        "lowerElement.xsd"
+      ],
+      "element_count": 4
+    },
+    "group/part/text/formatter/inlineImageElement.xsd": {
+      "includes": [
+        "../../../../common/attributes/geometricAttributes.xsd",
+        "../../../../common/transform/transformElements.xsd",
+        "../../../../common/reference/referenceElements.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/text/formatter/lowerElement.xsd": {
+      "includes": [
+        "formatterGroup.xsd"
+      ],
+      "element_count": 2
+    },
+    "group/part/text/formatter/templateElement.xsd": {
+      "includes": [
+        "../../../../common/simpleTypes/booleanType.xsd",
+        "../../../../common/simpleTypes/arithmeticExpressionType.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/text/formatter/upperElement.xsd": {
+      "includes": [
+        "formatterGroup.xsd"
+      ],
+      "element_count": 2
+    },
+    "group/part/text/partTextElement.xsd": {
+      "includes": [
+        "../abstractPartType.xsd",
+        "textElement.xsd",
+        "textCircularElement.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/part/text/textCircularElement.xsd": {
+      "includes": [
+        "partTextElement.xsd",
+        "../../../common/attributes/angleAttributes.xsd",
+        "../../../common/simpleTypes/circularDirectionType.xsd",
+        "../../../common/transform/transformElements.xsd",
+        "../../../common/reference/referenceElements.xsd",
+        "../../../common/attributes/alignmentAttribute.xsd",
+        "fontElement.xsd",
+        "bitmapFontElement.xsd"
+      ],
+      "element_count": 5
+    },
+    "group/part/text/textComponentGroup.xsd": {
+      "includes": [
+        "decoration/decorationGroup.xsd",
+        "formatter/formatterGroup.xsd"
+      ],
+      "element_count": 0
+    },
+    "group/part/text/textElement.xsd": {
+      "includes": [
+        "partTextElement.xsd",
+        "../../../common/attributes/alignmentAttribute.xsd",
+        "fontElement.xsd",
+        "bitmapFontElement.xsd"
+      ],
+      "element_count": 3
+    },
+    "group/renderModeType.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "metadataElement.xsd": {
+      "includes": [],
+      "element_count": 1
+    },
+    "sceneElement.xsd": {
+      "includes": [
+        "group/groupElement.xsd",
+        "userConfiguration/listConfigurationElement.xsd",
+        "userConfiguration/booleanConfigurationElement.xsd",
+        "complication/complicationSlotElement.xsd",
+        "clock/analogClock.xsd",
+        "clock/digitalClock.xsd"
+      ],
+      "element_count": 15
+    },
+    "userConfiguration/abstractConfigurationType.xsd": {
+      "includes": [
+        "../common/attributes/geometricAttributes.xsd"
+      ],
+      "element_count": 0
+    },
+    "userConfiguration/booleanConfigurationElement.xsd": {
+      "includes": [
+        "../group/part/partElementGroup.xsd",
+        "../group/groupElement.xsd",
+        "../common/simpleTypes/booleanType.xsd",
+        "../clock/digitalClock.xsd"
+      ],
+      "element_count": 6
+    },
+    "userConfiguration/colorConfigurationElement.xsd": {
+      "includes": [
+        "../group/part/partElementGroup.xsd",
+        "../group/groupElement.xsd"
+      ],
+      "element_count": 3
+    },
+    "userConfiguration/flavorConfigurationType.xsd": {
+      "includes": [
+        "../common/attributes/geometricAttributes.xsd"
+      ],
+      "element_count": 0
+    },
+    "userConfiguration/flavorElement.xsd": {
+      "includes": [
+        "flavorConfigurationType.xsd",
+        "../complication/defaultProviderPolicyElement.xsd"
+      ],
+      "element_count": 4
+    },
+    "userConfiguration/flavorsElement.xsd": {
+      "includes": [],
+      "element_count": 0
+    },
+    "userConfiguration/listConfigurationElement.xsd": {
+      "includes": [
+        "../group/part/partElementGroup.xsd",
+        "../group/groupElement.xsd",
+        "../clock/digitalClock.xsd"
+      ],
+      "element_count": 6
+    },
+    "userConfiguration/userConfigurationsElement.xsd": {
+      "includes": [
+        "abstractConfigurationType.xsd",
+        "flavorsElement.xsd",
+        "flavorElement.xsd",
+        "../common/attributes/colorAttribute.xsd",
+        "../common/simpleTypes/primitiveListTypes.xsd"
+      ],
+      "element_count": 9
+    },
+    "watchface.xsd": {
+      "includes": [
+        "metadataElement.xsd",
+        "bitmapFontsElement.xsd",
+        "sceneElement.xsd",
+        "userConfiguration/userConfigurationsElement.xsd"
+      ],
+      "element_count": 5
+    }
+  }
+}

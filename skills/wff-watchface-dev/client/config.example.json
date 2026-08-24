@@ -1,0 +1,7 @@
+{
+  "base_url": "",
+  "api_key": "",
+  "mode": "local",
+  "wff_builder": "../../wff-builder/wff_builder.py",
+  "timeout": 60
+}

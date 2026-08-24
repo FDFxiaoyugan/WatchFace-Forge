@@ -1,0 +1,255 @@
+# WFF 踩坑大全
+
+> 一期 16 条规则（2026-08-15 真机验证）+ XSD 对比发现的差异。
+> **每条规则都是用真机安装失败换来的。写 WFF XML 前必读。**
+
+---
+
+## 🔴 MUST 规则（违反 = 构建失败 / 真机不显示）
+
+### R01: WatchFace 根元素必须有 width + height
+
+```xml
+<!-- ❌ -->
+<WatchFace>
+<!-- ✅ -->
+<WatchFace width="450" height="450">
+```
+
+常见画布尺寸：384×384（Pixel Watch 1）、450×450（Pixel Watch 2/Galaxy Watch 6+）
+
+### R02: 必须有 Metadata CLOCK_TYPE
+
+```xml
+<Metadata key="CLOCK_TYPE" value="DIGITAL"/>
+<!-- 或 value="ANALOG" -->
+```
+
+### R03: 必须有 Metadata PREVIEW_TIME
+
+```xml
+<Metadata key="PREVIEW_TIME" value="10:08:32"/>
+```
+
+预览时间影响表盘在手表选择器中的截图。
+
+### R05: 数据源表达式必须用方括号
+
+```xml
+<!-- ❌ 编译不报错，但运行时不显示 -->
+<Parameter expression="MONTH"/>
+<Parameter expression="BATTERY_PERCENT"/>
+
+<!-- ✅ -->
+<Parameter expression="[MONTH]"/>
+<Parameter expression="[BATTERY_PERCENT]"/>
+```
+
+### R06: WFF v1 不支持 clipShape
+
+```xml
+<!-- ❌ WFF v1 报错 -->
+<WatchFace width="450" height="450" clipShape="CIRCLE">
+
+<!-- ✅ 不写 clipShape，系统默认圆形裁剪 -->
+<WatchFace width="450" height="450">
+```
+
+> 注意：XSD v5 中 `clipShape` 有 `NONE/CIRCLE/RECTANGLE` 枚举，但 WFF v1 运行时不支持。v2+ 可用。
+
+### R08: 颜色必须用 8 位 ARGB
+
+```xml
+<!-- ❌ 6 位在部分设备渲染为透明 -->
+<Font color="#00F5FF">
+<Stroke color="#FF6B6B">
+
+<!-- ✅ 8 位 ARGB，前两位 = alpha -->
+<Font color="#ff00F5FF">
+<Stroke color="#ffFF6B6B">
+```
+
+格式：`#AARRGGBB`，`ff` = 不透明，`00` = 全透明
+
+### R09: 时间显示必须用 DigitalClock + TimeText
+
+```xml
+<!-- ❌ Text + Template 不自动刷新时间 -->
+<PartText><Text><Template>%s:%s<Parameter expression="[HOUR]"/>...</Template></Text></PartText>
+
+<!-- ✅ DigitalClock + TimeText 自动刷新 -->
+<DigitalClock x="0" y="0" width="450" height="450">
+    <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER" 
+              x="0" y="120" width="450" height="120">
+        <Font family="SYNC_TO_DEVICE" size="100" weight="BOLD" color="#ff00F5FF"/>
+    </TimeText>
+</DigitalClock>
+```
+
+### R11: 用 expression= 而非 source=
+
+```xml
+<!-- ❌ -->
+<Parameter source="MONTH"/>
+<!-- ✅ -->
+<Parameter expression="[MONTH]"/>
+```
+
+### R12: Parameter 必须用 expression=
+
+```xml
+<!-- ❌ -->
+<Parameter source="BATTERY_PERCENT"/>
+<!-- ✅ -->
+<Parameter expression="[BATTERY_PERCENT]"/>
+```
+
+### R14: Template 中 %s 数量必须与 Parameter 数量匹配
+
+```xml
+<!-- ❌ 2 个 %s 但只有 1 个 Parameter -->
+<Template>%s/%s<Parameter expression="[MONTH]"/></Template>
+
+<!-- ✅ -->
+<Template>%s/%s<Parameter expression="[MONTH]"/><Parameter expression="[DAY]"/></Template>
+```
+
+### R16: 不需要 WatchFaceService 声明
+
+```xml
+<!-- ❌ WFF APK 是纯资源包，hasCode=false，不含代码 -->
+<service android:name=".WatchFaceService">
+    <intent-filter>
+        <action android:name="android.service.wallpaper.WallpaperService"/>
+    </intent-filter>
+</service>
+
+<!-- ✅ 什么都不写，AndroidManifest.xml 只需 meta-data -->
+```
+
+---
+
+## 🟡 SHOULD 规则（违反 = 警告，但可构建）
+
+### R04: Scene 应有 backgroundColor
+
+```xml
+<!-- ⚠️ 缺省时背景可能透明 -->
+<Scene>
+
+<!-- ✅ -->
+<Scene backgroundColor="#ff000000">
+```
+
+### R07: 字体 family 应为 SYNC_TO_DEVICE
+
+```xml
+<!-- ⚠️ Roboto 在部分设备可能缺失 -->
+<Font family="Roboto" size="100"/>
+
+<!-- ✅ -->
+<Font family="SYNC_TO_DEVICE" size="100"/>
+```
+
+### R10: 应有 ambient Variant
+
+表盘在 AOD（Always-On Display）模式下应降低亮度和刷新率：
+
+```xml
+<TimeText format="HH:mm" ... alpha="255">
+    <!-- Active 模式：alpha=255, AMBIENT 时变 0 -->
+    <Variant mode="AMBIENT" target="alpha" value="0"/>
+    <Font family="SYNC_TO_DEVICE" size="100" weight="BOLD" color="#ff00F5FF"/>
+</TimeText>
+
+<!-- Ambient 版本：平时 alpha=0, AMBIENT 时变 255 -->
+<TimeText format="HH:mm" ... alpha="0">
+    <Variant mode="AMBIENT" target="alpha" value="255"/>
+    <Font family="SYNC_TO_DEVICE" size="100" weight="THIN" color="#ff888888"/>
+</TimeText>
+```
+
+### R13: 使用已知数据源名称
+
+完整数据源列表见 [expressions.md](./expressions.md)。常用：`[HOUR_0_23_Z]` `[MINUTE_Z]` `[SECOND_Z]` `[BATTERY_PERCENT]` `[STEP_COUNT]` `[HEART_RATE]` `[MONTH]` `[DAY_Z]`
+
+### R15: 数字时间优先用 DigitalClock
+
+见 R09。
+
+---
+
+## 🔧 构建约束（APK 打包层面）
+
+### BC1: minSdkVersion
+
+| WFF 版本 | minSdk | Wear OS |
+|----------|--------|---------|
+| v1 | 33 | Wear OS 4+ |
+| v2 | 34 | Wear OS 5+ |
+| v3+ | 34+ | Wear OS 5+ |
+
+### BC2: resources.arsc 必须 STORED + 4 字节对齐
+
+- `resources.arsc` 在 APK 中必须**不压缩**（`ZIP_STORED`）
+- 必须在 ZIP 中 **4 字节对齐**（APK Signature Scheme v2 要求）
+- DEFLATED 压缩会报 `error -124`
+
+### BC3: res/xml/ 必须是二进制 AXML
+
+- `res/xml/watch_face_info.xml` 在 APK 中必须是 **aapt2 编译后的二进制 AXML**（文件头 `0x0300`）
+- 不能放原始文本 XML
+- aapt2 只有 x86_64 二进制，ARM64 需要 Docker 构建
+
+### BC4: res/values/ 不独立出现在 APK 中
+
+- `res/values/strings.xml` 等已编译进 `resources.arsc`
+- APK 中不应有独立的 `res/values/` 目录
+
+### BC5: res/raw/ 保持原始文本
+
+- `res/raw/watchface.xml` 是 WFF 主文件，**不编译**，保持原始文本 XML
+
+### BC6: 签名必须 v1+v2+v3 全签
+
+- 开发密钥：`test.keystore`（pass: `wfftest123`, alias: `wfftest`）
+- 上线前必须换正式密钥，keystore 不提交公开仓库
+
+---
+
+## ⚡ XSD v5 与一期规则的差异
+
+通过对比官方 XSD v5 规范与一期 16 条规则，以下差异需注意：
+
+| 项 | 一期规则 | XSD v5 实际 | 说明 |
+|----|----------|-------------|------|
+| clipShape | R06: v1 不支持 | v5 定义了 NONE/CIRCLE/RECTANGLE | v2+ 可用，v1 仍不支持 |
+| Font weight | 8 档 | THIN/ULTRA_LIGHT/EXTRA_LIGHT/LIGHT/NORMAL/MEDIUM/SEMI_BOLD/BOLD | 匹配 |
+| Font width | 未提及 | 8 档 (ULTRA_CONDENSED...EXTRA_EXPANDED) | 可用 |
+| Sweep | 未提及 | frequency: 2/5/10/15/SYNC_TO_DEVICE | 秒针平滑度控制 |
+| BlendMode | 未提及 | 20 种混合模式 | 可做特效 |
+| Photos | 未提及 | 用户照片表盘 | 可做照片表盘 |
+| Complication | 简单引用 | 9 种类型 + DefaultProviderPolicy | 一期未覆盖，agent 可用全功能 |
+| UserConfiguration | 未提及 | List/Boolean/Color/Photos/Flavors | 可做用户自定义表盘 |
+| Gyro | 未提及 | 6 轴响应表达式 | 可做陀螺仪视差 |
+| Condition | 未提及 | Compare/Default 多分支条件 | 可做条件渲染 |
+| Reference | 未提及 | 发布属性供其他元素引用 | 可做动态联动 |
+
+---
+
+## 📋 已知限制
+
+1. **rembg/onnxruntime 不可用**：~500MB 依赖在 ARM 环境装不上。用 Pillow flood-fill 阈值抠图替代，纯色背景素材够用，复杂照片背景效果有限
+2. **aapt2 仅 x86_64**：ARM64 服务器需 Docker 构建（一期已解决）
+3. **npm 重依赖超时**：低配 VM 装 fabric 等大包频繁 504，用 `--registry=https://registry.npmmirror.com`
+4. **预览渲染器是近似值**：平台 preview 端点用 Pillow 静态帧渲染，复杂动画/状态机可能与真机有差异。**最终判据永远是真机安装**
+5. **WFF 规范演进**：google/watchface 仓库活跃维护（2026-08-22 最后更新），XSD 版本 v1→v5，新版本可能引入破坏性变更
+
+---
+
+## 参考
+
+- 一期踩坑原文：`docs/NOTES.md` §1-5
+- 完整 16 规则代码实现：`wff-builder/wff_builder.py` validate 命令
+- 官方 XSD 规范：`tools/google-watchface/watchface/third_party/wff/specification/documents/5/`
+- 官方验证器：`java -jar wff-validator.jar 5 watchface.xml`
