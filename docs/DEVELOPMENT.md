@@ -44,6 +44,11 @@ npx next build && npx next start -p 3000   # 生产
 | `AI_PROVIDER` | `zai` \| `openai` | `zai` |
 | `ZAI_API_KEY` / `OPENAI_API_KEY` | AI 密钥 | 无（缺失时 AI 端点返回 503） |
 | `OPENAI_BASE_URL` | OpenAI 兼容端点 | 官方 |
+| `WFF_API_KEYS` | `/api/v1/wff/*` 接受的逗号分隔 API Key | 无（未配置时返回 503） |
+
+首次使用 WFF 直通 API 时执行 `./scripts/create-api-key.sh`，它会生成随机
+key 并写入被 Git 忽略的 `.env`。`scripts/dev-services.sh` 启动/重启时会自动
+加载该文件。不要把 `.env` 或真实 key 提交到仓库。
 
 ## 测试
 

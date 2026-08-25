@@ -20,3 +20,6 @@ qrcode>=7.4
 
 # 配置
 PyYAML>=6.0
+
+# Google WFF schema uses XSD 1.1; xmlschema is MIT and supports XSD 1.1.
+xmlschema>=4.2,<5

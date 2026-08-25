@@ -78,8 +78,8 @@
 │     → POST /api/v1/wff/validate   (XSD + 官方validator+lint)│
 │     → POST /api/v1/wff/preview    (多时间点/ambient 静态帧)  │
 │     → 迭代修复（agent 自修复循环）                            │
-│     → POST /api/v1/wff/build      (APK + 二维码)            │
-│     → 真机安装验证（用户扫码抽查）                             │
+│     → POST /api/v1/wff/build      (APK + 校验和；二维码为辅助) │
+│     → 真机安装验证（无线 ADB / Play 测试轨道抽查）             │
 └────────────────────────────────────────────────────────────┘
 ┌────────────────────────────────────────────────────────────┐
 │ 引擎 B（辅）：CDM 快速通道（一期已建成，维持现状）              │
@@ -147,9 +147,9 @@ agent（任意机器，持有 skill + API key）
    ↓ agent 自查视觉（可用 VLM）
 （循环：修改 XML → 重新 validate/preview，直到满意）
    ↓
-/api/v1/wff/build    ──→ 签名 APK + 下载 URL + 二维码 + 校验和
+/api/v1/wff/build    ──→ 签名 APK + 下载 URL + 校验和（二维码为手机辅助入口）
    ↓
-真机安装（Wear Installer，用户扫码）→ 显示效果反馈回 pitfalls 知识库
+真机安装（无线 ADB / Wear Installer / Play 测试轨道）→ 显示效果反馈回 pitfalls 知识库
 ```
 
 ### 4.2 API 契约 v0.1
@@ -310,7 +310,7 @@ skills/wff-watchface-dev/
 2. 写/改 watchface.xml + 准备素材（遵守 assets.md 约束）
 3. validate → 有 error 按 hint 修复 → 循环（建议上限 5 轮，超限提醒需求可能超出现有能力）
 4. preview → （可选）VLM 自查视觉：布局溢出、重叠、ambient 可读性
-5. build → 拿到 APK + 二维码
+5. build → 拿到 APK + SHA-256；二维码仅供手机快速打开下载页
 6. 真机安装（人类环节）→ 效果反馈记录进 pitfalls.md
 ```
 
@@ -339,7 +339,7 @@ skills/wff-watchface-dev/
 | wff-builder（16 规则 + APK 管线，真机已验证） | ✅ 存活，升为核心 | `/api/v1/wff/build` 后端 + local 模式执行器 |
 | XSD 校验 + lint | ✅ 存活 | validate 端点第 1、3 层 |
 | FastAPI 骨架 / AI gateway / Pillow 图像管线 | ✅ 存活 | 素材生成+抠图服务（skill 与 CDM 通道共用） |
-| 二维码 + Wear Installer 安装链路 | ✅ 存活 | 真机验证闭环 |
+| APK 下载 + 无线 ADB / Wear Installer 安装链路 | ✅ 存活 | 真机验证闭环；二维码降为手机辅助入口 |
 | CDM + /api/compile + 3 模板前端 | 🔧 保留降级 | CDM 快速通道（普通用户一句话生成），不再作为多端统一核心 |
 | preview_renderer（CDM→PNG） | 🔧 重写 | WFF XML→静态帧渲染器（4A/4B 协作，见 §4.3） |
 | Fabric.js 编辑器（Phase 3） | ❄️ 冻结 | 代码留档不再投入；LayerPanel 等组件可被预览 v1 复用 |
@@ -360,7 +360,7 @@ skills/wff-watchface-dev/
 | ID | 需求 | 优先级 | 验收标准 |
 |----|------|--------|----------|
 | P4A-F01 | /api/v1/wff/validate 端点（三层校验合并） | P0 | §4.2 契约符合；非法输入 4xx 结构化错误 |
-| P4A-F02 | /api/v1/wff/build 端点（复用 wff-builder） | P0 | 同步构建 <10s；含 sha256 + 二维码 |
+| P4A-F02 | /api/v1/wff/build 端点（复用 wff-builder） | P0 | 同步构建 <10s；含 sha256 + 直接下载；二维码为非阻塞辅助项 |
 | P4A-F03 | 预览渲染器 v0 服务化（/api/v1/wff/preview） | P0 | 常规表盘 3 帧 <5s；渲染边界 warning 输出 |
 | P4A-F04 | API key 签发 + 限流 | P0 | 令牌桶生效，超限 429 |
 | P4A-F05 | API_CONTRACT.md 固化（v0.1 → v1.0） | P0 | 契约文档含错误码全表 + 示例请求/响应 |
@@ -423,7 +423,7 @@ skills/wff-watchface-dev/
 | **平台 agent** | §4.2 三端点服务化、鉴权限流、官方工具链集成部署、网站 CI 页面（提交/日志/产物展示）、预览 v1 | `api/` 扩展 + `web/` 扩展 + API_CONTRACT.md 服务端实现 |
 | **用户** | 资源决策（阿里云购买、域名/备案）、真机安装抽查（盲测与发版抽验）、方向拍板（§10） | 决策 + 真机反馈 |
 
-**唯一人工环节：真机安装验证**（Wear Installer 扫码）。validate/preview/build 及 agent 自修复循环全自动。
+**唯一人工环节：真机安装验证**（优先无线 ADB 或 Play 测试轨道，Wear Installer 可选）。validate/preview/build 及 agent 自修复循环全自动。
 
 **备注（§4.3 呼应）：** 预览渲染器 v0 的参考实现放在 skill 侧，理由是 WFF 语义密集、与知识层同源，减少跨 agent 知识转移；平台侧负责其服务化与性能化。若用户不同意此切分，可整体划归平台 agent，skill 侧仅提供语义测试用例集（§10-4）。
 
