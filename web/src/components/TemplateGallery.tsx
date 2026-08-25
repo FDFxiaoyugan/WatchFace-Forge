@@ -197,15 +197,22 @@ export default function TemplateGallery() {
             >
               <div className="flex justify-center mb-4">
                 <div
-                  className="watch-preview w-32 h-32 flex items-center justify-center"
+                  className="watch-preview relative w-36 h-36 flex flex-col items-center justify-center shadow-2xl"
                   style={{
-                    background: `radial-gradient(circle, ${tmpl.preview_color}22 0%, #000 100%)`,
-                    border: `2px solid ${tmpl.preview_color}`,
+                    background: `radial-gradient(circle at 35% 25%, ${tmpl.preview_color}28 0%, #09090b 68%)`,
+                    border: `1px solid ${tmpl.preview_color}66`,
+                    boxShadow: `inset 0 0 28px ${tmpl.preview_color}12, 0 12px 36px #0008`,
                   }}
                 >
-                  <span className="text-2xl font-bold" style={{ color: tmpl.preview_color }}>
+                  <span className="text-[10px] tracking-[0.18em] text-zinc-500 mb-1">8月21日</span>
+                  <span className="text-3xl font-semibold tracking-tight" style={{ color: tmpl.preview_color }}>
                     10:08
                   </span>
+                  <span className="mt-2 text-[10px] text-zinc-500">🔋85%</span>
+                  <span
+                    className="absolute inset-[7px] rounded-full border border-white/5"
+                    aria-hidden="true"
+                  />
                 </div>
               </div>
               <h3 className="text-lg font-semibold text-center mb-1">{tmpl.name}</h3>
@@ -312,12 +319,12 @@ export default function TemplateGallery() {
                 </span>
                 {cdm.date_display.enabled && (
                   <span className="text-xs mt-1" style={{ color: cdm.date_display.font.color }}>
-                    08/15
+                    8月21日
                   </span>
                 )}
                 {cdm.info_line.enabled && (
                   <span className="text-xs mt-1" style={{ color: cdm.info_line.font.color }}>
-                    {cdm.info_line.label} 85%
+                    {cdm.info_line.label}85%
                   </span>
                 )}
               </div>

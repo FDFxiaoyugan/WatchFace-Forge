@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense, useCallback } from "react";
+import { useEffect, useState, Suspense, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEditorStore, useCanUndo, useCanRedo } from "@/stores/editorStore";
 import FabricCanvas, { defaultTimeText } from "@/components/editor/FabricCanvas";
@@ -15,6 +15,7 @@ import LayerPanel from "@/components/editor/LayerPanel";
 import PropertyPanel from "@/components/editor/PropertyPanel";
 import DataBindingPanel from "@/components/editor/DataBindingPanel";
 import PreviewDevice from "@/components/editor/PreviewDevice";
+import WatchFaceSettings from "@/components/editor/WatchFaceSettings";
 
 export default function EditorPage() {
   return (
@@ -33,13 +34,17 @@ function EditorInner() {
   const loadCDM = useEditorStore((s) => s.loadCDM);
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
+  const nudgeSelection = useEditorStore((s) => s.nudgeSelection);
+  const deleteSelection = useEditorStore((s) => s.deleteSelection);
   const canUndo = useCanUndo();
   const canRedo = useCanRedo();
 
-  const [rightTab, setRightTab] = useState<"props" | "data">("props");
+  const [rightTab, setRightTab] = useState<"props" | "data" | "settings">("props");
   const [showPreview, setShowPreview] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const importRef = useRef<HTMLInputElement>(null);
 
   const flash = useCallback((msg: string) => {
     setToast(msg);
@@ -61,18 +66,50 @@ function EditorInner() {
       });
   }, [taskId, loadCDM, flash]);
 
-  // 键盘快捷键: Ctrl+Z / Ctrl+Shift+Z
+  // 键盘快捷键: 撤销/重做、方向键微调、删除图层
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const editing = target?.matches("input, textarea, select, [contenteditable=true]");
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
         if (e.shiftKey) redo();
         else undo();
+      } else if (!editing && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        nudgeSelection(
+          e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0,
+          e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0
+        );
+      } else if (!editing && (e.key === "Delete" || e.key === "Backspace")) {
+        e.preventDefault();
+        deleteSelection();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [undo, redo]);
+  }, [undo, redo, nudgeSelection, deleteSelection]);
+
+  const importCDM = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const res = await fetch("/api/editor/cdm/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cdm: parsed }),
+      });
+      const result = await res.json();
+      if (!result.valid) throw new Error(result.errors?.[0] ?? "CDM 格式无效");
+      loadCDM(parsed);
+      flash("✓ CDM 已导入");
+    } catch (error) {
+      flash(`✕ ${error instanceof Error ? error.message : "导入失败"}`);
+    } finally {
+      if (importRef.current) importRef.current.value = "";
+    }
+  };
 
   // ─── 导出 CDM ──────────────────────────────────────
   const exportCDM = () => {
@@ -123,7 +160,7 @@ function EditorInner() {
         flash("✓ APK 构建成功");
         window.open(data.download_url, "_blank");
       } else {
-        flash(`✕ ${data.detail ?? "构建失败"}`);
+        flash(`✕ ${data.error ?? data.detail ?? "构建失败"}`);
       }
     } catch {
       flash("构建请求失败");
@@ -168,12 +205,26 @@ function EditorInner() {
           ↪
         </button>
         <div className="h-4 w-px bg-zinc-800" />
+        <div className="flex items-center rounded bg-zinc-800 text-xs">
+          <button className="px-2 py-1 hover:text-sky-300" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}>−</button>
+          <button className="min-w-12 px-1 py-1 text-zinc-400 hover:text-sky-300" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
+          <button className="px-2 py-1 hover:text-sky-300" onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}>＋</button>
+        </div>
+        <div className="h-4 w-px bg-zinc-800" />
         <button
           onClick={validateCDM}
           disabled={busy}
           className="px-3 py-1 text-xs rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50"
         >
           校验
+        </button>
+        <input ref={importRef} type="file" accept="application/json,.json" className="hidden"
+          onChange={(e) => importCDM(e.target.files?.[0])} />
+        <button
+          onClick={() => importRef.current?.click()}
+          className="px-3 py-1 text-xs rounded bg-zinc-800 hover:bg-zinc-700"
+        >
+          导入 CDM
         </button>
         <button
           onClick={exportCDM}
@@ -205,13 +256,12 @@ function EditorInner() {
 
         {/* 中: 画布 */}
         <main className="flex-1 flex items-center justify-center overflow-auto bg-[radial-gradient(circle_at_center,#1a1a2e_0%,#0a0a0f_100%)]">
-          <div className="relative">
-            <FabricCanvas cdm={cdm} timeText={timeText} />
-            {/* 圆形表盘参考线 */}
-            <div
-              className="pointer-events-none absolute inset-0 border border-dashed border-white/10 rounded-full"
-              style={{ margin: "12.5%" }}
-            />
+          <div className="shrink-0" style={{ width: 450 * zoom, height: 450 * zoom }}>
+            <div className="relative w-[450px] h-[450px] overflow-hidden rounded-full"
+              style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}>
+              <FabricCanvas cdm={cdm} timeText={timeText} />
+              <div className="pointer-events-none absolute inset-0 z-10 border border-dashed border-white/20 rounded-full" />
+            </div>
           </div>
         </main>
 
@@ -234,15 +284,23 @@ function EditorInner() {
             >
               数据绑定
             </button>
+            <button
+              className={`flex-1 py-2 text-xs ${
+                rightTab === "settings" ? "text-sky-300 border-b-2 border-sky-500" : "text-zinc-500"
+              }`}
+              onClick={() => setRightTab("settings")}
+            >
+              表盘
+            </button>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {rightTab === "props" ? <PropertyPanel /> : <DataBindingPanel />}
+            {rightTab === "props" ? <PropertyPanel /> : rightTab === "data" ? <DataBindingPanel /> : <WatchFaceSettings />}
           </div>
         </aside>
 
         {/* 预览抽屉 */}
         {showPreview && (
-          <aside className="w-[420px] border-l border-zinc-800 bg-zinc-900/50 overflow-y-auto">
+          <aside className="w-[520px] border-l border-zinc-800 bg-zinc-900/50 overflow-y-auto">
             <PreviewDevice />
           </aside>
         )}

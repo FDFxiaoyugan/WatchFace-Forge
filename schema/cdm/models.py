@@ -115,6 +115,10 @@ class Background(BaseModel):
     gradient_end: Optional[str] = Field(None, pattern=r"^#[0-9a-fA-F]{8}$",
                                         description="渐变结束色")
     image_resource: Optional[str] = Field(None, description="背景图片资源名")
+    image_data: Optional[str] = Field(None, description="编辑器使用的 data URL / base64 图片数据")
+    image_fit: str = Field("cover", pattern=r"^(cover|contain|stretch)$",
+                           description="图片填充方式")
+    image_opacity: int = Field(100, ge=0, le=100, description="图片不透明度百分比")
 
 
 class DigitalTime(BaseModel):
@@ -146,7 +150,7 @@ class AnalogTime(BaseModel):
 class DateDisplay(BaseModel):
     """日期显示"""
     enabled: bool = True
-    format: str = Field("%s/%s", description="日期格式模板, 使用 %s 占位")
+    format: str = Field("%s月%s日", description="日期格式模板, 使用 %s 占位")
     position: Position = Field(default_factory=lambda: Position(x=0, y=260, width=450, height=50))
     font: FontStyle = Field(default_factory=lambda: FontStyle(
         size=32, weight=FontWeight.NORMAL, color="#ffAAAAAA"
@@ -161,7 +165,7 @@ class DateDisplay(BaseModel):
 class InfoLine(BaseModel):
     """信息行 (电量/心率等)"""
     enabled: bool = True
-    label: str = Field("BAT", description="前缀标签, 如 BAT/HR")
+    label: str = Field("🔋", description="前缀标签, 如 🔋/HR")
     data_source: DataSource = DataSource.BATTERY_PERCENT
     suffix: str = Field("%%", description="后缀, %% 表示百分号")
     position: Position = Field(default_factory=lambda: Position(x=0, y=320, width=450, height=50))

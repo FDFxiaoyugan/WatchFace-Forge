@@ -3,6 +3,8 @@ import sys
 import uuid
 import tempfile
 import shutil
+import base64
+import io
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
@@ -22,6 +24,42 @@ router = APIRouter()
 # APK 输出目录
 APK_OUTPUT_DIR = Path(tempfile.gettempdir()) / "watchface-forge-apks"
 APK_OUTPUT_DIR.mkdir(exist_ok=True)
+
+
+def _write_background_asset(project_dir: Path, background) -> None:
+    """验证并将 CDM 图片背景转为 450x450 PNG APK 资源。"""
+    if background.type != "image" or not background.image_data:
+        return
+    payload = background.image_data
+    if "," in payload:
+        header, payload = payload.split(",", 1)
+        if not header.startswith("data:image/") or ";base64" not in header:
+            raise ValueError("invalid background image data URL")
+    try:
+        raw = base64.b64decode(payload, validate=True)
+    except Exception as exc:
+        raise ValueError("invalid background image base64") from exc
+    if len(raw) > 10 * 1024 * 1024:
+        raise ValueError("background image too large (max 10MB)")
+
+    from PIL import Image, ImageOps
+    try:
+        image = ImageOps.exif_transpose(Image.open(io.BytesIO(raw))).convert("RGBA")
+        image.load()
+    except Exception as exc:
+        raise ValueError(f"invalid background image: {exc}") from exc
+
+    target = 450
+    fit = background.image_fit
+    if fit == "stretch":
+        result = image.resize((target, target), Image.Resampling.LANCZOS)
+    else:
+        ratio = min(target / image.width, target / image.height) if fit == "contain" else max(target / image.width, target / image.height)
+        resized = image.resize((max(1, round(image.width * ratio)), max(1, round(image.height * ratio))), Image.Resampling.LANCZOS)
+        result = Image.new("RGBA", (target, target), (0, 0, 0, 0))
+        result.alpha_composite(resized, ((target - resized.width) // 2, (target - resized.height) // 2))
+    result.save(project_dir / "background.png", "PNG", optimize=True)
+    background.image_resource = "background"
 
 
 @router.post("/build", response_model=BuildResponse)
@@ -52,6 +90,7 @@ async def build_apk(req: BuildRequest):
         (project_dir / "watchface.xml").write_text(wff_xml, encoding="utf-8")
 
         # 5. 生成预览图
+        _write_background_asset(project_dir, req.cdm.background)
         from api.services.preview_renderer import render_preview
         render_preview(project_dir / "preview.png", req.cdm)
 

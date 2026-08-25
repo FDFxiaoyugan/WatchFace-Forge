@@ -5,9 +5,10 @@
 
 "use client";
 
+import { useState } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import {
-  argbToCss,
+  argbToHexRgb,
   cssToArgb,
   FontStyle,
   Position,
@@ -45,7 +46,7 @@ function ColorField({
       <span className="w-10 text-zinc-500">{label}</span>
       <input
         type="color"
-        value={argbToCss(argb).replace(/rgba?\((\d+), (\d+), (\d+), [\d.]+\)/, "#$1$2$3")}
+        value={argbToHexRgb(argb)}
         onChange={(e) => onChange(cssToArgb(e.target.value))}
         className="w-8 h-6 rounded cursor-pointer bg-transparent border border-zinc-700"
       />
@@ -112,15 +113,60 @@ function PositionEditor({
   pos: Position;
   onChange: (p: Position) => void;
 }) {
+  const align = (mode: "left" | "h-center" | "right" | "top" | "v-center" | "bottom") => {
+    const next = { ...pos };
+    if (mode === "left") next.x = 0;
+    if (mode === "h-center") next.x = Math.round((450 - pos.width) / 2);
+    if (mode === "right") next.x = 450 - pos.width;
+    if (mode === "top") next.y = 0;
+    if (mode === "v-center") next.y = Math.round((450 - pos.height) / 2);
+    if (mode === "bottom") next.y = 450 - pos.height;
+    onChange(next);
+  };
+
   return (
     <Section title="位置与尺寸">
       <div className="grid grid-cols-2 gap-2">
-        <NumField label="X" value={pos.x} min={0} max={450} onChange={(x) => onChange({ ...pos, x })} />
-        <NumField label="Y" value={pos.y} min={0} max={450} onChange={(y) => onChange({ ...pos, y })} />
+        <NumField label="左" value={pos.x} min={0} max={450} onChange={(x) => onChange({ ...pos, x })} />
+        <NumField label="顶" value={pos.y} min={0} max={450} onChange={(y) => onChange({ ...pos, y })} />
         <NumField label="宽" value={pos.width} min={1} max={450} onChange={(width) => onChange({ ...pos, width })} />
         <NumField label="高" value={pos.height} min={1} max={450} onChange={(height) => onChange({ ...pos, height })} />
       </div>
+      <div className="flex items-center justify-between rounded bg-zinc-900 px-2 py-1 text-[10px] text-zinc-500">
+        <span>中心 X: <b className="font-mono text-zinc-300">{Math.round(pos.x + pos.width / 2)}</b></span>
+        <span>中心 Y: <b className="font-mono text-zinc-300">{Math.round(pos.y + pos.height / 2)}</b></span>
+      </div>
+      <div className="space-y-1.5 pt-1">
+        <div className="flex items-center gap-2 text-xs">
+          <span className="w-10 text-zinc-500">水平</span>
+          <div className="grid flex-1 grid-cols-3 gap-1">
+            <AlignButton label="左对齐" onClick={() => align("left")} />
+            <AlignButton label="居中" onClick={() => align("h-center")} />
+            <AlignButton label="右对齐" onClick={() => align("right")} />
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="w-10 text-zinc-500">垂直</span>
+          <div className="grid flex-1 grid-cols-3 gap-1">
+            <AlignButton label="顶对齐" onClick={() => align("top")} />
+            <AlignButton label="居中" onClick={() => align("v-center")} />
+            <AlignButton label="底对齐" onClick={() => align("bottom")} />
+          </div>
+        </div>
+      </div>
     </Section>
+  );
+}
+
+function AlignButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="rounded border border-zinc-700 bg-zinc-800 px-1 py-1 text-[10px] text-zinc-300 hover:border-sky-600 hover:text-sky-300"
+      onClick={onClick}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -133,6 +179,12 @@ function FontEditor({
 }) {
   return (
     <Section title="字体">
+      <div className="flex items-center gap-2 text-xs">
+        <span className="w-10 text-zinc-500">字体</span>
+        <span className="flex-1 rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-zinc-400">
+          跟随设备 (SYNC_TO_DEVICE)
+        </span>
+      </div>
       <NumField label="字号" value={font.size} min={8} max={200} onChange={(size) => onChange({ ...font, size })} />
       {withWeight && (
         <SelectField
@@ -157,6 +209,44 @@ export default function PropertyPanel() {
   const cdm = useEditorStore((s) => s.cdm);
   const selection = useEditorStore((s) => s.selection);
   const updateCDM = useEditorStore((s) => s.updateCDM);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  const uploadBackground = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setImageError("请选择 PNG、JPEG 或 WebP 图片");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setImageError("图片不能超过 10MB");
+      return;
+    }
+    setImageBusy(true);
+    setImageError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("remove_bg", "false");
+      form.append("auto_crop", "false");
+      form.append("max_size", "1024");
+      const response = await fetch("/api/editor/image/upload", { method: "POST", body: form });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.detail ?? "图片处理失败");
+      updateCDM((d) => {
+        d.background.type = "image";
+        d.background.image_resource = "background";
+        d.background.image_data = `data:image/png;base64,${result.image_b64}`;
+        d.background.image_fit = d.background.image_fit ?? "cover";
+        d.background.image_opacity = d.background.image_opacity ?? 100;
+        return d;
+      });
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : "图片上传失败");
+    } finally {
+      setImageBusy(false);
+    }
+  };
 
   if (!selection) {
     return (
@@ -180,15 +270,21 @@ export default function PropertyPanel() {
             ]}
             onChange={(type) => updateCDM((d) => {
               d.background.type = type;
+              if (type === "gradient") {
+                d.background.gradient_start ??= d.background.color;
+                d.background.gradient_end ??= "#ffffffff";
+              }
               return d;
             })}
           />
         </Section>
-        <ColorField
-          label="颜色"
-          argb={cdm.background.color}
-          onChange={(color) => updateCDM((d) => { d.background.color = color; return d; })}
-        />
+        {cdm.background.type === "solid" && (
+          <ColorField
+            label="颜色"
+            argb={cdm.background.color}
+            onChange={(color) => updateCDM((d) => { d.background.color = color; return d; })}
+          />
+        )}
         {cdm.background.type === "gradient" && (
           <>
             <ColorField
@@ -204,7 +300,42 @@ export default function PropertyPanel() {
           </>
         )}
         {cdm.background.type === "image" && (
-          <p className="text-xs text-zinc-500">图片背景将在素材库上线后支持 (Phase 4)</p>
+          <Section title="背景图片">
+            {cdm.background.image_data && (
+              <div className="overflow-hidden rounded-lg border border-zinc-700 bg-black">
+                <img src={cdm.background.image_data} alt="背景预览" className="h-28 w-full object-cover" />
+              </div>
+            )}
+            <label className="block cursor-pointer rounded border border-dashed border-zinc-600 px-3 py-2 text-center text-xs text-zinc-400 hover:border-sky-500 hover:text-sky-300">
+              {imageBusy ? "处理中..." : cdm.background.image_data ? "替换图片" : "选择图片"}
+              <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={imageBusy}
+                onChange={(e) => { uploadBackground(e.target.files?.[0]); e.target.value = ""; }} />
+            </label>
+            {imageError && <p className="text-xs text-red-400">{imageError}</p>}
+            <SelectField
+              label="填充"
+              value={cdm.background.image_fit ?? "cover"}
+              options={[
+                { value: "cover", label: "覆盖（裁切）" },
+                { value: "contain", label: "完整显示" },
+                { value: "stretch", label: "拉伸" },
+              ]}
+              onChange={(image_fit) => updateCDM((d) => { d.background.image_fit = image_fit; return d; })}
+            />
+            <NumField label="透明" value={cdm.background.image_opacity ?? 100} min={0} max={100}
+              onChange={(image_opacity) => updateCDM((d) => { d.background.image_opacity = image_opacity; return d; })} />
+            {cdm.background.image_data && (
+              <button type="button" className="w-full rounded bg-red-950/40 px-3 py-1.5 text-xs text-red-300 hover:bg-red-900/50"
+                onClick={() => updateCDM((d) => {
+                  d.background.type = "solid";
+                  d.background.image_resource = null;
+                  d.background.image_data = null;
+                  return d;
+                })}>
+                移除背景图
+              </button>
+            )}
+          </Section>
         )}
       </div>
     );
@@ -224,16 +355,6 @@ export default function PropertyPanel() {
               { value: "HH:mm:ss", label: "含秒 (14:05:08)" },
             ]}
             onChange={(format) => updateCDM((d) => { d.digital_time.format = format; return d; })}
-          />
-          <SelectField
-            label="对齐"
-            value={dt.align}
-            options={[
-              { value: "LEFT", label: "左对齐" },
-              { value: "CENTER", label: "居中" },
-              { value: "RIGHT", label: "右对齐" },
-            ]}
-            onChange={(align) => updateCDM((d) => { d.digital_time.align = align; return d; })}
           />
         </Section>
         <PositionEditor

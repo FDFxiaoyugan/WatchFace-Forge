@@ -34,15 +34,15 @@ from xml.etree import ElementTree as ET
 
 # ─── 配置 ──────────────────────────────────────────────
 
-ANDROID_HOME = os.environ.get(
-    "ANDROID_HOME", "/home/z/my-project/tools/android-sdk"
-)
+BUILDER_ROOT = Path(__file__).resolve().parent
+ANDROID_HOME = os.environ.get("ANDROID_HOME", "/opt/android-sdk")
 BUILD_TOOLS = Path(ANDROID_HOME) / "build-tools" / "34.0.0"
 ANDROID_JAR = Path(ANDROID_HOME) / "platforms" / "android-34" / "android.jar"
-AAPT2 = BUILD_TOOLS / "aapt2"
-APKSIGNER = BUILD_TOOLS / "apksigner"
+AAPT2 = Path(os.environ.get("AAPT2", str(BUILD_TOOLS / "aapt2")))
+APKSIGNER = Path(os.environ.get("APKSIGNER", str(BUILD_TOOLS / "apksigner")))
 
-KEYSTORE = Path("/home/z/my-project/experiments/wff-apk-test/test.keystore")
+KEYSTORE = Path(os.environ.get("WFF_KEYSTORE", str(BUILDER_ROOT / "keystore" / "test.keystore")))
+PRECOMPILED_DIR = BUILDER_ROOT / "projects" / "demo" / "_build" / "compiled"
 KEYSTORE_PASS = "wfftest123"
 KEY_ALIAS = "wfftest"
 KEY_PASS = "wfftest123"
@@ -211,14 +211,14 @@ def _check_rule_10(xml_text: str):
 
 def _check_rule_11(xml_text: str):
     """R11: 不应使用 source= 属性 (旧式写法, WFF 用 expression=)"""
-    if "source=" in xml_text:
+    if re.search(r"\ssource\s*=", xml_text):
         return False, '使用 source="..." 是旧式写法, WFF 应使用 expression="[...]"'
     return True, "OK"
 
 
 def _check_rule_12(xml_text: str):
     """R12: Parameter 必须用 expression= 属性, 不是 source="""
-    if "<Parameter" in xml_text and "source=" in xml_text:
+    if "<Parameter" in xml_text and re.search(r"\ssource\s*=", xml_text):
         return False, 'Parameter 应使用 expression="[...]" 而非 source="..."'
     return True, "OK"
 
@@ -451,6 +451,14 @@ class WFFBuilder:
         self.log(f"  Copied: res/drawable/preview.png ({preview_dst.stat().st_size}B)")
 
         # Copy extra drawables
+        # API 构建链路的标准背景资源（无需 project.yaml 列表解析）
+        background_src = self.project_dir / "background.png"
+        if background_src.is_file():
+            background_dst = self.build_dir / "res" / "drawable" / "background.png"
+            background_dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(background_src, background_dst)
+            self.log("  Copied: res/drawable/background.png")
+
         for drawable in self.config.get("extra_drawables", []):
             if isinstance(drawable, str):
                 src = self.project_dir / drawable
@@ -470,6 +478,39 @@ class WFFBuilder:
                     self.log(f"  Copied: res/font/{src.name}")
 
     def compile_resources(self):
+        # aapt2 官方 Linux 构建不支持当前 ARM64 DevSpace。使用仓库内
+        # 已验证的二进制模板，仅替换 WFF 原始 XML 和预览图资源。
+        if not (AAPT2.is_file() and os.access(AAPT2, os.X_OK) and ANDROID_JAR.is_file()):
+            required = [
+                "AndroidManifest.xml",
+                "resources.arsc",
+                "res_xml_watch_face_info.xml",
+            ]
+            missing = [name for name in required if not (PRECOMPILED_DIR / name).is_file()]
+            if missing:
+                raise RuntimeError(
+                    "Android build tools are unavailable and the precompiled template is incomplete: "
+                    + ", ".join(missing)
+                )
+            if self.compiled_dir.exists():
+                shutil.rmtree(self.compiled_dir)
+            shutil.copytree(PRECOMPILED_DIR, self.compiled_dir)
+            background = self.build_dir / "res" / "drawable" / "background.png"
+            if background.is_file():
+                # 预编译 resources.arsc 只注册了 drawable/preview。ARM 回退时
+                # 将背景映射到该已注册槽位，避免 APK 内有文件但资源无法解析。
+                watchface = (self.build_dir / "res" / "raw" / "watchface.xml").read_text()
+                watchface = watchface.replace('resource="drawable/background"', 'resource="drawable/preview"')
+                (self.compiled_dir / "res_raw_watchface.xml").write_text(watchface)
+                shutil.copy2(background, self.compiled_dir / "res_drawable_preview.png")
+            else:
+                shutil.copy2(self.build_dir / "res" / "raw" / "watchface.xml",
+                             self.compiled_dir / "res_raw_watchface.xml")
+                shutil.copy2(self.build_dir / "res" / "drawable" / "preview.png",
+                             self.compiled_dir / "res_drawable_preview.png")
+            self.log("  aapt2 unavailable: using verified precompiled ARM template")
+            return
+
         compiled_res = self.build_dir / "compiled_res.zip"
         cmd = [str(AAPT2), "compile", "--dir", str(self.build_dir / "res"), "-o", str(compiled_res)]
         r = subprocess.run(cmd, capture_output=True, text=True)
@@ -510,6 +551,12 @@ class WFFBuilder:
                 self.log(f"  Extracted: {name} ({len(data)}B)")
 
     def build_final_apk(self) -> Path:
+        if not APKSIGNER.is_file():
+            raise RuntimeError(
+                f"apksigner not found at {APKSIGNER}; set ANDROID_HOME or APKSIGNER"
+            )
+        if not KEYSTORE.is_file():
+            raise RuntimeError(f"keystore not found at {KEYSTORE}")
         # Determine which compiled files go into the final APK
         # Rules:
         #   - AndroidManifest.xml → always (binary AXML, DEFLATE)
