@@ -63,6 +63,10 @@ watchface-forge/
 - [ ] Phase 4C — Agent CI 工作台与自修复反馈（Skill 开发按当前计划跳过）
 - [ ] Phase 5 — 微信小程序（二期）
 
+访问 `/ci` 使用 Agent CI 工作台：可直接提交 WFF XML/素材，查看 XSD、
+Google validator 与 lint 三层日志，生成多时刻预览，并下载带 SHA-256 和
+官方内存报告的签名 APK。
+
 ## API 端点（20 个）
 
 | Method | Path | Phase | 说明 |

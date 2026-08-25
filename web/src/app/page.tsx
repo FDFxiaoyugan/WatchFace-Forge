@@ -34,12 +34,10 @@ export default function HomePage() {
         <p className="text-forge-muted text-lg">
           AI 驱动的 Wear OS 表盘生成平台
         </p>
-        <button
-          onClick={() => router.push("/editor")}
-          className="mt-4 px-5 py-2 rounded-lg border border-forge-accent text-forge-accent hover:bg-forge-accent/10 transition-all text-sm font-medium"
-        >
-          🎨 打开可视化编辑器
-        </button>
+        <div className="mt-4 flex justify-center gap-3">
+          <button onClick={() => router.push("/editor")} className="px-5 py-2 rounded-lg border border-forge-accent text-forge-accent hover:bg-forge-accent/10 transition-all text-sm font-medium">🎨 打开可视化编辑器</button>
+          <button onClick={() => router.push("/ci")} className="px-5 py-2 rounded-lg border border-forge-border text-forge-text hover:border-forge-accent transition-all text-sm font-medium">⚙ Agent CI 工作台</button>
+        </div>
       </div>
 
       {/* Tab Switch */}

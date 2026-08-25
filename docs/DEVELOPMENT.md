@@ -50,6 +50,10 @@ npx next build && npx next start -p 3000   # 生产
 key 并写入被 Git 忽略的 `.env`。`scripts/dev-services.sh` 启动/重启时会自动
 加载该文件。不要把 `.env` 或真实 key 提交到仓库。
 
+启动服务后访问 `/ci` 使用 Agent CI 工作台。API Key 只保存在当前浏览器
+标签页的 `sessionStorage`，关闭标签页后清除；页面主操作是直接下载 APK，
+二维码仅作为手机打开下载页的辅助入口。
+
 ## 测试
 
 ```bash
