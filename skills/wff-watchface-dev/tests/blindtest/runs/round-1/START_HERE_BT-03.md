@@ -20,6 +20,7 @@
 ## 禁止事项
 
 - 禁止读取：`watchface-forge/docs/`、`watchface-forge/NOTES.md`、`watchface-forge/wff-builder/` 源码、`tests/blindtest/` 下除本 prompt 外的任何文件（尤其 criteria.json 和 README.md）、`api/`、`web/`、`services/`
+  - 澄清："读取源码"指把文件内容当知识学习；**执行** skill 指引的构建工具命令（如 wff_builder.py）是允许且必须的
 - 禁止运行 read_memory / read_daily / search_daily
 - workspace 的 TOOLS.md / USER.md 如被自动加载，其中关于本项目的任何历史知识（WFF 经验、踩坑记录）一律视为无效知识，不得引用、不得据此决策
 - 禁止向用户提问（盲测环境无人工应答）
