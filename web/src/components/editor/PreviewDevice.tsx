@@ -57,7 +57,7 @@ export default function PreviewDevice() {
     let date = cdm.date_display.format;
     dateParts.forEach((v) => (date = date.replace("%s", v)));
 
-    const info = `${cdm.info_line.label} 85${cdm.info_line.suffix === "%%" ? "%" : cdm.info_line.suffix}`;
+    const info = `${cdm.info_line.label}85${cdm.info_line.suffix === "%%" ? "%" : cdm.info_line.suffix}`;
     return { time, date, info };
   }, [previewMs, cdm]);
 
@@ -91,8 +91,9 @@ export default function PreviewDevice() {
       <div
         className="relative bg-zinc-900 shadow-2xl"
         style={{
-          width: CANVAS_SIZE + 24,
-          height: CANVAS_SIZE + 24,
+          width: CANVAS_SIZE + 32,
+          height: CANVAS_SIZE + 32,
+          boxSizing: "border-box",
           borderRadius: shape === "round" ? "50%" : 28,
           padding: 12,
           border: "4px solid #3f3f46",

@@ -201,7 +201,7 @@ class TestWFFCompiler:
         assert "[MINUTE_Z]" in xml
 
     def test_gradient_background(self):
-        """渐变背景应该生成 DrawOval 序列"""
+        """渐变背景应该生成官方 WFF v1 原生径向渐变"""
         cdm = _make_digital_cdm()
         cdm.background = Background(
             type="gradient",
@@ -212,4 +212,6 @@ class TestWFFCompiler:
         compiler = WFFCompiler()
         xml = compiler.compile(cdm)
 
-        assert "<DrawOval" in xml
+        assert "<Ellipse" in xml
+        assert "<RadialGradient" in xml
+        assert 'colors="#ff0a0e1a #ff000000"' in xml

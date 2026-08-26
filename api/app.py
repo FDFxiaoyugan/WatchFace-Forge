@@ -21,8 +21,9 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from api.routes import templates, compile as compile_route, build, health, qrcode, generate, editor
+from api.routes import templates, compile as compile_route, build, health, qrcode, generate, editor, wff
 from api.routes.error_handlers import validation_exception_handler, general_exception_handler
+from api.services.wff_access import WFFAPIError
 
 app = FastAPI(
     title="WatchFace Forge API",
@@ -43,6 +44,14 @@ app.add_middleware(
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
+
+@app.exception_handler(WFFAPIError)
+async def wff_api_exception_handler(request: Request, exc: WFFAPIError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"code": exc.code, "message": exc.message}},
+    )
+
 # 路由
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(templates.router, prefix="/api", tags=["templates"])
@@ -51,6 +60,7 @@ app.include_router(build.router, prefix="/api", tags=["build"])
 app.include_router(qrcode.router, prefix="/api", tags=["qrcode"])
 app.include_router(generate.router, prefix="/api", tags=["generate"])
 app.include_router(editor.router, prefix="/api/editor", tags=["editor"])
+app.include_router(wff.router, prefix="/api/v1/wff", tags=["wff-v1"])
 
 
 @app.get("/")

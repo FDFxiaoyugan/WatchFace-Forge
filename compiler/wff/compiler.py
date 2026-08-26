@@ -101,36 +101,33 @@ class WFFCompiler:
             # backgroundColor 已在 Scene 上声明, 这里不需要额外元素
             pass
         elif bg.type == "gradient" and bg.gradient_start and bg.gradient_end:
-            # 渐变背景: 用多个 DrawOval 模拟径向渐变
+            # WFF v1 官方原生径向渐变；禁止旧的 DrawList/DrawOval 非标准写法。
             lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
-            lines.append(f'      <DrawList>')
-            start_r, start_g, start_b = int(bg.gradient_start[2:4], 16), int(bg.gradient_start[4:6], 16), int(bg.gradient_start[6:8], 16)
-            end_r, end_g, end_b = int(bg.gradient_end[2:4], 16), int(bg.gradient_end[4:6], 16), int(bg.gradient_end[6:8], 16)
-            steps = 20
-            for i in range(steps):
-                t = i / steps
-                r = int(start_r * (1 - t) + end_r * t)
-                g = int(start_g * (1 - t) + end_g * t)
-                b = int(start_b * (1 - t) + end_b * t)
-                radius = int(self.CANVAS_SIZE * (1 - t) / 2)
-                x = self.CANVAS_SIZE // 2 - radius
-                lines.append(f'        <DrawOval x="{x}" y="{x}" width="{radius*2}" height="{radius*2}" color="#ff{r:02x}{g:02x}{b:02x}"/>')
-            lines.append(f'      </DrawList>')
+            lines.append(f'      <Ellipse x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
+            lines.append(f'        <Fill color="{bg.gradient_start}">')
+            lines.append(f'          <RadialGradient centerX="{self.CANVAS_SIZE // 2}" centerY="{self.CANVAS_SIZE // 2}"'
+                         f' radius="{self.CANVAS_SIZE // 2}" colors="{bg.gradient_start} {bg.gradient_end}" positions="0 1"/>')
+            lines.append('        </Fill>')
+            lines.append('      </Ellipse>')
             lines.append('    </PartDraw>')
         elif bg.type == "image" and bg.image_resource:
+            alpha = round(bg.image_opacity * 255 / 100)
             lines.append(f'    <PartImage x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}"'
-                         f' resource="drawable/{bg.image_resource}"/>')
+                         f' alpha="{alpha}" resource="drawable/{bg.image_resource}"/>')
 
     def _emit_digital_clock(self, lines: list, dt: DigitalTime):
         """生成数字时钟"""
         pos = dt.position
         font = dt.font
         align = dt.align.value
+        # CDM/UI uses Java-style HH for a 24-hour label, while the official WFF
+        # v1 schema only accepts h/hh tokens. hourFormat keeps device preference.
+        wff_format = dt.format.replace("HH", "hh")
 
         lines.append(f'    <DigitalClock x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
 
         # Active mode (bright)
-        lines.append(f'      <TimeText format="{dt.format}" hourFormat="SYNC_TO_DEVICE"'
+        lines.append(f'      <TimeText format="{wff_format}" hourFormat="SYNC_TO_DEVICE"'
                      f' align="{align}" x="{pos.x}" y="{pos.y}" width="{pos.width}" height="{pos.height}" alpha="255">')
         lines.append(f'        <Variant mode="AMBIENT" target="alpha" value="0"/>')
         lines.append(self._format_font_tag(font, indent=8))
@@ -140,7 +137,7 @@ class WFFCompiler:
         ambient_font = FontStyle(
             family=font.family, size=font.size, weight=FontWeight.THIN, color=dt.ambient_color
         )
-        lines.append(f'      <TimeText format="{dt.format}" hourFormat="SYNC_TO_DEVICE"'
+        lines.append(f'      <TimeText format="{wff_format}" hourFormat="SYNC_TO_DEVICE"'
                      f' align="{align}" x="{pos.x}" y="{pos.y}" width="{pos.width}" height="{pos.height}" alpha="0">')
         lines.append(f'        <Variant mode="AMBIENT" target="alpha" value="255"/>')
         lines.append(self._format_font_tag(ambient_font, indent=8))
@@ -151,62 +148,47 @@ class WFFCompiler:
     def _emit_analog_clock(self, lines: list, at: AnalogTime):
         """生成模拟时钟 (指针表盘)
 
-        WFF 指针使用 PartDraw + DrawList + DrawArc,
+        WFF 指针使用 PartDraw + Line + Transform,
         通过表达式动态计算角度。
         """
         cx, cy = at.center_x, at.center_y
 
-        lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
+        lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}" pivotX="{cx}" pivotY="{cy}">')
         lines.append(f'      <Variant mode="AMBIENT" target="alpha" value="0"/>')
 
         # 时针: 360° / 12 = 30° per hour, + 分钟的精细偏移
         # WFF 表达式: ([HOUR_1_12] + [MINUTE_Z]/60) * 30
-        lines.append(f'      <DrawList>')
-        lines.append(f'        <!-- Hour hand -->')
-        lines.append(f'        <DrawArc')
-        lines.append(f'          x="{cx - 6}" y="{cy - at.hour_hand_length}"')
-        lines.append(f'          width="12" height="{at.hour_hand_length * 2}"')
-        lines.append(f'          startAngle="0" sweepAngle="1"')
-        lines.append(f'          color="{at.hour_hand_color}"/>')
-        lines.append(f'      </DrawList>')
-        lines.append(f'      <Transform rotation="([HOUR_1_12] + [MINUTE_Z] / 60.0) * 30.0" pivotX="{cx}" pivotY="{cy}"/>')
+        lines.append(f'      <Line startX="{cx}" startY="{cy}" endX="{cx}" endY="{cy - at.hour_hand_length}">')
+        lines.append(f'        <Stroke color="{at.hour_hand_color}" thickness="12" cap="ROUND"/>')
+        lines.append('      </Line>')
+        lines.append(f'      <Transform target="angle" value="([HOUR_1_12] + [MINUTE_Z] / 60.0) * 30.0"/>')
         lines.append('    </PartDraw>')
 
         # 分针
-        lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
+        lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}" pivotX="{cx}" pivotY="{cy}">')
         lines.append(f'      <Variant mode="AMBIENT" target="alpha" value="0"/>')
-        lines.append(f'      <DrawList>')
-        lines.append(f'        <!-- Minute hand -->')
-        lines.append(f'        <DrawArc')
-        lines.append(f'          x="{cx - 4}" y="{cy - at.minute_hand_length}"')
-        lines.append(f'          width="8" height="{at.minute_hand_length * 2}"')
-        lines.append(f'          startAngle="0" sweepAngle="1"')
-        lines.append(f'          color="{at.minute_hand_color}"/>')
-        lines.append(f'      </DrawList>')
-        lines.append(f'      <Transform rotation="[MINUTE_Z] * 6.0" pivotX="{cx}" pivotY="{cy}"/>')
+        lines.append(f'      <Line startX="{cx}" startY="{cy}" endX="{cx}" endY="{cy - at.minute_hand_length}">')
+        lines.append(f'        <Stroke color="{at.minute_hand_color}" thickness="8" cap="ROUND"/>')
+        lines.append('      </Line>')
+        lines.append(f'      <Transform target="angle" value="[MINUTE_Z] * 6.0"/>')
         lines.append('    </PartDraw>')
 
         # 秒针 (如果有)
         if at.second_hand_length > 0:
-            lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
+            lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}" pivotX="{cx}" pivotY="{cy}">')
             lines.append(f'      <Variant mode="AMBIENT" target="alpha" value="0"/>')
-            lines.append(f'      <DrawList>')
-            lines.append(f'        <!-- Second hand -->')
-            lines.append(f'        <DrawArc')
-            lines.append(f'          x="{cx - 2}" y="{cy - at.second_hand_length}"')
-            lines.append(f'          width="4" height="{at.second_hand_length * 2}"')
-            lines.append(f'          startAngle="0" sweepAngle="1"')
-            lines.append(f'          color="{at.second_hand_color}"/>')
-            lines.append(f'      </DrawList>')
-            lines.append(f'      <Transform rotation="[SECOND_Z] * 6.0" pivotX="{cx}" pivotY="{cy}"/>')
+            lines.append(f'      <Line startX="{cx}" startY="{cy}" endX="{cx}" endY="{cy - at.second_hand_length}">')
+            lines.append(f'        <Stroke color="{at.second_hand_color}" thickness="4" cap="ROUND"/>')
+            lines.append('      </Line>')
+            lines.append(f'      <Transform target="angle" value="[SECOND_Z] * 6.0"/>')
             lines.append('    </PartDraw>')
 
         # 中心点
         lines.append(f'    <PartDraw x="0" y="0" width="{self.CANVAS_SIZE}" height="{self.CANVAS_SIZE}">')
         lines.append(f'      <Variant mode="AMBIENT" target="alpha" value="255"/>')
-        lines.append(f'      <DrawList>')
-        lines.append(f'        <DrawOval x="{cx - 5}" y="{cy - 5}" width="10" height="10" color="{at.hour_hand_color}"/>')
-        lines.append(f'      </DrawList>')
+        lines.append(f'      <Ellipse x="{cx - 5}" y="{cy - 5}" width="10" height="10">')
+        lines.append(f'        <Fill color="{at.hour_hand_color}"/>')
+        lines.append('      </Ellipse>')
         lines.append('    </PartDraw>')
 
     def _emit_date(self, lines: list, dd: DateDisplay):
@@ -222,11 +204,12 @@ class WFFCompiler:
         lines.append(f'    <PartText x="{pos.x}" y="{pos.y}" width="{pos.width}" height="{pos.height}">')
         lines.append(f'      <Variant mode="AMBIENT" target="alpha" value="0"/>')
         lines.append(f'      <Text align="{align}">')
-        lines.append(self._format_font_tag(font, indent=8))
-        lines.append(f'        <Template>{dd.format}')
+        lines.append(self._format_font_open_tag(font, indent=8))
+        lines.append(f'          <Template>{dd.format}')
         if params:
             lines.append(params)
-        lines.append('        </Template>')
+        lines.append('          </Template>')
+        lines.append('        </Font>')
         lines.append('      </Text>')
         lines.append('    </PartText>')
 
@@ -241,10 +224,11 @@ class WFFCompiler:
         lines.append(f'    <PartText x="{pos.x}" y="{pos.y}" width="{pos.width}" height="{pos.height}">')
         lines.append(f'      <Variant mode="AMBIENT" target="alpha" value="0"/>')
         lines.append(f'      <Text align="{align}">')
-        lines.append(self._format_font_tag(font, indent=8))
-        lines.append(f'        <Template>{template}')
+        lines.append(self._format_font_open_tag(font, indent=8))
+        lines.append(f'          <Template>{template}')
         lines.append(f'                        <Parameter expression="{info.data_source.wff_expression}"/>')
-        lines.append('        </Template>')
+        lines.append('          </Template>')
+        lines.append('        </Font>')
         lines.append('      </Text>')
         lines.append('    </PartText>')
 
@@ -255,6 +239,10 @@ class WFFCompiler:
         pad = ' ' * indent
         return (f'{pad}<Font family="{font.family}" size="{font.size}"'
                 f' weight="{font.weight.value}" slant="NORMAL" color="{font.color}"/>')
+
+    def _format_font_open_tag(self, font: FontStyle, indent: int = 6) -> str:
+        """生成可包含 Template/formatter 的 Font 起始标签。"""
+        return self._format_font_tag(font, indent).removesuffix("/>") + ">"
 
     # ─── APK 构建 ──────────────────────────────────────
 

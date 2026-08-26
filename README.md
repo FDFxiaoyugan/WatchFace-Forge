@@ -59,10 +59,15 @@ watchface-forge/
 - [x] **Phase 1 — MVP**：WFF 构建引擎 + CDM 模型 + 编译器 + FastAPI + Next.js + 二维码下载。真机验证通过 (2026-08-15)
 - [x] **Phase 2 — AI 接入**：AI Gateway + 提示词工程 + CDM 自动修复 + WebSocket 进度推送。端到端验证 ("霓虹蓝赛博朋克" → 37KB APK)
 - [x] **Phase 3 — 完整体验**：Fabric.js v6 可视化编辑器 + Pillow 图像管线 + Celery 双队列 + CDM 实时校验。异步链路端到端 SUCCESS (2026-08-20)
-- [ ] Phase 4 — Apple Watch 编译器（二期）
+- [x] **Phase 4A — WFF Agent CI 基础设施**：直通 validate/preview/build API、API Key 限流、Google 官方 XSD/validator/内存评估（2026-08-25）
+- [ ] Phase 4C — Agent CI 工作台与自修复反馈（Skill 开发按当前计划跳过）
 - [ ] Phase 5 — 微信小程序（二期）
 
-## API 端点（16 个）
+访问 `/ci` 使用 Agent CI 工作台：可直接提交 WFF XML/素材，查看 XSD、
+Google validator 与 lint 三层日志，生成多时刻预览，并下载带 SHA-256 和
+官方内存报告的签名 APK。
+
+## API 端点（20 个）
 
 | Method | Path | Phase | 说明 |
 |--------|------|-------|------|
@@ -82,6 +87,10 @@ watchface-forge/
 | GET | `/api/editor/queue/info` | 3 | 队列拓扑信息 |
 | GET | `/api/editor/cdm/{task_id}` | 3 | 取回 AI 生成的 CDM |
 | POST | `/api/editor/cdm/validate` | 3 | CDM 实时校验（结构+语义） |
+| POST | `/api/v1/wff/validate` | 4A | WFF XML：官方 XSD + validator + lint 三层校验 |
+| POST | `/api/v1/wff/preview` | 4A | WFF XML 多时间/Active/Ambient 近似预览 |
+| POST | `/api/v1/wff/build` | 4A | WFF XML → 签名 APK + SHA-256 + 官方内存报告 |
+| GET | `/api/v1/wff/builds/{filename}` | 4A | 下载直通 API 构建产物 |
 
 ## 快速开始
 
@@ -107,7 +116,7 @@ cd web && npm install && npx next dev -p 3000
 ### 测试
 
 ```bash
-python3 -m pytest tests/ -v   # 36 个测试
+python3 -m pytest tests/ -v   # 42 个测试
 ```
 
 ### WFF Builder 独立使用

@@ -50,6 +50,8 @@ interface EditorState {
   setPreviewMs: (ms: number) => void;
   addComplication: () => void;
   removeComplication: (index: number) => void;
+  nudgeSelection: (dx: number, dy: number) => void;
+  deleteSelection: () => void;
 }
 
 const MAX_HISTORY = 50;
@@ -151,6 +153,42 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return draft;
     });
     set({ selection: null });
+  },
+
+  nudgeSelection: (dx, dy) => {
+    const { selection, updateCDM } = get();
+    if (!selection || (selection.kind === "element" && selection.key === "background")) return;
+    updateCDM((draft) => {
+      const move = (pos: { x: number; y: number; width: number; height: number }) => {
+        pos.x = Math.max(0, Math.min(450 - pos.width, pos.x + dx));
+        pos.y = Math.max(0, Math.min(450 - pos.height, pos.y + dy));
+      };
+      if (selection.kind === "complication") {
+        const slot = draft.complications[selection.index];
+        if (slot) move(slot.position);
+      } else if (selection.key === "digital_time") move(draft.digital_time.position);
+      else if (selection.key === "date_display") move(draft.date_display.position);
+      else if (selection.key === "info_line") move(draft.info_line.position);
+      else if (selection.key === "analog_time") {
+        draft.analog_time.center_x = Math.max(0, Math.min(450, draft.analog_time.center_x + dx));
+        draft.analog_time.center_y = Math.max(0, Math.min(450, draft.analog_time.center_y + dy));
+      }
+      return draft;
+    });
+  },
+
+  deleteSelection: () => {
+    const { selection, updateCDM } = get();
+    if (!selection || (selection.kind === "element" && selection.key === "background")) return;
+    updateCDM((draft) => {
+      if (selection.kind === "complication") draft.complications.splice(selection.index, 1);
+      else if (selection.key === "digital_time") draft.digital_time.enabled = false;
+      else if (selection.key === "analog_time") draft.analog_time.enabled = false;
+      else if (selection.key === "date_display") draft.date_display.enabled = false;
+      else if (selection.key === "info_line") draft.info_line.enabled = false;
+      return draft;
+    });
+    set({ selection: { kind: "element", key: "background" } });
   },
 }));
 

@@ -8,6 +8,8 @@
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import math
+import base64
+import io
 
 
 def _parse_color(argb: str) -> tuple:
@@ -43,7 +45,25 @@ def render_preview(path: Path, cdm) -> None:
 
     # ── 背景 ──
     bg = cdm.background
-    if bg.type == "solid":
+    if bg.type == "image" and bg.image_data:
+        # 先铺降级背景色，contain/透明图会露出该颜色。
+        br, bg_, bb, _ = _parse_color(bg.color)
+        draw.ellipse([0, 0, size, size], fill=(br, bg_, bb, 255))
+        payload = bg.image_data.split(",", 1)[-1]
+        source = Image.open(io.BytesIO(base64.b64decode(payload))).convert("RGBA")
+        fit = bg.image_fit
+        if fit == "stretch":
+            layer = source.resize((size, size), Image.Resampling.LANCZOS)
+        else:
+            ratio = min(size / source.width, size / source.height) if fit == "contain" else max(size / source.width, size / source.height)
+            resized = source.resize((max(1, round(source.width * ratio)), max(1, round(source.height * ratio))), Image.Resampling.LANCZOS)
+            layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+            layer.alpha_composite(resized, ((size - resized.width) // 2, (size - resized.height) // 2))
+        if bg.image_opacity < 100:
+            alpha = layer.getchannel("A").point(lambda value: value * bg.image_opacity // 100)
+            layer.putalpha(alpha)
+        img.alpha_composite(layer)
+    elif bg.type == "solid":
         br, bg_, bb, _ = _parse_color(bg.color)
         for r in range(max_r, 0, -1):
             t = r / max_r
@@ -84,7 +104,7 @@ def render_preview(path: Path, cdm) -> None:
             dd = cdm.date_display
             dr, dg, db, _ = _parse_color(dd.font.color)
             dfont = _get_font(int(dd.font.size * 0.6))
-            dtext = "08/15"
+            dtext = "8月21日"
             dbbox = draw.textbbox((0, 0), dtext, font=dfont)
             dw = dbbox[2] - dbbox[0]
             draw.text((cx - dw // 2, cy + 40), dtext, fill=(dr, dg, db, 255), font=dfont)
@@ -94,7 +114,7 @@ def render_preview(path: Path, cdm) -> None:
             info = cdm.info_line
             ir, ig, ib, _ = _parse_color(info.font.color)
             ifont = _get_font(int(info.font.size * 0.6))
-            itext = f"{info.label} 85%"
+            itext = f"{info.label}85%"
             ibbox = draw.textbbox((0, 0), itext, font=ifont)
             iw = ibbox[2] - ibbox[0]
             draw.text((cx - iw // 2, cy + 80), itext, fill=(ir, ig, ib, 255), font=ifont)

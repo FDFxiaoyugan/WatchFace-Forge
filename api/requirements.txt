@@ -4,3 +4,4 @@ pydantic==2.12.5
 pydantic-settings==2.13.1
 PyYAML==6.0.3
 Pillow==11.3.0
+xmlschema>=4.2,<5

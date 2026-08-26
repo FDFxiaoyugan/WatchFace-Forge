@@ -51,9 +51,11 @@ export default function FabricCanvas({
   const cdmRef = useRef(cdm);
   cdmRef.current = cdm;
   const suppressEvent = useRef(false);
+  const renderToken = useRef(0);
 
   const updateCDM = useEditorStore((s) => s.updateCDM);
   const select = useEditorStore((s) => s.select);
+  const selection = useEditorStore((s) => s.selection);
 
   // ─── 初始化画布 ────────────────────────────────────
   useEffect(() => {
@@ -75,11 +77,12 @@ export default function FabricCanvas({
       const id = getObjId(obj);
       if (!obj || !id) return;
 
-      const x = Math.round(obj.left ?? 0);
-      const y = Math.round(obj.top ?? 0);
       // Fabric 缩放: 显示宽高 = 原始 × scale
       const w = Math.round((obj.width ?? 1) * (obj.scaleX ?? 1));
       const h = Math.round((obj.height ?? 1) * (obj.scaleY ?? 1));
+      // 文本组以中心点定位，CDM Position 使用左上角。
+      const x = Math.round((obj.left ?? 0) - (obj.originX === "center" ? w / 2 : 0));
+      const y = Math.round((obj.top ?? 0) - (obj.originY === "center" ? h / 2 : 0));
 
       updateCDM((draft) => {
         applyPosition(draft, id, {
@@ -94,6 +97,7 @@ export default function FabricCanvas({
 
     const onSelectionCreated = (e: { selected?: fabric.FabricObject[]; target?: fabric.FabricObject; deselected?: fabric.FabricObject[] }) => {
       if (readOnly) return;
+      if (suppressEvent.current) return;
       const obj = e.selected?.[0] ?? e.target;
       const id = getObjId(obj);
       if (id) {
@@ -132,9 +136,11 @@ export default function FabricCanvas({
     const canvas = fabricRef.current;
     if (!canvas) return;
 
-    // 记住当前选中
-    const activeId = getObjId(canvas.getActiveObject());
-
+    // Fabric.clear() 会触发 selection:cleared。重绘期间必须屏蔽该事件，
+    // 并以 store 中的 selection 为唯一真值，否则编辑属性会跳到其他图层。
+    const activeId = selectionToId(selection);
+    const token = ++renderToken.current;
+    suppressEvent.current = true;
     canvas.clear();
     canvas.backgroundColor = argbToCss(cdm.background.color);
 
@@ -149,6 +155,35 @@ export default function FabricCanvas({
         ],
       });
       canvas.backgroundColor = grad;
+    }
+
+    // 图片背景（data URL 由上传接口统一转为 PNG）
+    if (cdm.background.type === "image" && cdm.background.image_data) {
+      canvas.backgroundColor = argbToCss(cdm.background.color);
+      fabric.FabricImage.fromURL(cdm.background.image_data).then((image) => {
+        if (renderToken.current !== token || !fabricRef.current) return;
+        const width = image.width || 1;
+        const height = image.height || 1;
+        const fit = cdm.background.image_fit ?? "cover";
+        const scale = fit === "contain"
+          ? Math.min(CANVAS_SIZE / width, CANVAS_SIZE / height)
+          : Math.max(CANVAS_SIZE / width, CANVAS_SIZE / height);
+        const scaleX = fit === "stretch" ? CANVAS_SIZE / width : scale;
+        const scaleY = fit === "stretch" ? CANVAS_SIZE / height : scale;
+        image.set({
+          left: (CANVAS_SIZE - width * scaleX) / 2,
+          top: (CANVAS_SIZE - height * scaleY) / 2,
+          scaleX,
+          scaleY,
+          opacity: (cdm.background.image_opacity ?? 100) / 100,
+          selectable: false,
+          evented: false,
+        });
+        canvas.backgroundImage = image;
+        canvas.requestRenderAll();
+      }).catch(() => {
+        // 解码失败时保留 background.color 作为降级背景。
+      });
     }
 
     const t = timeText ?? defaultTimeText(cdm);
@@ -187,15 +222,12 @@ export default function FabricCanvas({
     // 数字时间
     if (cdm.clock_type === "DIGITAL" && cdm.digital_time.enabled) {
       const dt = cdm.digital_time;
-      const time = new fabric.Text(t.time, {
-        left: dt.position.x,
-        top: dt.position.y,
-        width: dt.position.width,
-        fontSize: dt.font.size,
-        fontWeight: dt.font.weight === "BOLD" ? "bold" : dt.font.weight === "THIN" ? "100" : "normal",
-        fill: argbToCss(dt.font.color),
-        textAlign: dt.align.toLowerCase() as "left" | "center" | "right",
-        fontFamily: "monospace",
+      const time = createTextLayer(t.time, dt.position, {
+        size: dt.font.size,
+        weight: dt.font.weight,
+        color: dt.font.color,
+        align: "CENTER",
+        family: "monospace",
       });
       setObjId(time, "digital_time");
       objs.push(time);
@@ -229,14 +261,11 @@ export default function FabricCanvas({
     // 日期
     if (cdm.date_display.enabled) {
       const dd = cdm.date_display;
-      const date = new fabric.Text(t.date, {
-        left: dd.position.x,
-        top: dd.position.y,
-        width: dd.position.width,
-        fontSize: dd.font.size,
-        fontWeight: dd.font.weight === "BOLD" ? "bold" : "normal",
-        fill: argbToCss(dd.font.color),
-        textAlign: dd.align.toLowerCase() as "left" | "center" | "right",
+      const date = createTextLayer(t.date, dd.position, {
+        size: dd.font.size,
+        weight: dd.font.weight,
+        color: dd.font.color,
+        align: dd.align,
       });
       setObjId(date, "date_display");
       objs.push(date);
@@ -245,14 +274,11 @@ export default function FabricCanvas({
     // 信息行
     if (cdm.info_line.enabled) {
       const il = cdm.info_line;
-      const info = new fabric.Text(t.info, {
-        left: il.position.x,
-        top: il.position.y,
-        width: il.position.width,
-        fontSize: il.font.size,
-        fontWeight: il.font.weight === "BOLD" ? "bold" : "normal",
-        fill: argbToCss(il.font.color),
-        textAlign: il.align.toLowerCase() as "left" | "center" | "right",
+      const info = createTextLayer(t.info, il.position, {
+        size: il.font.size,
+        weight: il.font.weight,
+        color: il.font.color,
+        align: il.align,
       });
       setObjId(info, "info_line");
       objs.push(info);
@@ -274,10 +300,13 @@ export default function FabricCanvas({
       if (found) {
         canvas.setActiveObject(found);
       }
+    } else if (!readOnly) {
+      canvas.discardActiveObject();
     }
 
     canvas.requestRenderAll();
-  }, [cdm, timeText, readOnly]);
+    suppressEvent.current = false;
+  }, [cdm, timeText, readOnly, selection]);
 
   return (
     <canvas
@@ -300,6 +329,52 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+function createTextLayer(
+  value: string,
+  position: { x: number; y: number; width: number; height: number },
+  style: {
+    size: number;
+    weight: "THIN" | "NORMAL" | "BOLD";
+    color: string;
+    align: "LEFT" | "CENTER" | "RIGHT";
+    family?: string;
+  }
+) {
+  // Fabric.Text 的 width 是根据文字自动计算的，不能代表 CDM 容器。
+  // 用透明矩形固定组尺寸，才能让定位/居中/缩放与 450×450 坐标一致。
+  const hitbox = new fabric.Rect({
+    left: -position.width / 2,
+    top: -position.height / 2,
+    width: position.width,
+    height: position.height,
+    fill: "rgba(255,255,255,0)",
+    strokeWidth: 0,
+    originX: "left",
+    originY: "top",
+  });
+  const originX = style.align === "LEFT" ? "left" : style.align === "RIGHT" ? "right" : "center";
+  const x = style.align === "LEFT" ? -position.width / 2 + 6 : style.align === "RIGHT" ? position.width / 2 - 6 : 0;
+  const text = new fabric.Text(value, {
+    left: x,
+    top: 0,
+    originX,
+    originY: "center",
+    fontSize: style.size,
+    fontWeight: style.weight === "BOLD" ? "bold" : style.weight === "THIN" ? "100" : "normal",
+    fill: argbToCss(style.color),
+    fontFamily: style.family ?? "sans-serif",
+    selectable: false,
+    evented: false,
+  });
+  return new fabric.Group([hitbox, text], {
+    left: position.x + position.width / 2,
+    top: position.y + position.height / 2,
+    originX: "center",
+    originY: "center",
+    lockRotation: true,
+  });
+}
+
 function idToSelection(id: string): Selection | null {
   if (id.startsWith("complications:")) {
     return { kind: "complication", index: parseInt(id.split(":")[1], 10) };
@@ -308,6 +383,15 @@ function idToSelection(id: string): Selection | null {
     return { kind: "element", key: id as ElementKey };
   }
   return null;
+}
+
+function selectionToId(selection: Selection): string | undefined {
+  if (!selection) return undefined;
+  if (selection.kind === "complication") return `complications:${selection.index}`;
+  if (["digital_time", "date_display", "info_line"].includes(selection.key)) {
+    return selection.key;
+  }
+  return undefined;
 }
 
 function applyPosition(
@@ -354,7 +438,7 @@ export function defaultTimeText(cdm: WatchFaceCDM) {
   let date = cdm.date_display.format;
   dateParts.forEach((v) => (date = date.replace("%s", v)));
 
-  const info = `${cdm.info_line.label} 85${cdm.info_line.suffix === "%%" ? "%" : cdm.info_line.suffix}`;
+  const info = `${cdm.info_line.label}85${cdm.info_line.suffix === "%%" ? "%" : cdm.info_line.suffix}`;
   return { time, date, info };
 }
 

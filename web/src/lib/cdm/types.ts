@@ -66,6 +66,9 @@ export interface Background {
   gradient_start?: string | null;
   gradient_end?: string | null;
   image_resource?: string | null;
+  image_data?: string | null;
+  image_fit?: "cover" | "contain" | "stretch";
+  image_opacity?: number;
 }
 
 export interface DigitalTime {
@@ -161,22 +164,22 @@ export function defaultCDM(): WatchFaceCDM {
   return {
     schema_version: "1.0",
     metadata: {
-      name: "My Watch Face",
-      package_name: "com.watchforge.preview",
+      name: "Quiet Mono",
+      package_name: "com.watchfaceforge.quietmono",
       version_code: 1,
       version_name: "1.0.0",
       author: "WatchFace Forge",
       preview_time: "10:08:32",
     },
     clock_type: "DIGITAL",
-    background: { type: "solid", color: "#ff000000" },
+    background: { type: "solid", color: "#ff050505" },
     digital_time: {
       enabled: true,
       format: "HH:mm",
-      position: defaultPosition({ y: 120, height: 120 }),
-      font: defaultFontStyle({ size: 100, weight: "BOLD", color: "#ff00F5FF" }),
+      position: defaultPosition({ x: 40, y: 138, width: 370, height: 112 }),
+      font: defaultFontStyle({ size: 92, weight: "NORMAL", color: "#ffF4F4F5" }),
       align: "CENTER",
-      ambient_color: "#ff888888",
+      ambient_color: "#ff52525B",
     },
     analog_time: {
       enabled: false,
@@ -191,19 +194,19 @@ export function defaultCDM(): WatchFaceCDM {
     },
     date_display: {
       enabled: true,
-      format: "%s/%s",
-      position: defaultPosition({ y: 260, height: 50 }),
-      font: defaultFontStyle({ size: 32, color: "#ffAAAAAA" }),
+      format: "%s月%s日",
+      position: defaultPosition({ x: 100, y: 264, width: 250, height: 38 }),
+      font: defaultFontStyle({ size: 22, color: "#ffA1A1AA" }),
       align: "CENTER",
       params: ["MONTH", "DAY"],
     },
     info_line: {
       enabled: true,
-      label: "BAT",
+      label: "🔋",
       data_source: "BATTERY_PERCENT",
       suffix: "%%",
-      position: defaultPosition({ y: 320, height: 50 }),
-      font: defaultFontStyle({ size: 28, color: "#ffFF6B6B" }),
+      position: defaultPosition({ x: 155, y: 316, width: 140, height: 30 }),
+      font: defaultFontStyle({ size: 16, color: "#ff71717A" }),
       align: "CENTER",
     },
     complications: [],
@@ -223,6 +226,12 @@ export function argbToCss(argb: string): string {
   const g = parseInt(hex.slice(4, 6), 16);
   const b = parseInt(hex.slice(6, 8), 16);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+/** ARGB(#AARRGGBB) → HTML color input value (#RRGGBB) */
+export function argbToHexRgb(argb: string): string {
+  const m = argb.match(/^#([0-9a-fA-F]{8})$/);
+  return m ? `#${m[1].slice(2)}` : "#000000";
 }
 
 /** CSS rgba() / #RRGGBB → ARGB */

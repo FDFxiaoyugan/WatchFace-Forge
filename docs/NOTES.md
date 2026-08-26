@@ -63,3 +63,20 @@
 ## 5. 历史实验阶段结论（已被推翻，勿参考）
 
 早期实验（`experiments/`，已不维护）曾记录 minSdk=30、"真机安装待确认" 等结论，**均已被 2026-08-15 真机验证推翻**，以本文档第 1 节为准。
+
+## 6. 前端编辑器（2026-08-21）
+
+- Fabric.js 的 `canvas.clear()` 会同步触发 `selection:cleared`。CDM 变更后重绘画布时必须屏蔽该事件，并以 Zustand store 中的 selection 恢复活动对象；否则编辑背景、字体等属性时会丢失当前图层。
+- HTML `input[type=color]` 只接受 `#RRGGBB`；CDM 的 `#AARRGGBB` 必须通过十六进制切片转换，不能把 `rgba()` 中的十进制 RGB 文本直接拼接。
+- CDM 是结构化功能域模型，基础图层不支持同类多实例；编辑器的“添加/删除”对基础图层映射为 enabled 启停，只有 `complications[]` 可增加到 4 个实例。
+- ARM64 DevSpace 上不能执行 Google Build Tools 里的 x86_64 `aapt2`。构建器在 `aapt2`/`android.jar` 不可用时，必须使用仓库已跟踪的 `projects/demo/_build/compiled/` 二进制模板，然后替换 `res_raw_watchface.xml` 和 `res_drawable_preview.png`。`apksigner` 是 Java 工具，ARM64 可直接运行；工具路径从 `ANDROID_HOME` / `APKSIGNER` 发现，禁止再写入开发机绝对路径。
+- 图片背景在完整 aapt2 环境使用 `drawable/background`；ARM 预编译模板的 `resources.arsc` 只注册了 `drawable/preview`，回退构建时需将背景映射到该槽位，不能只往 APK ZIP 塞入未注册的新文件。另外 WFF 规则检查旧 `source` 属性时必须匹配独立属性，不能用 `"source=" in xml`，否则会误伤合法的 `resource=`。
+
+## 7. WFF 直通 API（2026-08-24）
+
+- `/api/v1/wff/build` 必须先调用与 `/validate` 相同的校验服务；不能依赖构建器内部异常作为校验结果。
+- ARM64 预编译模板只有一个可用图片资源槽。直通 API 会把首个上传图片的 XML 引用规范化为 `drawable/background`，再由构建器回退映射到 `drawable/preview`；多图片必须返回 warning，不能伪装为完整支持。
+- API Key 只从 `WFF_API_KEYS` 环境变量读取。当前令牌桶是进程内状态，横向扩容前应迁移到 Redis 原子计数/桶实现。
+- Google WFF XSD 是多文件 include 树，不能只复制 `watchface.xsd`。它使用 XSD 1.1（`xs:all` 下允许重复元素），libxml2/xmllint 只能解析 XSD 1.0；必须保持官方目录结构并用 `xmlschema.XMLSchema11(..., allow="local")`，既解析相对 include，也禁止运行时网络取 schema。
+- WFF v1 的 `TimeText.format` 官方 schema 只接受小写 `h/hh:mm[:ss]`，不接受 UI/CDM 常见的 `HH:mm`。编译器边界统一把 `HH` 规范化为 `hh`，24/12 小时偏好继续由 `hourFormat="SYNC_TO_DEVICE"` 决定。
+- Google `wff-validator.jar` 校验失败时仍可能退出 0，必须解析输出中的 `PASSED` / `FAILED` / `SEVERE`，不能只判断 returncode。`memory-footprint.jar --report` 输出 JSON，可作为 build 响应的官方内存数据。

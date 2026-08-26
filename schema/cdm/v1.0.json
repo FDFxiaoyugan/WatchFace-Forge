@@ -121,6 +121,34 @@
           "default": null,
           "description": "背景图片资源名",
           "title": "Image Resource"
+        },
+        "image_data": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "编辑器使用的 data URL / base64 图片数据",
+          "title": "Image Data"
+        },
+        "image_fit": {
+          "default": "cover",
+          "description": "图片填充方式",
+          "pattern": "^(cover|contain|stretch)$",
+          "title": "Image Fit",
+          "type": "string"
+        },
+        "image_opacity": {
+          "default": 100,
+          "description": "图片不透明度百分比",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Image Opacity",
+          "type": "integer"
         }
       },
       "title": "Background",
@@ -190,7 +218,7 @@
           "type": "boolean"
         },
         "format": {
-          "default": "%s/%s",
+          "default": "%s月%s日",
           "description": "日期格式模板, 使用 %s 占位",
           "title": "Format",
           "type": "string"
@@ -311,8 +339,8 @@
           "type": "boolean"
         },
         "label": {
-          "default": "BAT",
-          "description": "前缀标签, 如 BAT/HR",
+          "default": "🔋",
+          "description": "前缀标签, 如 🔋/HR",
           "title": "Label",
           "type": "string"
         },
