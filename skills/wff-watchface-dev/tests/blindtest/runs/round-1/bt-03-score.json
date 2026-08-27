@@ -1,0 +1,60 @@
+{
+  "card_id": "BT-03",
+  "title": "混合表盘 + 心率 Complication",
+  "project_dir": "/home/z/my-project/watchface-forge/skills/wff-watchface-dev/tests/blindtest/runs/round-1/BT-03",
+  "rounds": 4,
+  "static": {
+    "checks": [
+      {
+        "id": "A1",
+        "desc": "数字时间显示",
+        "passed": true,
+        "matched": 3,
+        "required": 1,
+        "weight": 2
+      },
+      {
+        "id": "A2",
+        "desc": "Complication 插槽",
+        "passed": true,
+        "matched": 1,
+        "required": 1,
+        "weight": 3
+      },
+      {
+        "id": "A3",
+        "desc": "插槽类型/心率相关配置",
+        "passed": true,
+        "matched": 2,
+        "required": 1,
+        "weight": 1
+      },
+      {
+        "id": "A4",
+        "desc": "渐变背景（LinearGradient/RadialGradient/SweepGradient）",
+        "passed": true,
+        "matched": 8,
+        "required": 1,
+        "weight": 1
+      }
+    ],
+    "score": 7,
+    "max": 7,
+    "error": null
+  },
+  "validate": {
+    "passed": true,
+    "rule_summary": "16/16 passed, 0 errors, 0 warnings",
+    "rc": 0
+  },
+  "build": {
+    "passed": true,
+    "apk": "/home/z/my-project/watchface-forge/skills/wff-watchface-dev/tests/blindtest/runs/round-1/BT-03/velocitysport-watchface.apk",
+    "size_bytes": 33341,
+    "sha256": "92ed2848b5eacfbc128c28ec8ace210b5d745d3b6ec4bc727cad7240f208ad9d",
+    "signed": true,
+    "rc": 0
+  },
+  "assumptions_md": true,
+  "status": "pass"
+}

@@ -79,7 +79,7 @@
 
 <!-- ✅ DigitalClock + TimeText 自动刷新 -->
 <DigitalClock x="0" y="0" width="450" height="450">
-    <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER" 
+    <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER" 
               x="0" y="120" width="450" height="120">
         <Font family="SYNC_TO_DEVICE" size="100" weight="BOLD" color="#ff00F5FF"/>
     </TimeText>
@@ -156,14 +156,14 @@
 表盘在 AOD（Always-On Display）模式下应降低亮度和刷新率：
 
 ```xml
-<TimeText format="HH:mm" ... alpha="255">
+<TimeText format="hh:mm" ... alpha="255">
     <!-- Active 模式：alpha=255, AMBIENT 时变 0 -->
     <Variant mode="AMBIENT" target="alpha" value="0"/>
     <Font family="SYNC_TO_DEVICE" size="100" weight="BOLD" color="#ff00F5FF"/>
 </TimeText>
 
 <!-- Ambient 版本：平时 alpha=0, AMBIENT 时变 255 -->
-<TimeText format="HH:mm" ... alpha="0">
+<TimeText format="hh:mm" ... alpha="0">
     <Variant mode="AMBIENT" target="alpha" value="255"/>
     <Font family="SYNC_TO_DEVICE" size="100" weight="THIN" color="#ff888888"/>
 </TimeText>
@@ -176,6 +176,51 @@
 ### R15: 数字时间优先用 DigitalClock
 
 见 R09。
+
+### R17: 形状包住样式，不是样式包住形状（盲测 BT-03 实证）
+
+正确：`<Arc><Stroke color="..." thickness="..."/></Arc>`（Stroke/Fill 是形状的**子元素**）。
+错误：`<Stroke><Arc/></Stroke>`。后者真机可能宽容渲染，但过不了官方 XSD 校验。
+
+### R18: TimeText format 只接受小写 h/m/s（盲测 BT-03 实证）
+
+XSD `timeFormatType` pattern 只匹配小写组合（`h`/`hh`/`m`/`mm`/`s`/`ss`）。
+`HH:mm` 非法（真机宽容，官方校验拒绝）。12/24 小时制由 `hourFormat` 属性控制。
+
+### R19: 列表属性用空格分隔，不用逗号（盲测 BT-03 实证）
+
+`colors="#ff03050B #ff071629 #ff0E2C55"`、`positions="0.0 0.5 1.0"`、
+`supportedTypes="SHORT_TEXT RANGED_VALUE"` —— 全部空格分隔（XSD `xs:list`）。
+
+### R20: BoundingShape 不可直接写，必须用具体替换组成员（盲测 BT-03 实证）
+
+`<BoundingShape>` 是抽象头。用 `<BoundingBox>` `<BoundingRoundBox>`（最常用）
+`<BoundingOval>` `<BoundingArc>`，且几何属性必填。ComplicationSlot 的
+`supportedTypes` 必填；`<Complication>` 子元素至少 1 个。
+
+### R21: booleanType 枚举是大写 TRUE/FALSE
+
+`isCustomizable="TRUE"` 合法，`"true"` 非法。XSD 自定义枚举，不是 xs:boolean。
+
+### R22: 16 规则 validate ≠ XSD 合法，官方校验才是终审（盲测 BT-03 实证）
+
+wff_builder 16 规则抓不住 XSD 级错误（嵌套方向/枚举值/pattern 全漏）。
+**交付前必须跑官方 validator**（见 SKILL.md 工作流第 3 步），16 规则只当初筛。
+
+### R23: project.yaml 不要写行内注释
+
+`wff_version: 1  # 注释` 会被 yaml 解析器把注释内容泄漏进 manifest 字符串。
+
+### R24: build 需要 preview.png，init 不自动生成
+
+无位图素材时用 Pillow 自绘一张 384×384 PNG 兜底（尺寸要求见 init 输出文本）。
+
+### R25: 三针必须图片资源，无 color 属性（文档纠错）
+
+HourHand/MinuteHand/SecondHand 的 `resource` 必填（指向 res/drawable 图片），
+只有 `tintColor`（染色）没有 `color`。纯矢量指针不可行——用 Pillow 生成针形 PNG
+（细长矩形、透明底、指向 12 点）。秒针可选 `<Sweep frequency="2|5|10|15"/>`
+平滑扫秒或 `<Tick strength duration/>` 跳动动画。
 
 ---
 

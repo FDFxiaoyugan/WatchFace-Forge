@@ -21,6 +21,7 @@ Exit code: 0 = 全部通过, 1 = 有失败项, 2 = 用法错误
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -36,10 +37,29 @@ CARD_IDS = ["BT-01", "BT-02", "BT-03", "BT-04", "BT-05"]
 
 # ---------- helpers ----------
 
+# WFF SDK 默认探测路径（TOOLS.md 约定），scorer 子进程自动注入 ANDROID_HOME
+SDK_CANDIDATES = [
+    Path("/home/z/my-project/tools/android-sdk"),
+    Path("/opt/android-sdk"),
+]
+
+
+def build_env():
+    """Env for subprocesses: ensure ANDROID_HOME points to an existing SDK."""
+    env = dict(os.environ)
+    if not env.get("ANDROID_HOME"):
+        for cand in SDK_CANDIDATES:
+            if (cand / "build-tools" / "34.0.0" / "apksigner").exists():
+                env["ANDROID_HOME"] = str(cand)
+                break
+    return env
+
+
 def run_cmd(cmd, timeout=180):
     """Run subprocess, return (rc, stdout+stderr)."""
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                           env=build_env())
         return p.returncode, (p.stdout or "") + (p.stderr or "")
     except subprocess.TimeoutExpired:
         return 124, "TIMEOUT"

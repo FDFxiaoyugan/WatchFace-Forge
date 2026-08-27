@@ -48,7 +48,7 @@ python client/wff_api.py build projects/my_watch
     <Scene backgroundColor="#ff000000">
         <!-- Active 模式内容 -->
         <DigitalClock x="0" y="0" width="450" height="450">
-            <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE"
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
                       align="CENTER" x="0" y="120" width="450" height="120">
                 <Variant mode="AMBIENT" target="alpha" value="0"/>
                 <Font family="SYNC_TO_DEVICE" size="100" weight="BOLD" color="#ff00F5FF"/>
@@ -56,7 +56,7 @@ python client/wff_api.py build projects/my_watch
         </DigitalClock>
         <!-- AMBIENT 模式内容 -->
         <DigitalClock x="0" y="0" width="450" height="450">
-            <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE"
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
                       align="CENTER" x="0" y="120" width="450" height="120" alpha="0">
                 <Variant mode="AMBIENT" target="alpha" value="255"/>
                 <Font family="SYNC_TO_DEVICE" size="100" weight="THIN" color="#ff888888"/>
@@ -88,23 +88,34 @@ python client/wff_api.py build projects/my_watch
 
 ### 3. 写 WFF XML
 
-**必读 [pitfalls.md](./references/pitfalls.md) 的 MUST 规则（R01-R16）**
+**必读 [pitfalls.md](./references/pitfalls.md) 的 MUST 规则（R01-R24）**
 
 关键规则速记：
 - 颜色 8 位 ARGB：`#ffRRGGBB`（不是 `#RRGGBB`）
 - 数据源用方括号：`[MONTH]` 不是 `MONTH`
-- 时间用 DigitalClock + TimeText（不用 Text + Template）
+- 时间用 DigitalClock + TimeText（不用 Text + Template），format 只用小写 `hh:mm`
 - 字体用 `family="SYNC_TO_DEVICE"`（不用 `Roboto`）
 - AMBIENT 模式用 `<Variant>` 控制
+- **形状包住样式**：`<Arc><Stroke/></Arc>`，不是 `<Stroke><Arc/></Stroke>`
+- 列表属性空格分隔：`colors="#ffAABBCC #ff112233"`
+- 布尔枚举大写：`isCustomizable="TRUE"`
+- project.yaml 不写行内注释
 
-### 4. 验证
+### 4. 验证（两级，都要过）
 
 ```bash
+# 初筛：16 条结构规则（快）
 python wff-builder/wff_builder.py validate projects/my_watch
+
+# 终审：官方 XSD 校验（必跑！初筛抓不住 XSD 级错误）
+java -jar vendor/google-watchface/tools/wff-validator.jar 5 projects/my_watch/watchface.xml
 ```
 
-验证通过 → 进入步骤 5
-验证失败 → 读错误信息 → 修复 → 重新验证（最多 3 轮）
+两级都通过 → 进入步骤 5
+失败 → 读错误信息 → 修复 → 重新验证（最多 3 轮）
+
+> R22：初筛全绿 ≠ XSD 合法。嵌套方向、枚举值、format pattern 等 XSD 级错误
+> 只有官方 validator 抓得住。
 
 ### 5. 构建
 

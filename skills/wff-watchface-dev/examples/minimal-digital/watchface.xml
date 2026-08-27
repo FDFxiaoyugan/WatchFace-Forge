@@ -5,12 +5,12 @@
     <Scene backgroundColor="#ff000000">
         <!-- Digital clock: active mode (bright) -->
         <DigitalClock x="0" y="0" width="450" height="450">
-            <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER" x="0" y="120" width="450" height="120" alpha="255">
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER" x="0" y="120" width="450" height="120" alpha="255">
                 <Variant mode="AMBIENT" target="alpha" value="0"/>
                 <Font family="SYNC_TO_DEVICE" size="100" weight="BOLD" slant="NORMAL" color="#ff00F5FF"/>
             </TimeText>
             <!-- Ambient mode version (dim) -->
-            <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER" x="0" y="120" width="450" height="120" alpha="0">
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER" x="0" y="120" width="450" height="120" alpha="0">
                 <Variant mode="AMBIENT" target="alpha" value="255"/>
                 <Font family="SYNC_TO_DEVICE" size="100" weight="THIN" slant="NORMAL" color="#ff888888"/>
             </TimeText>

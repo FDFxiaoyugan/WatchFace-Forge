@@ -120,48 +120,73 @@ Group 用于组织部件并应用变体。典型模式：一个 ACTIVE Group + �
 
 ### `<PartDraw>` — 矢量绘制
 
+> ⚠️ **嵌套方向（易错）**：形状在外、样式在内 —— `<Arc><Stroke/></Arc>`，
+> 不是 `<Stroke><Arc/></Stroke>`。Stroke/Fill 是形状的子元素（XSD 权威结构）。
+
 ```xml
 <PartDraw x="0" y="0" width="450" height="450">
-    <Stroke color="#ff00F5FF" thickness="4">
-        <Arc centerX="225" centerY="225" width="400" height="400" 
-             direction="CLOCKWISE" sweepAngle="180"/>
-    </Stroke>
-    <Fill color="#ff00F5FF">
-        <Circle centerX="225" centerY="225" radius="200"/>
-    </Fill>
+    <Arc centerX="225" centerY="225" width="400" height="400"
+         direction="CLOCKWISE" startAngle="0" endAngle="180">
+        <Stroke color="#ff00F5FF" thickness="4">
+            <LinearGradient startX="0" startY="0" endX="450" endY="450"
+                            colors="#ff00E5FF #ff071629"
+                            positions="0.0 1.0"/>
+        </Stroke>
+    </Arc>
+    <Ellipse x="25" y="25" width="400" height="400">
+        <Fill color="#ff00F5FF"/>
+    </Ellipse>
 </PartDraw>
 ```
 
-**形状子元素**（Draw 下）：`<Arc>` `<Circle>` `<Ellipse>` `<Line>` `<Rectangle>` `<RoundRectangle>` `<Path>`
+**Arc 角度**：`startAngle` + `endAngle`（必填，度，0 = 12 点方向，顺时针为正）。
+**没有 `sweepAngle` 属性**；且角度只支持静态值——动态进度环用
+ComplicationSlot `type="RANGED_VALUE"`（系统渲染），不要试图给 Arc 写表达式角度。
 
-**样式子元素**：`<Fill>` `<Stroke>`
+**形状**（PartDraw 直接子元素）：`<Arc>` `<Ellipse>` `<Line>` `<Rectangle>` `<RoundRectangle>`
+> ⚠️ **没有 `<Circle>` 和 `<Path>`**——画圆用 Ellipse（width=height），x/y/width/height 定包围盒。
 
-**渐变**：`<LinearGradient>` `<RadialGradient>` `<SweepGradient>`
+**样式**（形状的子元素，必选其一）：`<Fill>` `<Stroke>`
+
+**渐变**（Fill/Stroke 的子元素）：`<LinearGradient>` `<RadialGradient>` `<SweepGradient>`
+
+> 📌 **列表属性分隔符是空格，不是逗号**：`colors="#ff03050B #ff071629 #ff0E2C55"`、
+> `positions="0.0 0.5 1.0"`（XSD `xs:list` 语义）。逗号分隔过不了官方校验。
 
 ### `<AnalogClock>` — 模拟时钟
 
+> ⚠️ **三针全部基于图片资源**：HourHand/MinuteHand/SecondHand 的 `resource`
+> 属性**必填**（指向 drawable），**没有 `color` 属性**（只有 `tintColor` 给图片染色）。
+> 纯矢量画指针不可行——针的 PNG 需自备（Pillow 生成：细长矩形+透明底，指向 12 点方向）。
+
 ```xml
-<AnalogClock x="50" y="50" width="350" height="350">
-    <HourHand x="175" y="50" width="50" height="200"
-             color="#ffFFFFFF" offsetX="175" offsetY="225"/>
-    <MinuteHand .../>
-    <SecondHand .../>
+<AnalogClock x="0" y="0" width="450" height="450">
+    <HourHand resource="hand_hour" x="215" y="100" width="20" height="200"
+             pivotX="0.5" pivotY="1.0"/>
+    <MinuteHand resource="hand_minute" x="218" y="60" width="14" height="240"
+                pivotX="0.5" pivotY="1.0"/>
+    <!-- 秒针：可加 Sweep（平滑扫秒，频率 2/5/10/15Hz）或 Tick（跳动动画） -->
+    <SecondHand resource="hand_second" x="221" y="40" width="8" height="280"
+                pivotX="0.5" pivotY="1.0" alpha="255">
+        <Variant mode="AMBIENT" target="alpha" value="0"/>
+        <Sweep frequency="10"/>
+    </SecondHand>
 </AnalogClock>
 ```
 
 | 子元素 | 说明 |
 |--------|------|
-| `<HourHand>` | 时针 |
-| `<MinuteHand>` | 分针 |
-| `<SecondHand>` | 秒针 |
+| `<HourHand>` | 时针（resource 必填） |
+| `<MinuteHand>` | 分针（resource 必填） |
+| `<SecondHand>` | 秒针（resource 必填；Sweep/Tick 可选） |
 
-Hand 属性：`x y width height color offsetX offsetY`
+Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY`（旋转中心，**归一化 0~1**，相对针自身包围盒；12 点方向竖直针的 pivot 在底端中心 = `0.5, 1.0`）`alpha` `tintColor`
 
 ### `<DigitalClock>` — 数字时钟
 
 ```xml
 <DigitalClock x="0" y="0" width="450" height="450">
-    <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER"
+    <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER"
               x="0" y="120" width="450" height="120">
         <Font family="SYNC_TO_DEVICE" size="100" weight="BOLD" color="#ff00F5FF"/>
         <Variant mode="AMBIENT" target="alpha" value="0"/>
@@ -174,7 +199,9 @@ Hand 属性：`x y width height color offsetX offsetY`
 | `<TimeText>` | 时间文本（自动刷新） |
 | `<Text>` | 附加文本 |
 
-`TimeText.format` 支持的占位符：`H` `HH` `m` `mm` `s` `ss` `a`（AM/PM）等
+> ⚠️ **format 只接受小写 h/m/s**（XSD `timeFormatType` pattern：`h{1,2}:m{1,2}(:s{1,2})?` 等
+> 小写组合）。`HH:mm` 过不了官方校验（真机可能宽容，但规范非法）。12/24 小时制由
+> `hourFormat`（`12`/`24`/`SYNC_TO_DEVICE`）控制，与 format 无关。
 
 ---
 
@@ -229,14 +256,39 @@ Hand 属性：`x y width height color offsetX offsetY`
 ### `<ComplicationSlot>`
 
 ```xml
-<ComplicationSlot slotId="0" x="150" y="150" width="150" height="150">
+<ComplicationSlot x="140" y="328" width="170" height="88"
+                  slotId="0" supportedTypes="SHORT_TEXT"
+                  displayName="DATA" isCustomizable="TRUE" tintColor="#ff00E5FF">
+    <!-- 必填①：边界形状（BoundingShape 是抽象头，必须用具体替换组成员） -->
+    <BoundingRoundBox x="140" y="328" width="170" height="88"
+                      cornerRadius="14" outlinePadding="2"/>
+    <!-- 可选：默认数据源（不写则用户手动选） -->
+    <DefaultProviderPolicy defaultSystemProvider="HEART_RATE"
+                           defaultSystemProviderType="SHORT_TEXT"/>
+    <!-- 必填②：Complication 渲染定义（至少 1 个；自定义渲染太复杂时可用最小结构占位） -->
     <Complication type="SHORT_TEXT" .../>
 </ComplicationSlot>
 ```
 
+> ⚠️ **BoundingShape 不可直接实例化**：它是 XSD substitution group 抽象头，
+> 必须写具体成员之一：`<BoundingBox x y width height/>`（直角）、
+> `<BoundingRoundBox x y width height cornerRadius outlinePadding/>`（圆角矩形，最常用）、
+> `<BoundingOval centerX centerY width height/>`、`<BoundingArc .../>`。
+> 成员的几何属性（x/y/width/height 等）**必填**。
+
+> ⚠️ **Complication 元素只有 `@type` 一个属性**。`defaultProvider`/`primaryDataStyle`/
+> `primaryDataSource` 等属性在 XSD 中不存在——默认数据源语义属于
+> `<DefaultProviderPolicy>` 子元素。
+
+> 📌 **booleanType 枚举是大写 `TRUE`/`FALSE`**（`isCustomizable="TRUE"`），小写
+> `true` 不合法（XSD `booleanType` 自定义枚举，非 xs:boolean）。
+
 Complication 类型：`SHORT_TEXT` `LONG_TEXT` `MONOCHROMATIC_IMAGE` `SMALL_IMAGE` `PHOTO_IMAGE` `RANGED_VALUE` `GOAL_PROGRESS` `WEIGHTED_ELEMENTS` `EMPTY`
 
 DefaultProvider：`APP_SHORTCUT` `DATE` `DAY_OF_WEEK` `FAVORITE_CONTACT` `NEXT_EVENT` `STEP_COUNT` `SUNRISE_SUNSET` `TIME_AND_DATE` `UNREAD_NOTIFICATION_COUNT` `WATCH_BATTERY` `WORLD_CLOCK` `HEART_RATE` `EMPTY`
+
+> 📌 provider×type 兼容矩阵规范未给出。保守策略：系统 provider 用 `SHORT_TEXT`
+> （跨 provider 兼容面最广）。RANGED_VALUE 仅在确认 provider 支持时使用。
 
 ---
 

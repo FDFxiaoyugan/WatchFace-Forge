@@ -320,7 +320,7 @@ WFF_RULES = [
     WFFRule("R09", "error", _check_rule_09,
         "时间用 DigitalClock+TimeText, 不用 Text+Template",
         {"bad": '<Text>...<Template>%s:%s<Parameter expression="[HOUR]"/></Template>',
-         "good": '<DigitalClock><TimeText format="HH:mm">...</TimeText></DigitalClock>'}),
+         "good": '<DigitalClock><TimeText format="hh:mm">...</TimeText></DigitalClock>'}),
     WFFRule("R10", "warn", _check_rule_10,
         "添加 ambient 模式 Variant, 暗屏下降低功耗",
         {"good": '<Variant mode="AMBIENT" target="alpha" value="0"/>'}),
@@ -822,12 +822,12 @@ class WFFBuilder:
             '    <Metadata key="PREVIEW_TIME" value="10:08:32"/>\n'
             '    <Scene backgroundColor="#ff000000">\n'
             '        <DigitalClock x="0" y="0" width="450" height="450">\n'
-            '            <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE"\n'
+            '            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"\n'
             '                      align="CENTER" x="0" y="150" width="450" height="120" alpha="255">\n'
             '                <Variant mode="AMBIENT" target="alpha" value="0"/>\n'
             '                <Font family="SYNC_TO_DEVICE" size="100" weight="BOLD" color="#ff00F5FF"/>\n'
             '            </TimeText>\n'
-            '            <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE"\n'
+            '            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"\n'
             '                      align="CENTER" x="0" y="150" width="450" height="120" alpha="0">\n'
             '                <Variant mode="AMBIENT" target="alpha" value="255"/>\n'
             '                <Font family="SYNC_TO_DEVICE" size="100" weight="THIN" color="#ff888888"/>\n'

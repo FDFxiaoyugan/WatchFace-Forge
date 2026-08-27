@@ -31,7 +31,7 @@
 | `[SECONDS_SINCE_EPOCH]` | Unix 时间戳 | `1724567890` |
 | `[UTC_TIMESTAMP]` | UTC 时间戳 | `1724567890` |
 
-> ⚠️ `_Z` 后缀 = 前导零版本。表盘显示时间推荐用 `DigitalClock` + `TimeText format="HH:mm"`，**不要**用 `Text` + `[HOUR]` 手动拼接（模板不自动刷新）。
+> ⚠️ `_Z` 后缀 = 前导零版本。表盘显示时间推荐用 `DigitalClock` + `TimeText format="hh:mm"`，**不要**用 `Text` + `[HOUR]` 手动拼接（模板不自动刷新）。
 
 ### 日期
 
@@ -210,11 +210,19 @@
 ## 典型表达式配方
 
 ```xml
-<!-- 电池弧形进度条 -->
-<Arc centerX="225" centerY="225" width="400" height="400" direction="CLOCKWISE">
-    <Stroke color="#ff00F5FF" thickness="8"
-            sweepAngle="round([BATTERY_PERCENT] / 100 * 360)"/>
-</Arc>
+<!-- 电池百分比文本（真机验证过的写法：Template %s 占位 + Parameter 注入） -->
+<PartText x="0" y="400" width="450" height="40">
+    <Text align="CENTER">
+        <Font family="SYNC_TO_DEVICE" size="28" weight="NORMAL" color="#ff00F5FF">
+            <Template>BAT %s%%
+                <Parameter expression="[BATTERY_PERCENT]"/>
+            </Template>
+        </Font>
+    </Text>
+</PartText>
+
+<!-- 注意：矢量 Arc 的 startAngle/endAngle 只支持静态值，
+     动态进度环用 ComplicationSlot type="RANGED_VALUE"（系统渲染） -->
 
 <!-- 低电量变红 -->
 <Condition expression="[BATTERY_PERCENT] < 20">
@@ -227,7 +235,7 @@
 </Condition>
 
 <!-- 12/24 小时自适应 -->
-<TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE" ...>
+<TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE" ...>
 
 <!-- 陀螺仪视差 -->
 <Gyro x="(5/90) * clamp([ACCELEROMETER_ANGLE_X], -90, 90)" .../>

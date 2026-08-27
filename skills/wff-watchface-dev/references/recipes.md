@@ -17,13 +17,13 @@
         <!-- 数字时钟 -->
         <DigitalClock x="0" y="0" width="450" height="450">
             <!-- Active 模式：亮色大字 -->
-            <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE"
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
                       align="CENTER" x="0" y="120" width="450" height="120" alpha="255">
                 <Variant mode="AMBIENT" target="alpha" value="0"/>
                 <Font family="SYNC_TO_DEVICE" size="100" weight="BOLD" color="#ff00F5FF"/>
             </TimeText>
             <!-- AMBIENT 模式：暗色细字 -->
-            <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE"
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
                       align="CENTER" x="0" y="120" width="450" height="120" alpha="0">
                 <Variant mode="AMBIENT" target="alpha" value="255"/>
                 <Font family="SYNC_TO_DEVICE" size="100" weight="THIN" color="#ff888888"/>
@@ -62,7 +62,9 @@
 
 ## 配方 2：模拟指针表盘（analog-hands）
 
-**特征**：时针/分针/秒针 + 刻度环 + AMBIENT 隐藏秒针
+**特征**：时针/分针/秒针 + AMBIENT 隐藏秒针
+**前置**：三针各需一张 PNG（Pillow 生成：细长矩形+透明底，指针指向 12 点，
+pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片名（不带扩展名）。
 
 ```xml
 <?xml version="1.0"?>
@@ -76,33 +78,35 @@
             <Variant mode="AMBIENT" target="alpha" value="40"/>
         </PartImage>
 
-        <!-- 模拟时钟 -->
+        <!-- 模拟时钟（三针必须 resource 引用图片，无 color 属性；tintColor 染色可选） -->
         <AnalogClock x="0" y="0" width="450" height="450">
             <!-- 时针 -->
-            <HourHand x="215" y="100" width="20" height="200"
-                      color="#ffFFFFFF" offsetX="225" offsetY="225"/>
+            <HourHand resource="hand_hour" x="215" y="100" width="20" height="200"
+                      pivotX="0.5" pivotY="1.0" tintColor="#ffffffff"/>
             <!-- 分针 -->
-            <MinuteHand x="218" y="60" width="14" height="240"
-                        color="#ff00F5FF" offsetX="225" offsetY="225"/>
-            <!-- 秒针（AMBIENT 隐藏） -->
-            <SecondHand x="221" y="40" width="8" height="280"
-                         color="#ffFF6B6B" offsetX="225" offsetY="225" alpha="255">
+            <MinuteHand resource="hand_minute" x="218" y="60" width="14" height="240"
+                        pivotX="0.5" pivotY="1.0" tintColor="#ff00F5FF"/>
+            <!-- 秒针（10Hz 平滑扫秒；AMBIENT 隐藏） -->
+            <SecondHand resource="hand_second" x="221" y="40" width="8" height="280"
+                        pivotX="0.5" pivotY="1.0" tintColor="#ffFF6B6B" alpha="255">
                 <Variant mode="AMBIENT" target="alpha" value="0"/>
+                <Sweep frequency="10"/>
             </SecondHand>
         </AnalogClock>
 
-        <!-- 中心圆点 -->
+        <!-- 中心圆点（矢量，形状包住样式） -->
         <PartDraw x="0" y="0" width="450" height="450">
-            <Fill color="#ff00F5FF">
-                <Circle centerX="225" centerY="225" radius="6"/>
-            </Fill>
+            <Ellipse x="219" y="219" width="12" height="12">
+                <Fill color="#ff00F5FF"/>
+            </Ellipse>
             <Variant mode="AMBIENT" target="alpha" value="0"/>
         </PartDraw>
     </Scene>
 </WatchFace>
 ```
 
-> Hand 的 `offsetX/offsetY` 是旋转中心点。画布 450×450 时中心在 (225, 225)。
+> Hand 的 `pivotX/pivotY` 是旋转中心（归一化 0~1，相对针自身包围盒）。
+> 12 点方向竖直针的 pivot 在底端中心：`pivotX="0.5" pivotY="1.0"`。
 
 ---
 
@@ -116,28 +120,27 @@
     <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
     <Metadata key="PREVIEW_TIME" value="10:08:32"/>
     <Scene backgroundColor="#ff111111">
-        <!-- 电池弧形进度条 -->
+        <!-- 装饰环（静态矢量弧；动态进度环用 ComplicationSlot RANGED_VALUE，Arc 角度不支持表达式） -->
         <PartDraw x="0" y="0" width="450" height="450">
-            <Stroke color="#ff333333" thickness="6">
-                <Arc centerX="225" centerY="225" width="420" height="420"
-                     direction="CLOCKWISE" sweepAngle="360"/>
-            </Stroke>
-            <Stroke color="#ff00F5FF" thickness="6">
-                <Arc centerX="225" centerY="225" width="420" height="420"
-                     direction="CLOCKWISE"
-                     sweepAngle="round([BATTERY_PERCENT] / 100 * 360)"/>
-            </Stroke>
+            <Arc centerX="225" centerY="225" width="420" height="420"
+                 direction="CLOCKWISE" startAngle="0" endAngle="360">
+                <Stroke color="#ff333333" thickness="6"/>
+            </Arc>
+            <Arc centerX="225" centerY="225" width="420" height="420"
+                 direction="CLOCKWISE" startAngle="0" endAngle="180">
+                <Stroke color="#ff00F5FF" thickness="6"/>
+            </Arc>
             <Variant mode="AMBIENT" target="alpha" value="30"/>
         </PartDraw>
 
         <!-- 数字时间 -->
         <DigitalClock x="0" y="0" width="450" height="450">
-            <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE"
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
                       align="CENTER" x="0" y="150" width="450" height="100" alpha="255">
                 <Variant mode="AMBIENT" target="alpha" value="0"/>
                 <Font family="SYNC_TO_DEVICE" size="80" weight="BOLD" color="#ffFFFFFF"/>
             </TimeText>
-            <TimeText format="HH:mm" hourFormat="SYNC_TO_DEVICE"
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
                       align="CENTER" x="0" y="150" width="450" height="100" alpha="0">
                 <Variant mode="AMBIENT" target="alpha" value="255"/>
                 <Font family="SYNC_TO_DEVICE" size="80" weight="THIN" color="#ff888888"/>
@@ -158,13 +161,15 @@
             </Text>
         </PartText>
 
-        <!-- 步数 Complication -->
-        <ComplicationSlot slotId="0" x="150" y="320" width="150" height="80">
-            <Complication type="SHORT_TEXT"
-                          defaultProvider="STEP_COUNT"
-                          primaryDataStyle="ICON_AND_TEXT"
-                          primaryDataSource="STEP_COUNT"
-                          fallbackBehavior="EMPTY"/>
+        <!-- 步数 Complication（supportedTypes 必填 + BoundingShape 必填 + DefaultProviderPolicy 设默认源） -->
+        <ComplicationSlot x="150" y="320" width="150" height="80"
+                          slotId="0" supportedTypes="SHORT_TEXT"
+                          isCustomizable="TRUE">
+            <BoundingRoundBox x="150" y="320" width="150" height="80"
+                              cornerRadius="10" outlinePadding="2"/>
+            <DefaultProviderPolicy defaultSystemProvider="STEP_COUNT"
+                                   defaultSystemProviderType="SHORT_TEXT"/>
+            <Complication type="SHORT_TEXT"/>
             <Variant mode="AMBIENT" target="alpha" value="30"/>
         </ComplicationSlot>
     </Scene>
@@ -224,12 +229,14 @@
 <Font color="[CONFIGURATION.accent_color]">10:08</Font>
 ```
 
-### 动态旋转（秒针平滑动画）
+### 动态旋转（指针平滑动画）
+
+秒针本体已自动随时间旋转，**不要**再叠加 rotate Transform（会双倍旋转）。
+平滑扫秒用 Sweep：
 
 ```xml
-<SecondHand x="221" y="40" width="8" height="280" 
-            color="#ffFF6B6B" offsetX="225" offsetY="225">
-    <Transform value="rotate(([SECOND] + [MILLISECOND]/1000) / 60 * 360)"/>
+<SecondHand resource="hand_second" x="221" y="40" width="8" height="280"
+            pivotX="0.5" pivotY="1.0" tintColor="#ffFF6B6B">
     <Sweep frequency="SYNC_TO_DEVICE"/>
 </SecondHand>
 ```

@@ -1,0 +1,151 @@
+<?xml version="1.0"?>
+<!-- Velocity Sport — 运动风格表盘
+     大数字时间 + 心率数据格(Complication, 可换数据源) + 深色渐变速度感背景 -->
+<WatchFace width="450" height="450">
+    <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
+    <Metadata key="PREVIEW_TIME" value="10:08:32"/>
+
+    <Scene backgroundColor="#ff000000">
+
+        <!-- ============ 背景：深色对角渐变（速度方向 左上→右下） ============ -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Variant mode="AMBIENT" target="alpha" value="30"/>
+            <Rectangle x="0" y="0" width="450" height="450">
+                <Fill color="#ff03050B">
+                    <LinearGradient startX="0" startY="0" endX="450" endY="450"
+                                    colors="#ff03050B #ff071629 #ff0E2C55"
+                                    positions="0.0 0.5 1.0"/>
+                </Fill>
+            </Rectangle>
+        </PartDraw>
+
+        <!-- ============ 速度光痕（左上角，青色拖尾） ============ -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Line startX="26" startY="148" endX="112" endY="62">
+                <Stroke color="#ff00E5FF" thickness="5">
+                    <LinearGradient startX="26" startY="148" endX="112" endY="62"
+                                    colors="#0000E5FF #ff00E5FF" positions="0.0 1.0"/>
+                </Stroke>
+            </Line>
+            <Line startX="14" startY="190" endX="70" endY="134">
+                <Stroke color="#ff00E5FF" thickness="3">
+                    <LinearGradient startX="14" startY="190" endX="70" endY="134"
+                                    colors="#3300E5FF #9900E5FF" positions="0.0 1.0"/>
+                </Stroke>
+            </Line>
+            <Line startX="150" startY="64" endX="196" endY="18">
+                <Stroke color="#ff00E5FF" thickness="2.5">
+                    <LinearGradient startX="150" startY="64" endX="196" endY="18"
+                                    colors="#2600E5FF #8000E5FF" positions="0.0 1.0"/>
+                </Stroke>
+            </Line>
+        </PartDraw>
+
+        <!-- ============ 速度光痕（右上角，荧光绿点缀） ============ -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Line startX="296" startY="116" endX="336" endY="76">
+                <Stroke color="#ffC8FF2E" thickness="2.5">
+                    <LinearGradient startX="296" startY="116" endX="336" endY="76"
+                                    colors="#00C8FF2E #ffC8FF2E" positions="0.0 1.0"/>
+                </Stroke>
+            </Line>
+        </PartDraw>
+
+        <!-- ============ 速度光痕（左下角，荧光绿点缀） ============ -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Line startX="46" startY="360" endX="84" endY="322">
+                <Stroke color="#ffC8FF2E" thickness="2">
+                    <LinearGradient startX="46" startY="360" endX="84" endY="322"
+                                    colors="#00C8FF2E #99C8FF2E" positions="0.0 1.0"/>
+                </Stroke>
+            </Line>
+        </PartDraw>
+
+        <!-- ============ 速度光痕（右下角，青色拖尾，与渐变方向呼应） ============ -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Line startX="325" startY="405" endX="405" endY="325">
+                <Stroke color="#ff00E5FF" thickness="5">
+                    <LinearGradient startX="325" startY="405" endX="405" endY="325"
+                                    colors="#ff00E5FF #0000E5FF" positions="0.0 1.0"/>
+                </Stroke>
+            </Line>
+            <Line startX="348" startY="408" endX="384" endY="372">
+                <Stroke color="#ff00E5FF" thickness="3">
+                    <LinearGradient startX="348" startY="408" endX="384" endY="372"
+                                    colors="#9900E5FF #2600E5FF" positions="0.0 1.0"/>
+                </Stroke>
+            </Line>
+        </PartDraw>
+
+        <!-- ============ 顶部：电池 ============ -->
+        <PartText x="0" y="58" width="450" height="32">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Text align="CENTER">
+                <Font family="SYNC_TO_DEVICE" size="22" weight="NORMAL" color="#ff7E93A8">
+                    <Template>BAT %s%%
+                        <Parameter expression="[BATTERY_PERCENT]"/>
+                    </Template>
+                </Font>
+            </Text>
+        </PartText>
+
+        <!-- ============ 主体：大数字时间（Active 亮 / AMBIENT 暗 双模式） ============ -->
+        <DigitalClock x="0" y="0" width="450" height="450">
+            <!-- Active：电光青，超大粗体 -->
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
+                      align="CENTER" x="0" y="140" width="450" height="130" alpha="255">
+                <Variant mode="AMBIENT" target="alpha" value="0"/>
+                <Font family="SYNC_TO_DEVICE" size="130" weight="BOLD" slant="NORMAL" color="#ff00E5FF"/>
+            </TimeText>
+            <!-- AMBIENT：细体低功耗灰蓝 -->
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
+                      align="CENTER" x="0" y="140" width="450" height="130" alpha="0">
+                <Variant mode="AMBIENT" target="alpha" value="255"/>
+                <Font family="SYNC_TO_DEVICE" size="130" weight="THIN" slant="NORMAL" color="#ff8A9BA8"/>
+            </TimeText>
+        </DigitalClock>
+
+        <!-- ============ 日期行 ============ -->
+        <PartText x="0" y="284" width="450" height="34">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Text align="CENTER">
+                <Font family="SYNC_TO_DEVICE" size="26" weight="NORMAL" color="#ffB8C4D4">
+                    <Template>%s %s/%s
+                        <Parameter expression="[DAY_OF_WEEK_S]"/>
+                        <Parameter expression="[MONTH]"/>
+                        <Parameter expression="[DAY]"/>
+                    </Template>
+                </Font>
+            </Text>
+        </PartText>
+
+        <!-- ============ 数据格底板：半透明深蓝圆角卡片 + 青色描边 ============ -->
+        <PartDraw x="140" y="328" width="170" height="88">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <RoundRectangle x="140" y="328" width="170" height="88"
+                            cornerRadiusX="14" cornerRadiusY="14">
+                <Fill color="#80102A4C"/>
+                <Stroke color="#B300E5FF" thickness="2"/>
+            </RoundRectangle>
+        </PartDraw>
+
+        <!-- ============ 数据格：心率 Complication 插槽（用户可更换数据源） ============ -->
+        <ComplicationSlot x="140" y="328" width="170" height="88"
+                          slotId="0"
+                          supportedTypes="SHORT_TEXT"
+                          displayName="DATA"
+                          isCustomizable="TRUE"
+                          tintColor="#ff00E5FF">
+            <DefaultProviderPolicy defaultSystemProvider="HEART_RATE"
+                                   defaultSystemProviderType="SHORT_TEXT"/>
+            <BoundingRoundBox x="140" y="328" width="170" height="88" cornerRadius="14" outlinePadding="2"/>
+            <Complication type="SHORT_TEXT"/>
+            <Variant mode="AMBIENT" target="alpha" value="30"/>
+        </ComplicationSlot>
+
+    </Scene>
+</WatchFace>
