@@ -165,7 +165,8 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
         <!-- ⚠️ R26: Complication 内必须有 Part 渲染组件 + [COMPLICATION.*] 数据绑定，空元素真机不渲染 -->
         <!-- ⚠️ R28: BoundingRoundBox 用 slot 局部坐标（0,0 起），不是全局画布坐标 -->
         <ComplicationSlot x="150" y="320" width="150" height="80"
-                          slotId="0" supportedTypes="SHORT_TEXT EMPTY"
+                          slotId="1" supportedTypes="SHORT_TEXT EMPTY"
+                          displayName="@string/complication_slot_display"
                           isCustomizable="TRUE">
             <BoundingRoundBox x="0" y="0" width="150" height="80"
                               cornerRadius="10" outlinePadding="2"/>

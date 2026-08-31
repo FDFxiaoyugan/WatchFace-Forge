@@ -1,6 +1,6 @@
 # WFF 踩坑大全
 
-> 一期 16 条规则（2026-08-15 真机验证）+ 盲测/真机复盘扩充至 29 条（R17-R29）。
+> 一期 16 条规则（2026-08-15 真机验证）+ 盲测/真机复盘扩充至 30 条（R17-R30）。
 > **每条规则都是用真机安装失败换来的。写 WFF XML 前必读。**
 
 ---
@@ -258,6 +258,17 @@ XSD + build）全部抓不住这种"合法但空白"。正确写法：
 not complete）。EMPTY 占位等静态文本直接写 `<Font ...>--</Font>`（Font 是
 mixed=true）。无数据兜底还可以用 `<Complication type="EMPTY">` 渲染占位符
 （supportedTypes 加 EMPTY）。
+
+### R30: ComplicationSlot displayName 必须是 @string/ 资源引用（真机实证 2026-08-31 第三轮）
+
+官方语义："A resource ID corresponding to a localized name for the complication
+slot, which is displayed in the watch face editor"。裸文本（如 displayName="DATA"）
+XSD 合法但部分 OEM 编辑器（三星 One UI Watch）解析资源引用失败，可能导致编辑器
+不显示 complication 自定义入口。配套修复：
+- 字符串放项目 `res/values/strings.xml`，wff_builder 构建时自动合并进 resources.arsc
+- `slotId` 从 1 开始（官方示例惯例），全局唯一
+- 三星 One UI 8 Watch (Wear OS 6) 第三方表盘存在多个已知系统 bug（AOD 切换等，
+  sammobile 2026-01 报道），排查时先做对照实验：长按三星自带表盘看编辑器行为
 
 ---
 

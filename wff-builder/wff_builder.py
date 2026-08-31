@@ -525,12 +525,23 @@ class WFFBuilder:
         info_path.write_text(WATCH_FACE_INFO_TEMPLATE)
         self.log("  Generated: res/xml/watch_face_info.xml")
 
-        # strings.xml
+        # strings.xml: 模板生成 watch_face_name + 合并项目自带 res/values/strings.xml
         strings_path = self.build_dir / "res" / "values" / "strings.xml"
         strings_path.parent.mkdir(parents=True, exist_ok=True)
-        strings_path.write_text(STRINGS_TEMPLATE.format(
+        strings_xml = STRINGS_TEMPLATE.format(
             watch_face_name=self.config["watch_face_name"]
-        ))
+        )
+        # 项目级 strings.xml：displayName 等编辑器资源必须是 @string/ 引用（真机实证 2026-08-31）
+        project_strings = self.project_dir / "res" / "values" / "strings.xml"
+        if project_strings.is_file():
+            extra = project_strings.read_text(encoding="utf-8")
+            extra_items = re.findall(r'<string\b[^>]*>.*?</string>', extra, re.DOTALL)
+            if extra_items:
+                strings_xml = strings_xml.replace(
+                    "</resources>",
+                    "\n    " + "\n    ".join(extra_items) + "\n</resources>")
+                self.log(f"  Merged: project res/values/strings.xml ({len(extra_items)} entries)")
+        strings_path.write_text(strings_xml, encoding="utf-8")
         self.log(f"  Generated: res/values/strings.xml (name='{self.config['watch_face_name']}')")
 
         # Copy watchface.xml

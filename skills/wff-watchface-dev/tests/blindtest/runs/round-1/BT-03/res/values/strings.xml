@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ComplicationSlot displayName 必须是 @string/ 资源引用（官方规范：编辑器显示名） -->
+    <string name="complication_slot_display">DATA</string>
+</resources>

@@ -149,9 +149,9 @@
             </RoundRectangle>
         </PartDraw>
         <ComplicationSlot x="140" y="328" width="170" height="88"
-                          slotId="0"
+                          slotId="1"
                           supportedTypes="SHORT_TEXT EMPTY"
-                          displayName="DATA"
+                          displayName="@string/complication_slot_display"
                           isCustomizable="TRUE"
                           tintColor="#ff00E5FF">
             <DefaultProviderPolicy defaultSystemProvider="HEART_RATE"

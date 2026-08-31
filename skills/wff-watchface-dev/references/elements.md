@@ -257,8 +257,9 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
 
 ```xml
 <ComplicationSlot x="140" y="328" width="170" height="88"
-                  slotId="0" supportedTypes="SHORT_TEXT EMPTY"
-                  displayName="DATA" isCustomizable="TRUE" tintColor="#ff00E5FF">
+                  slotId="1" supportedTypes="SHORT_TEXT EMPTY"
+                  displayName="@string/complication_slot_display"
+                  isCustomizable="TRUE" tintColor="#ff00E5FF">
     <!-- 可选：默认数据源（不写则用户手动选） -->
     <DefaultProviderPolicy defaultSystemProvider="HEART_RATE"
                            defaultSystemProviderType="SHORT_TEXT"/>
@@ -335,6 +336,13 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
 
 > 📌 **booleanType 枚举是大写 `TRUE`/`FALSE`**（`isCustomizable="TRUE"`），小写
 > `true` 不合法（XSD `booleanType` 自定义枚举，非 xs:boolean）。
+
+> ⚠️ **`displayName` 必须是 `@string/` 资源引用**（R30，真机实证 2026-08-31）：官方
+> 语义是 "A resource ID ... displayed in the watch face editor"。裸文本在部分 OEM
+> 编辑器（三星 One UI）解析失败会导致自定义入口异常。字符串定义放项目
+> `res/values/strings.xml`（wff_builder 自动合并进 resources.arsc）：
+> `<string name="complication_slot_display">DATA</string>`。
+> `slotId` 建议从 1 开始（官方示例惯例），保持全局唯一。
 
 Complication 类型：`SHORT_TEXT` `LONG_TEXT` `MONOCHROMATIC_IMAGE` `SMALL_IMAGE` `PHOTO_IMAGE` `RANGED_VALUE` `GOAL_PROGRESS` `WEIGHTED_ELEMENTS` `EMPTY`
 

@@ -103,6 +103,8 @@ python client/wff_api.py build projects/my_watch
 - **ComplicationSlot 的 BoundingShape 用局部坐标**（0,0 起，尺寸=slot 尺寸），
   写全局坐标槽位整体消失且编辑器无自定义入口（R28）
 - Template 至少一个 Parameter，静态文本直接写 `<Font>text</Font>`（R29）
+- **ComplicationSlot 的 `displayName` 用 `@string/` 资源引用**（R30）：字符串放项目
+  `res/values/strings.xml`（builder 自动合并）；slotId 从 1 开始
 - 列表属性空格分隔：`colors="#ffAABBCC #ff112233"`
 - 布尔枚举大写：`isCustomizable="TRUE"`
 - project.yaml 不写行内注释
