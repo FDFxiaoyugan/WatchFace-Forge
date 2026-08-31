@@ -1,6 +1,6 @@
 # WFF 踩坑大全
 
-> 一期 16 条规则（2026-08-15 真机验证）+ 盲测/真机复盘扩充至 27 条（R17-R27）。
+> 一期 16 条规则（2026-08-15 真机验证）+ 盲测/真机复盘扩充至 29 条（R17-R29）。
 > **每条规则都是用真机安装失败换来的。写 WFF XML 前必读。**
 
 ---
@@ -239,6 +239,25 @@ XSD + build）全部抓不住这种"合法但空白"。正确写法：
 `<RoundRectangle cornerRadiusX="14" cornerRadiusY="14"/>` 两属性**必填**；
 单一 `cornerRadius` 是 BoundingRoundBox（complication 边界）的属性，矢量圆角矩形
 没有——两处易混。
+
+### R28: BoundingShape 用 slot 局部坐标，写全局坐标槽位整体消失（真机实证 2026-08-31 第二轮）
+
+官方示例：slot `x="100" y="100"` 的 BoundingOval 写 `x="0" y="0"`——边界形状
+坐标系是 **slot 左上角原点**，不是画布原点。把 slot 的全局坐标抄进 BoundingShape
+（如 slot 140,328 + Bounding 140,328）会让边界区域落到画布外，症状：
+- 槽位不渲染（内容画的坐标是对的，但边界在画布外被裁/剔除）
+- **长按表盘不出现自定义入口**（编辑器认为无可编辑槽位）
+- 表盘选择器预览图正常（那是静态 preview.png，与实时渲染无关）
+
+正确写法：`<BoundingRoundBox x="0" y="0" width="{slot宽}" height="{slot高}"/>`。
+注意 Complication 子元素同样是局部坐标（这个 v0.2.1 文档写对了，BoundingShape 抄错了）。
+
+### R29: Template 至少一个 Parameter；静态文本直接放 Font（XSD 强制）
+
+`<Template>--</Template>` 无 Parameter 非法（官方 XSD: content of 'Template' is
+not complete）。EMPTY 占位等静态文本直接写 `<Font ...>--</Font>`（Font 是
+mixed=true）。无数据兜底还可以用 `<Complication type="EMPTY">` 渲染占位符
+（supportedTypes 加 EMPTY）。
 
 ---
 

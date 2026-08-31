@@ -257,17 +257,19 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
 
 ```xml
 <ComplicationSlot x="140" y="328" width="170" height="88"
-                  slotId="0" supportedTypes="SHORT_TEXT"
+                  slotId="0" supportedTypes="SHORT_TEXT EMPTY"
                   displayName="DATA" isCustomizable="TRUE" tintColor="#ff00E5FF">
-    <!-- 必填①：边界形状（BoundingShape 是抽象头，必须用具体替换组成员） -->
-    <BoundingRoundBox x="140" y="328" width="170" height="88"
-                      cornerRadius="14" outlinePadding="2"/>
     <!-- 可选：默认数据源（不写则用户手动选） -->
     <DefaultProviderPolicy defaultSystemProvider="HEART_RATE"
                            defaultSystemProviderType="SHORT_TEXT"/>
-    <!-- 必填②：Complication 渲染定义（至少 1 个） -->
+    <!-- 必填①：边界形状（BoundingShape 是抽象头，必须用具体替换组成员）
+         ⚠️ R28: 局部坐标（0,0 = slot 左上角），覆盖 slot 自身尺寸；写全局坐标
+         会让槽位落到画布外——不渲染 + 编辑器不出现自定义入口（真机实证 2026-08-31） -->
+    <BoundingRoundBox x="0" y="0" width="170" height="88"
+                      cornerRadius="14" outlinePadding="2"/>
+    <!-- 必填②：Complication 渲染定义（每个 supportedType 一个） -->
     <Complication type="SHORT_TEXT">
-        <!-- ⚠️ 内部必须有 Part 组件，否则真机渲染为空（见 R26） -->
+        <!-- ⚠️ R26: 内部必须有 Part 组件，否则真机渲染为空 -->
         <!-- 坐标是 slot 的局部坐标系：0,0 = slot 左上角 -->
         <PartText x="0" y="0" width="170" height="88">
             <Text align="CENTER">
@@ -279,6 +281,14 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
             </Text>
         </PartText>
     </Complication>
+    <!-- 可选但强烈建议：EMPTY 占位（无数据/用户选"无"时兜底，格子不空白） -->
+    <Complication type="EMPTY">
+        <PartText x="0" y="26" width="170" height="36">
+            <Text align="CENTER">
+                <Font family="SYNC_TO_DEVICE" size="24" weight="NORMAL" color="#ff7E93A8">--</Font>
+            </Text>
+        </PartText>
+    </Complication>
 </ComplicationSlot>
 ```
 
@@ -286,6 +296,14 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
 > XSD 允许空 Complication（choice minOccurs=0），但没有任何 Part 就什么都不画——
 > 16 规则和官方 XSD 校验都抓不住这种"合法但空白"的错。Complication 内部必须放
 > PartText/PartImage/PartDraw，用 **`[COMPLICATION.*]` 特殊数据源**绑定 provider 数据。
+
+> ⚠️ **数据格底板放 slot 外面**（真机实证 2026-08-31）：Complication 内容是
+> type-gated 的——provider 无数据时整个 `<Complication type="SHORT_TEXT">` 不渲染，
+> 里面的静态底板也会消失。想要边框永远可见，把底板写成 Scene 里独立的 PartDraw
+> （紧挨 ComplicationSlot 之前），配自己的 AMBIENT Variant。
+
+> ⚠️ **`<Template>` 至少含一个 `<Parameter>`**（XSD 强制）；静态文本直接写在
+> `<Font>` 里（mixed=true），不要用无参 Template。
 
 **`COMPLICATION.*` 数据源**（仅 Complication 内部可用，按 type 取用）：
 

@@ -330,6 +330,52 @@ def _check_rule_27(xml_text: str):
     return True, "OK"
 
 
+def _check_rule_28(xml_text: str):
+    """R28: BoundingShape 用 slot 局部坐标（真机实证 2026-08-31 第二轮）
+
+    官方示例 slot x=100 y=100 的 BoundingOval 写 x=0 y=0——边界坐标系是 slot
+    左上角原点。把 slot 全局坐标抄进 BoundingShape 会让槽位落到画布外：
+    不渲染 + 编辑器无自定义入口。
+    检测：BoundingShape 的 x/y 或 x+width/y+height 明显超出 slot 自身宽高。
+    """
+    xml_text = _strip_xml_comments(xml_text)
+    for m in re.finditer(
+            r'<ComplicationSlot\b([^>]*)>(.*?)</ComplicationSlot>', xml_text, re.DOTALL):
+        slot_attrs, inner = m.group(1), m.group(2)
+        sw = re.search(r'width="([\d.]+)"', slot_attrs)
+        sh = re.search(r'height="([\d.]+)"', slot_attrs)
+        if not (sw and sh):
+            continue
+        slot_w, slot_h = float(sw.group(1)), float(sh.group(1))
+        bm = re.search(r'<Bounding\w+\b([^>]*)/>', inner)
+        if not bm:
+            continue
+        b_attrs = bm.group(1)
+        bx = re.search(r'\bx="(-?[\d.]+)"', b_attrs)
+        by = re.search(r'\by="(-?[\d.]+)"', b_attrs)
+        bw = re.search(r'width="([\d.]+)"', b_attrs)
+        bh = re.search(r'height="([\d.]+)"', b_attrs)
+        if not all([bx, by, bw, bh]):
+            continue
+        bxv, byv, bwv, bhv = (float(g.group(1)) for g in [bx, by, bw, bh])
+        # 允许 50% 余量（outlinePadding 等），超出视为全局坐标误写
+        if bxv > slot_w * 1.5 or byv > slot_h * 1.5 or \
+           bxv + bwv > slot_w * 1.5 or byv + bhv > slot_h * 1.5:
+            return False, (f"BoundingShape 疑似用了全局坐标 (x={bxv},y={byv} 超出 slot "
+                           f"{slot_w}x{slot_h})——应使用 slot 局部坐标 (0,0 起)")
+    return True, "OK"
+
+
+def _check_rule_29(xml_text: str):
+    """R29: Template 至少含一个 Parameter（XSD 强制）；静态文本直接放 Font"""
+    xml_text = _strip_xml_comments(xml_text)
+    for m in re.finditer(r'<Template>(.*?)</Template>', xml_text, re.DOTALL):
+        inner = m.group(1)
+        if '<Parameter' not in inner:
+            return False, "Template 必须至少含一个 <Parameter> (XSD 强制); 静态文本直接写 <Font>text</Font>"
+    return True, "OK"
+
+
 # 规则注册表
 WFF_RULES = [
     WFFRule("R01", "error", _check_rule_01,
@@ -385,6 +431,14 @@ WFF_RULES = [
         "矢量 RoundRectangle 需 cornerRadiusX + cornerRadiusY",
         {"bad": '<RoundRectangle ... cornerRadius="14"/>',
          "good": '<RoundRectangle ... cornerRadiusX="14" cornerRadiusY="14"/>'}),
+    WFFRule("R28", "error", _check_rule_28,
+        "BoundingShape 用 slot 局部坐标 (0,0 起), 写全局坐标槽位整体消失",
+        {"bad": '<ComplicationSlot x="140" y="328" ...><BoundingRoundBox x="140" y="328" .../>',
+         "good": '<ComplicationSlot x="140" y="328" ...><BoundingRoundBox x="0" y="0" .../>'}),
+    WFFRule("R29", "error", _check_rule_29,
+        "Template 至少含一个 Parameter; 静态文本直接写 <Font>text</Font>",
+        {"bad": '<Template>--</Template>',
+         "good": '<Font family="SYNC_TO_DEVICE" size="24">--</Font>'}),
 ]
 
 

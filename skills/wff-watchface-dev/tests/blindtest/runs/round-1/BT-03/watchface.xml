@@ -134,29 +134,32 @@
         </PartDraw>
 
         <!-- ============ 数据格：心率 Complication 插槽（用户可更换数据源） ============ -->
-        <!-- 真机修复 2026-08-31: 空 <Complication/> 在 XSD 层合法但渲染为空（根因 R26）。
-             必须用 PartText + Template + [COMPLICATION.*] 绑定 provider 数据。
-             Complication 内部坐标是相对 ComplicationSlot 的局部坐标系（0,0 = slot 左上角）。 -->
+        <!-- 真机修复 2026-08-31 第二轮（R28）: BoundingShape 用 slot 局部坐标（0,0 = slot 左上角），
+             官方示例 slot x=100 y=100 而 BoundingOval x=0 y=0。写全局坐标会让槽位整体落在画布外：
+             不渲染 + 编辑器无自定义入口。 -->
+        <!-- 底板放在 slot 外：Complication 内容是 type-gated（无数据不渲染），
+             外置底板保证数据格边框永远可见。 -->
+        <PartDraw x="140" y="328" width="170" height="88">
+            <Variant mode="AMBIENT" target="alpha" value="30"/>
+            <RoundRectangle x="142" y="330" width="166" height="84" cornerRadiusX="14" cornerRadiusY="14">
+                <Stroke color="#3300E5FF" thickness="1"/>
+            </RoundRectangle>
+            <RoundRectangle x="142" y="330" width="166" height="84" cornerRadiusX="14" cornerRadiusY="14">
+                <Fill color="#1400E5FF"/>
+            </RoundRectangle>
+        </PartDraw>
         <ComplicationSlot x="140" y="328" width="170" height="88"
                           slotId="0"
-                          supportedTypes="SHORT_TEXT"
+                          supportedTypes="SHORT_TEXT EMPTY"
                           displayName="DATA"
                           isCustomizable="TRUE"
                           tintColor="#ff00E5FF">
             <DefaultProviderPolicy defaultSystemProvider="HEART_RATE"
                                    defaultSystemProviderType="SHORT_TEXT"/>
-            <BoundingRoundBox x="140" y="328" width="170" height="88" cornerRadius="14" outlinePadding="2"/>
+            <!-- R28: 局部坐标，覆盖整个 slot -->
+            <BoundingRoundBox x="0" y="0" width="170" height="88" cornerRadius="14" outlinePadding="2"/>
+            <!-- 有数据时：心率值 + 标签 -->
             <Complication type="SHORT_TEXT">
-                <!-- 数据格底板（局部坐标 0,0 起） -->
-                <PartDraw x="0" y="0" width="170" height="88">
-                    <RoundRectangle x="2" y="2" width="166" height="84" cornerRadiusX="14" cornerRadiusY="14">
-                        <Stroke color="#3300E5FF" thickness="1"/>
-                    </RoundRectangle>
-                    <RoundRectangle x="2" y="2" width="166" height="84" cornerRadiusX="14" cornerRadiusY="14">
-                        <Fill color="#1400E5FF"/>
-                    </RoundRectangle>
-                </PartDraw>
-                <!-- 心率值（provider 数据绑定） -->
                 <PartText x="0" y="8" width="170" height="48">
                     <Text align="CENTER">
                         <Font family="SYNC_TO_DEVICE" size="40" weight="BOLD" color="#ff00E5FF">
@@ -166,7 +169,6 @@
                         </Font>
                     </Text>
                 </PartText>
-                <!-- 标签（provider 给的 TITLE，如单位/名称） -->
                 <PartText x="0" y="52" width="170" height="30">
                     <Text align="CENTER">
                         <Font family="SYNC_TO_DEVICE" size="20" weight="NORMAL" color="#ff9FB4C7">
@@ -174,6 +176,14 @@
                                 <Parameter expression="[COMPLICATION.TITLE]"/>
                             </Template>
                         </Font>
+                    </Text>
+                </PartText>
+            </Complication>
+            <!-- 无数据 / 用户选"无"时：占位符，格子不空白 -->
+            <Complication type="EMPTY">
+                <PartText x="0" y="26" width="170" height="36">
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="24" weight="NORMAL" color="#ff7E93A8">--</Font>
                     </Text>
                 </PartText>
             </Complication>

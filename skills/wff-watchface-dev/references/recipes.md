@@ -161,12 +161,13 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
             </Text>
         </PartText>
 
-        <!-- 步数 Complication（supportedTypes 必填 + BoundingShape 必填 + DefaultProviderPolicy 设默认源） -->
-        <!-- ⚠️ Complication 内必须有 Part 渲染组件 + [COMPLICATION.*] 数据绑定，空元素真机不渲染（R26） -->
+        <!-- 步数 Complication（supportedTypes 必填 + BoundingShape 局部坐标必填 + DefaultProviderPolicy 设默认源） -->
+        <!-- ⚠️ R26: Complication 内必须有 Part 渲染组件 + [COMPLICATION.*] 数据绑定，空元素真机不渲染 -->
+        <!-- ⚠️ R28: BoundingRoundBox 用 slot 局部坐标（0,0 起），不是全局画布坐标 -->
         <ComplicationSlot x="150" y="320" width="150" height="80"
-                          slotId="0" supportedTypes="SHORT_TEXT"
+                          slotId="0" supportedTypes="SHORT_TEXT EMPTY"
                           isCustomizable="TRUE">
-            <BoundingRoundBox x="150" y="320" width="150" height="80"
+            <BoundingRoundBox x="0" y="0" width="150" height="80"
                               cornerRadius="10" outlinePadding="2"/>
             <DefaultProviderPolicy defaultSystemProvider="STEP_COUNT"
                                    defaultSystemProviderType="SHORT_TEXT"/>
@@ -179,6 +180,13 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
                                 <Parameter expression="[COMPLICATION.TEXT]"/>
                             </Template>
                         </Font>
+                    </Text>
+                </PartText>
+            </Complication>
+            <Complication type="EMPTY">
+                <PartText x="0" y="24" width="150" height="32">
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="20" weight="NORMAL" color="#ff7E93A8">--</Font>
                     </Text>
                 </PartText>
             </Complication>
