@@ -162,6 +162,7 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
         </PartText>
 
         <!-- 步数 Complication（supportedTypes 必填 + BoundingShape 必填 + DefaultProviderPolicy 设默认源） -->
+        <!-- ⚠️ Complication 内必须有 Part 渲染组件 + [COMPLICATION.*] 数据绑定，空元素真机不渲染（R26） -->
         <ComplicationSlot x="150" y="320" width="150" height="80"
                           slotId="0" supportedTypes="SHORT_TEXT"
                           isCustomizable="TRUE">
@@ -169,7 +170,18 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
                               cornerRadius="10" outlinePadding="2"/>
             <DefaultProviderPolicy defaultSystemProvider="STEP_COUNT"
                                    defaultSystemProviderType="SHORT_TEXT"/>
-            <Complication type="SHORT_TEXT"/>
+            <Complication type="SHORT_TEXT">
+                <!-- 局部坐标：0,0 = slot 左上角 -->
+                <PartText x="0" y="0" width="150" height="80">
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="36" weight="BOLD" color="#ff00F5FF">
+                            <Template>%s
+                                <Parameter expression="[COMPLICATION.TEXT]"/>
+                            </Template>
+                        </Font>
+                    </Text>
+                </PartText>
+            </Complication>
             <Variant mode="AMBIENT" target="alpha" value="30"/>
         </ComplicationSlot>
     </Scene>

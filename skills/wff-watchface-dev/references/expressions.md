@@ -131,14 +131,41 @@
 
 ### Complication
 
-| 数据源 | 说明 |
-|--------|------|
-| `[COMPLICATION.<slotId>.TEXT]` | Complication 文本 |
-| `[COMPLICATION.<slotId>.TITLE]` | Complication 标题 |
-| `[COMPLICATION.<slotId>.MONOCHROMATIC_IMAGE]` | Complication 单色图标 |
-| `[COMPLICATION.<slotId>.SMALL_IMAGE]` | Complication 小图标 |
-| `[COMPLICATION.<slotId>.RANGED_VALUE]` | Complication 范围值 |
-| `[COMPLICATION.<slotId>.GOAL_PROGRESS]` | Complication 目标进度 |
+> ⚠️ **只在 `<Complication>` 元素内部可用**（slot 上下文隐含，**不带 slotId**）。
+> 官方写法是 `[COMPLICATION.TEXT]`，不是 `[COMPLICATION.0.TEXT]`。
+> 这不是普通数据源——它由系统 complication provider 动态注入。
+
+| 数据源 | 适用 type | 说明 |
+|--------|------|------|
+| `[COMPLICATION.TEXT]` | SHORT_TEXT / LONG_TEXT | 主文本（如心率值 "72"） |
+| `[COMPLICATION.TITLE]` | SHORT_TEXT / LONG_TEXT | 短标题（如 "bpm"） |
+| `[COMPLICATION.MONOCHROMATIC_IMAGE]` / `[COMPLICATION.MONOCHROMATIC_IMAGE_AMBIENT]` | SHORT_TEXT / LONG_TEXT | 单色图标（可作 Image 的 resource） |
+| `[COMPLICATION.SMALL_IMAGE]` / `[COMPLICATION.SMALL_IMAGE_AMBIENT]` | SMALL_IMAGE | 小图（可作 Image 的 resource） |
+| `[COMPLICATION.IMAGE_STYLE]` | SMALL_IMAGE | 图片样式（PHOTO=1 / ICON=2） |
+| `[COMPLICATION.PHOTO_IMAGE]` | PHOTO_IMAGE | 照片 |
+| `[COMPLICATION.RANGED_VALUE_VALUE]` | RANGED_VALUE | 当前值 |
+| `[COMPLICATION.RANGED_VALUE_MIN]` / `[COMPLICATION.RANGED_VALUE_MAX]` | RANGED_VALUE | 区间上下限 |
+| `[COMPLICATION.RANGED_VALUE_COLORS]` / `[COMPLICATION.RANGED_VALUE_COLORS_INTERPOLATE]` | RANGED_VALUE | 颜色列表 / 是否插值 |
+| `[COMPLICATION.GOAL_PROGRESS_VALUE]` | GOAL_PROGRESS | 当前进度 |
+| `[COMPLICATION.GOAL_PROGRESS_TARGET_VALUE]` | GOAL_PROGRESS | 目标值 |
+| `[COMPLICATION.GOAL_PROGRESS_COLORS]` / `[COMPLICATION.GOAL_PROGRESS_COLORS_INTERPOLATE]` | GOAL_PROGRESS | 颜色列表 / 是否插值 |
+| `[COMPLICATION.WEIGHTED_ELEMENTS_*]` | WEIGHTED_ELEMENTS | 加权元素（权重/颜色/背景色） |
+
+用法示例：
+
+```xml
+<Complication type="SHORT_TEXT">
+    <PartText x="0" y="0" width="150" height="80">
+        <Text align="CENTER">
+            <Font family="SYNC_TO_DEVICE" size="36" weight="BOLD" color="#ff00F5FF">
+                <Template>%s
+                    <Parameter expression="[COMPLICATION.TEXT]"/>
+                </Template>
+            </Font>
+        </Text>
+    </PartText>
+</Complication>
+```
 
 ### 预定义 Metadata
 

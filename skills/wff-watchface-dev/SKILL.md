@@ -19,7 +19,7 @@
 python wff-builder/wff_builder.py init projects/my_watch
 
 # 2. 写 watchface.xml（参考 recipes.md 配方）
-# 3. 验证（16 条规则 + XSD）
+# 3. 验证（18 条规则 + XSD）
 python wff-builder/wff_builder.py validate projects/my_watch
 
 # 4. 构建 APK
@@ -35,7 +35,7 @@ python client/wff_api.py build projects/my_watch
 |------|------|--------|
 | [elements.md](./references/elements.md) | WFF v5 全量元素树 + 属性 | 需要查"某个元素叫什么/有什么属性"时 |
 | [expressions.md](./references/expressions.md) | 数据源 + 运算符 + 函数 | 需要写动态表达式时 |
-| [pitfalls.md](./references/pitfalls.md) | 16 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
+| [pitfalls.md](./references/pitfalls.md) | 18 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
 | [recipes.md](./references/recipes.md) | 3 种典型表盘完整模板 | 开始一个新表盘时 |
 
 ## WFF XML Skeleton
@@ -88,7 +88,7 @@ python client/wff_api.py build projects/my_watch
 
 ### 3. 写 WFF XML
 
-**必读 [pitfalls.md](./references/pitfalls.md) 的 MUST 规则（R01-R24）**
+**必读 [pitfalls.md](./references/pitfalls.md) 的 MUST 规则（R01-R27）**
 
 关键规则速记：
 - 颜色 8 位 ARGB：`#ffRRGGBB`（不是 `#RRGGBB`）
@@ -97,6 +97,9 @@ python client/wff_api.py build projects/my_watch
 - 字体用 `family="SYNC_TO_DEVICE"`（不用 `Roboto`）
 - AMBIENT 模式用 `<Variant>` 控制
 - **形状包住样式**：`<Arc><Stroke/></Arc>`，不是 `<Stroke><Arc/></Stroke>`
+- **Complication 必须写渲染内容**：空 `<Complication/>` 真机渲染为空（R26），
+  内部放 PartText/PartImage + `[COMPLICATION.TEXT]` 等数据绑定
+- 矢量圆角矩形用 `cornerRadiusX/cornerRadiusY`（R27），BoundingRoundBox 才是 `cornerRadius`
 - 列表属性空格分隔：`colors="#ffAABBCC #ff112233"`
 - 布尔枚举大写：`isCustomizable="TRUE"`
 - project.yaml 不写行内注释
@@ -104,7 +107,7 @@ python client/wff_api.py build projects/my_watch
 ### 4. 验证（两级，都要过）
 
 ```bash
-# 初筛：16 条结构规则（快）
+# 初筛：18 条结构规则（快）
 python wff-builder/wff_builder.py validate projects/my_watch
 
 # 终审：官方 XSD 校验（必跑！初筛抓不住 XSD 级错误）
@@ -191,7 +194,7 @@ wff_version: 1              # 1=Wear OS 4, 2+=Wear OS 5+
 ## Version & Updates
 
 - 当前版本：v0.1.0（Phase 4B 开发中）
-- 知识来源：google/watchface XSD v5 + 一期 16 规则真机验证
+- 知识来源：google/watchface XSD v5 + 一期 16 规则真机验证 + BT-03 真机复盘
 - 更新触发：XSD 规范变更 / 平台 API 契约变更 / 盲测反馈
 - 更新记录：[CHANGELOG.md](./CHANGELOG.md)
 - 维护手册：[SKILL_MAINTENANCE.md](./SKILL_MAINTENANCE.md)

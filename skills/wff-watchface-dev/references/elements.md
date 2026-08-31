@@ -265,16 +265,51 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
     <!-- 可选：默认数据源（不写则用户手动选） -->
     <DefaultProviderPolicy defaultSystemProvider="HEART_RATE"
                            defaultSystemProviderType="SHORT_TEXT"/>
-    <!-- 必填②：Complication 渲染定义（至少 1 个；自定义渲染太复杂时可用最小结构占位） -->
-    <Complication type="SHORT_TEXT" .../>
+    <!-- 必填②：Complication 渲染定义（至少 1 个） -->
+    <Complication type="SHORT_TEXT">
+        <!-- ⚠️ 内部必须有 Part 组件，否则真机渲染为空（见 R26） -->
+        <!-- 坐标是 slot 的局部坐标系：0,0 = slot 左上角 -->
+        <PartText x="0" y="0" width="170" height="88">
+            <Text align="CENTER">
+                <Font family="SYNC_TO_DEVICE" size="40" weight="BOLD" color="#ff00E5FF">
+                    <Template>%s
+                        <Parameter expression="[COMPLICATION.TEXT]"/>
+                    </Template>
+                </Font>
+            </Text>
+        </PartText>
+    </Complication>
 </ComplicationSlot>
 ```
+
+> ⚠️ **空 `<Complication type="..."/>` 真机渲染为空**（真机实证 2026-08-31，R26）：
+> XSD 允许空 Complication（choice minOccurs=0），但没有任何 Part 就什么都不画——
+> 16 规则和官方 XSD 校验都抓不住这种"合法但空白"的错。Complication 内部必须放
+> PartText/PartImage/PartDraw，用 **`[COMPLICATION.*]` 特殊数据源**绑定 provider 数据。
+
+**`COMPLICATION.*` 数据源**（仅 Complication 内部可用，按 type 取用）：
+
+| 字段 | 适用类型 | 内容 |
+|---|---|---|
+| `COMPLICATION.TEXT` | SHORT_TEXT/LONG_TEXT | 主文本（如心率值 "72"） |
+| `COMPLICATION.TITLE` | SHORT_TEXT/LONG_TEXT | 短标题（如 "bpm"） |
+| `COMPLICATION.MONOCHROMATIC_IMAGE` / `_AMBIENT` | SHORT_TEXT/LONG_TEXT | 单色图标 |
+| `COMPLICATION.SMALL_IMAGE` / `_AMBIENT`、`COMPLICATION.IMAGE_STYLE` | SMALL_IMAGE | 小图（PHOTO=1/ICON=2） |
+| `COMPLICATION.PHOTO_IMAGE` | PHOTO_IMAGE | 照片 |
+| `COMPLICATION.RANGED_VALUE_VALUE/MIN/MAX/COLORS/COLORS_INTERPOLATE` | RANGED_VALUE | 区间值 |
+| `COMPLICATION.GOAL_PROGRESS_*` | GOAL_PROGRESS | 目标进度（值/目标/颜色） |
+| `COMPLICATION.WEIGHTED_ELEMENTS_*` | WEIGHTED_ELEMENTS | 加权元素 |
+
+用法：文本走 `<Template>%s<Parameter expression="[COMPLICATION.TEXT]"/></Template>`；
+图片走 `<Image resource="[COMPLICATION.SMALL_IMAGE]"/>`。
 
 > ⚠️ **BoundingShape 不可直接实例化**：它是 XSD substitution group 抽象头，
 > 必须写具体成员之一：`<BoundingBox x y width height/>`（直角）、
 > `<BoundingRoundBox x y width height cornerRadius outlinePadding/>`（圆角矩形，最常用）、
 > `<BoundingOval centerX centerY width height/>`、`<BoundingArc .../>`。
 > 成员的几何属性（x/y/width/height 等）**必填**。
+> 注意：BoundingShape 只是点击/碰撞区域，**不渲染任何视觉内容**——边框底板要自己在
+> Complication 里用 PartDraw 画。
 
 > ⚠️ **Complication 元素只有 `@type` 一个属性**。`defaultProvider`/`primaryDataStyle`/
 > `primaryDataSource` 等属性在 XSD 中不存在——默认数据源语义属于
@@ -376,7 +411,7 @@ DefaultProvider：`APP_SHORTCUT` `DATE` `DAY_OF_WEEK` `FAVORITE_CONTACT` `NEXT_E
 | 时钟 | AnalogClock, DigitalClock, HourHand, MinuteHand, SecondHand, TimeText |
 | 文本 | PartText, Text, Text.DECIMAL, Text.CURRENT_DATE, Template, Parameter, Font |
 | 图片 | PartImage, Image, AnimatedImage, ImageFilter |
-| 绘制 | PartDraw, Stroke, Fill, Arc, Circle, Ellipse, Line, Rectangle, RoundRectangle, Path |
+| 绘制 | PartDraw, Stroke, Fill, Arc, Ellipse, Line, Rectangle, RoundRectangle(cornerRadiusX/Y) |
 | 渐变 | LinearGradient, RadialGradient, SweepGradient |
 | 变体 | Variant |
 | 条件 | Condition, Compare, Default |

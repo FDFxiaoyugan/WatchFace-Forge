@@ -291,6 +291,45 @@ def _check_rule_16(xml_text: str):
     return True, "OK"
 
 
+def _strip_xml_comments(xml_text: str) -> str:
+    """剥离 XML 注释，避免注释中的示例文字误触发规则"""
+    return re.sub(r'<!--.*?-->', '', xml_text, flags=re.DOTALL)
+
+
+def _check_rule_26(xml_text: str):
+    """R26: 空 Complication 真机渲染为空（BT-03 真机实证 2026-08-31）
+
+    <Complication type="..."/> 不含 Part 组件时，XSD 合法但设备上什么都不画。
+    必须内部放 PartText/PartImage/PartDraw + [COMPLICATION.*] 数据绑定。
+    """
+    xml_text = _strip_xml_comments(xml_text)
+    # 自闭合或开闭标签之间无 Part 元素
+    for m in re.finditer(r'<Complication\b[^>]*?/>', xml_text):
+        return False, f"空 <Complication .../> 真机渲染为空 (行内无渲染组件): {m.group(0)[:80]}"
+    for m in re.finditer(r'<Complication\b[^>]*>(.*?)</Complication>', xml_text, re.DOTALL):
+        inner = m.group(1)
+        if '<Part' not in inner and '<Group' not in inner and '<Condition' not in inner:
+            return False, "Complication 内无 PartText/PartImage/PartDraw 渲染组件, 真机渲染为空"
+    # ComplicationSlot 存在时应有 [COMPLICATION.*] 数据绑定
+    if "<ComplicationSlot" in xml_text and "[COMPLICATION." not in xml_text:
+        return False, "检测到 ComplicationSlot 但未发现 [COMPLICATION.*] 数据绑定表达式"
+    return True, "OK"
+
+
+def _check_rule_27(xml_text: str):
+    """R27: 矢量 RoundRectangle 用 cornerRadiusX/cornerRadiusY（真机实证 2026-08-31）
+
+    单一 cornerRadius 是 BoundingRoundBox 的属性；矢量 <RoundRectangle> 只接受
+    cornerRadiusX + cornerRadiusY（均必填）。
+    """
+    xml_text = _strip_xml_comments(xml_text)
+    for m in re.finditer(r'<RoundRectangle\b[^>]*>', xml_text):
+        tag = m.group(0)
+        if 'cornerRadius=' in tag or 'cornerRadiusX' not in tag or 'cornerRadiusY' not in tag:
+            return False, f"矢量 RoundRectangle 需 cornerRadiusX + cornerRadiusY (无单一 cornerRadius): {tag[:80]}"
+    return True, "OK"
+
+
 # 规则注册表
 WFF_RULES = [
     WFFRule("R01", "error", _check_rule_01,
@@ -338,6 +377,14 @@ WFF_RULES = [
         "数字时间用 DigitalClock+TimeText 而非 PartText+Template"),
     WFFRule("R16", "error", _check_rule_16,
         "WFF 不需要 WatchFaceService 相关声明"),
+    WFFRule("R26", "error", _check_rule_26,
+        "空 Complication 真机渲染为空; 内部放 PartText/PartImage + [COMPLICATION.*] 绑定",
+        {"bad": '<Complication type="SHORT_TEXT"/>',
+         "good": '<Complication type="SHORT_TEXT"><PartText ...><Template>%s<Parameter expression="[COMPLICATION.TEXT]"/></Template>...</PartText></Complication>'}),
+    WFFRule("R27", "error", _check_rule_27,
+        "矢量 RoundRectangle 需 cornerRadiusX + cornerRadiusY",
+        {"bad": '<RoundRectangle ... cornerRadius="14"/>',
+         "good": '<RoundRectangle ... cornerRadiusX="14" cornerRadiusY="14"/>'}),
 ]
 
 
@@ -868,7 +915,7 @@ def main():
         failures = validate_watchface_xml(wf_text, verbose=True)
         errors = [f for f in failures if f["severity"] == "error"]
         warnings = [f for f in failures if f["severity"] == "warn"]
-        print(f"\nSummary: {16 - len(failures)}/16 passed, {len(errors)} errors, {len(warnings)} warnings")
+        print(f"\nSummary: {len(WFF_RULES) - len(failures)}/{len(WFF_RULES)} passed, {len(errors)} errors, {len(warnings)} warnings")
         if errors:
             sys.exit(1)
     elif cmd == "build":

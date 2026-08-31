@@ -1,6 +1,6 @@
 # WFF 踩坑大全
 
-> 一期 16 条规则（2026-08-15 真机验证）+ XSD 对比发现的差异。
+> 一期 16 条规则（2026-08-15 真机验证）+ 盲测/真机复盘扩充至 27 条（R17-R27）。
 > **每条规则都是用真机安装失败换来的。写 WFF XML 前必读。**
 
 ---
@@ -204,8 +204,8 @@ XSD `timeFormatType` pattern 只匹配小写组合（`h`/`hh`/`m`/`mm`/`s`/`ss`�
 
 ### R22: 16 规则 validate ≠ XSD 合法，官方校验才是终审（盲测 BT-03 实证）
 
-wff_builder 16 规则抓不住 XSD 级错误（嵌套方向/枚举值/pattern 全漏）。
-**交付前必须跑官方 validator**（见 SKILL.md 工作流第 3 步），16 规则只当初筛。
+wff_builder 规则抓不住 XSD 级错误（嵌套方向/枚举值/pattern 全漏）。
+**交付前必须跑官方 validator**（见 SKILL.md 工作流第 3 步），内置规则只当初筛。
 
 ### R23: project.yaml 不要写行内注释
 
@@ -221,6 +221,24 @@ HourHand/MinuteHand/SecondHand 的 `resource` 必填（指向 res/drawable 图�
 只有 `tintColor`（染色）没有 `color`。纯矢量指针不可行——用 Pillow 生成针形 PNG
 （细长矩形、透明底、指向 12 点）。秒针可选 `<Sweep frequency="2|5|10|15"/>`
 平滑扫秒或 `<Tick strength duration/>` 跳动动画。
+
+### R26: 空 `<Complication/>` 合法但真机渲染为空（真机实证 2026-08-31，BT-03 复盘）
+
+XSD 允许 `<Complication type="SHORT_TEXT"/>` 空元素（choice minOccurs=0），官方
+validator 也放行——但没有任何 Part 组件就**什么都不画**。三级验证（16 规则 +
+XSD + build）全部抓不住这种"合法但空白"。正确写法：
+
+- Complication 内放 PartText/PartImage/PartDraw（坐标为 slot 局部系，0,0=slot 左上角）
+- provider 数据用特殊数据源绑定：`[COMPLICATION.TEXT]` `[COMPLICATION.TITLE]`
+  `[COMPLICATION.MONOCHROMATIC_IMAGE]` 等（完整表见 elements.md）
+- BoundingShape 只是点击区域，不渲染视觉内容；边框底板要自己用 PartDraw 画
+- 文本绑定官方写法：`<Template>%s<Parameter expression="[COMPLICATION.TEXT]"/></Template>`
+
+### R27: 矢量 RoundRectangle 用 cornerRadiusX/cornerRadiusY（真机实证 2026-08-31）
+
+`<RoundRectangle cornerRadiusX="14" cornerRadiusY="14"/>` 两属性**必填**；
+单一 `cornerRadius` 是 BoundingRoundBox（complication 边界）的属性，矢量圆角矩形
+没有——两处易混。
 
 ---
 
