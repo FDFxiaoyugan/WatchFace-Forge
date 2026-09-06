@@ -78,17 +78,20 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
             <Variant mode="AMBIENT" target="alpha" value="40"/>
         </PartImage>
 
-        <!-- 模拟时钟（三针必须 resource 引用图片，无 color 属性；tintColor 染色可选） -->
+        <!-- 模拟时钟（三针必须 resource 引用图片，无 color 属性；tintColor 染色可选）
+             📐 旋转中心 = (x+pivotX·w, y+pivotY·h) 必须精确等于圆心 (225,225)
+             （盲测 Round 2 修正 2026-09-06：旧配方坐标反推旋转中心在 (225,300)，错误） -->
         <AnalogClock x="0" y="0" width="450" height="450">
-            <!-- 时针 -->
-            <HourHand resource="hand_hour" x="215" y="100" width="20" height="200"
+            <!-- 时针：中心 (214+11, 110+115) = (225,225) ✓ -->
+            <HourHand resource="hand_hour" x="214" y="110" width="22" height="115"
                       pivotX="0.5" pivotY="1.0" tintColor="#ffffffff"/>
-            <!-- 分针 -->
-            <MinuteHand resource="hand_minute" x="218" y="60" width="14" height="240"
-                        pivotX="0.5" pivotY="1.0" tintColor="#ff00F5FF"/>
-            <!-- 秒针（10Hz 平滑扫秒；AMBIENT 隐藏） -->
-            <SecondHand resource="hand_second" x="221" y="40" width="8" height="280"
-                        pivotX="0.5" pivotY="1.0" tintColor="#ffFF6B6B" alpha="255">
+            <!-- 分针：中心 (217+8, 60+165) = (225,225) ✓ -->
+            <MinuteHand resource="hand_minute" x="217" y="60" width="16" height="165"
+                        pivotX="0.5" pivotY="1.0" tintColor="#ffededf2"/>
+            <!-- 秒针：细+红，带配重尾部（图高 235 = 针长 195 + 尾 40，
+                 pivotY = 195/235 ≈ 0.8298）；10Hz 平滑扫秒；AMBIENT 隐藏 -->
+            <SecondHand resource="hand_second" x="221" y="30" width="8" height="235"
+                        pivotX="0.5" pivotY="0.8298" tintColor="#ffff3b30" alpha="255">
                 <Variant mode="AMBIENT" target="alpha" value="0"/>
                 <Sweep frequency="10"/>
             </SecondHand>
@@ -107,6 +110,16 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
 
 > Hand 的 `pivotX/pivotY` 是旋转中心（归一化 0~1，相对针自身包围盒）。
 > 12 点方向竖直针的 pivot 在底端中心：`pivotX="0.5" pivotY="1.0"`。
+>
+> 📐 **旋转中心必须精确落在表盘圆心**：`(x + pivotX·w, y + pivotY·h) = (圆心x, 圆心y)`。
+> 12 点竖直针：`x = 圆心x − w/2`，`y = 圆心y − 针长`。
+> 带配重尾部（尾悬在旋转中心下方）：`pivotY = 针长 / 图片总高`。
+>
+> ⚠️ **指针 PNG 左右 alpha 必须对称（R31）**：PIL `ImageDraw` 在偶数宽度画布上
+> inclusive 右边界导致抗锯齿不对称（+0.16px 质心偏移），细秒针肉眼可见错位。
+> 修复：奇数宽度画布或精确光栅化（半开区间）。交付前校验：
+> `alpha 质心 x == width/2`（`sum(x·a)/sum(a)`，逐像素算）。
+> 指针素材生成脚本参考 BT-02 交付（4× 超采样 + 扫描线精确光栅化）。
 
 ---
 

@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<WatchFace width="450" height="450">
+    <Metadata key="CLOCK_TYPE" value="ANALOG"/>
+    <Metadata key="PREVIEW_TIME" value="10:08:32"/>
+    <Scene backgroundColor="#ff0a0d12">
+        <!-- 表盘背景：边缘圆环装饰 + 60 刻度（透明底 PNG，白/银灰，随 AMBIENT 变暗） -->
+        <PartImage x="0" y="0" width="450" height="450">
+            <Image resource="dial_bg"/>
+            <Variant mode="AMBIENT" target="alpha" value="40"/>
+        </PartImage>
+
+        <!-- 模拟时钟：时针 / 分针 / 红色细秒针（三针为图片资源，tintColor 染色） -->
+        <AnalogClock x="0" y="0" width="450" height="450">
+            <!-- 时针：白色，粗短，pivot 底端中心对准圆心 (225,225) -->
+            <HourHand resource="hand_hour" x="214" y="110" width="22" height="115"
+                      pivotX="0.5" pivotY="1.0" tintColor="#fff2f2f6" alpha="255">
+                <Variant mode="AMBIENT" target="alpha" value="35"/>
+            </HourHand>
+            <!-- 分针：白色，细长，pivot 底端中心对准圆心 -->
+            <MinuteHand resource="hand_minute" x="217" y="60" width="16" height="165"
+                        pivotX="0.5" pivotY="1.0" tintColor="#ffededf2" alpha="255">
+                <Variant mode="AMBIENT" target="alpha" value="35"/>
+            </MinuteHand>
+            <!-- 秒针：细 + 红色，与时针/分针区分；AMBIENT 隐藏；10Hz 平滑扫秒 -->
+            <SecondHand resource="hand_second" x="221" y="30" width="8" height="235"
+                        pivotX="0.5" pivotY="0.8298" tintColor="#ffff3b30" alpha="255">
+                <Variant mode="AMBIENT" target="alpha" value="0"/>
+                <Sweep frequency="10"/>
+            </SecondHand>
+        </AnalogClock>
+
+        <!-- 中心圆点：白色盖帽 + 红色圆心（呼应秒针） -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Ellipse x="214" y="214" width="22" height="22">
+                <Fill color="#ffededf2"/>
+            </Ellipse>
+            <Ellipse x="221" y="221" width="8" height="8">
+                <Fill color="#ffff3b30"/>
+            </Ellipse>
+            <Variant mode="AMBIENT" target="alpha" value="40"/>
+        </PartDraw>
+    </Scene>
+</WatchFace>

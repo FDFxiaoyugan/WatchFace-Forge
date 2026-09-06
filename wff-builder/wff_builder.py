@@ -10,7 +10,8 @@ WFF Builder — Watch Face Format APK 构建引擎 (Agent-Friendly)
 开发者只需提供:
     project.yaml    — 项目配置
     watchface.xml   — 表盘设计（WFF XML）
-    preview.png     — 鐐宝预览图（384x384 推荐）
+    preview.png     — 表盘预览图（尺寸=画布尺寸，如 450×450）
+
 
 框架内置 WFF 规则校验:
     - watchface.xml 语法检查（16 条规则，覆盖所有已踩过的坑）
@@ -483,18 +484,41 @@ class WFFBuilder:
         import re
         config = {}
         text = config_path.read_text()
+        # 列表支持（真机盲测 Round 2 反馈 2026-09-06）：extra_drawables 等列表项
+        # 此前被逐行 key:value 正则静默忽略 → drawable 不进包
+        current_list_key = None
         for line in text.splitlines():
+            raw = line
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            m = re.match(r"^(\w+):\s*(.+)$", line)
-            if m:
-                key, val = m.group(1), m.group(2).strip()
-                if val.startswith('"') and val.endswith('"'):
-                    val = val[1:-1]
-                elif val.isdigit():
-                    val = int(val)
-                config[key] = val
+            # 列表项 "  - item"
+            lm = re.match(r"^-\s+(.+)$", line)
+            if lm and current_list_key:
+                item = lm.group(1).strip().strip('"')
+                if isinstance(config.get(current_list_key), list):
+                    config[current_list_key].append(item)
+                continue
+            m = re.match(r"^(\w+):\s*(.*)$", line)
+            if not m:
+                continue
+            key, val = m.group(1), m.group(2).strip()
+            if not val:
+                # 可能是列表头（下一行起 "  - item"）
+                current_list_key = key
+                config[key] = []
+                continue
+            current_list_key = None
+            # 行内列表 [a, b] 或 key: - a（罕见单行）
+            if val.startswith("[") and val.endswith("]"):
+                config[key] = [v.strip().strip('"') for v in val[1:-1].split(",") if v.strip()]
+                continue
+            if val.startswith('"') and val.endswith('"'):
+                val = val[1:-1]
+            elif val.isdigit():
+                val = int(val)
+            config[key] = val
+        # 清掉误判为列表的空标量（例如空行注释块）
         self.config = config
 
         wff_ver = config.get("wff_version", 1)
@@ -578,6 +602,17 @@ class WFFBuilder:
                     dst = self.build_dir / "res" / "drawable" / src.name
                     shutil.copy2(src, dst)
                     self.log(f"  Copied: res/drawable/{src.name}")
+
+        # 项目级 res/drawable/*.png 自动打包（盲测 Round 2 反馈 2026-09-06）：
+        # 与 res/values/strings.xml 自动合并同约定——agent 直觉是把素材放
+        # project/res/drawable/，无需在 project.yaml 里重复列清单
+        project_drawables = self.project_dir / "res" / "drawable"
+        if project_drawables.is_dir():
+            for src in sorted(project_drawables.glob("*.png")):
+                dst = self.build_dir / "res" / "drawable" / src.name
+                if not dst.exists():
+                    shutil.copy2(src, dst)
+                    self.log(f"  Auto-packed: res/drawable/{src.name}")
 
         # Copy extra fonts
         for font in self.config.get("extra_fonts", []):
@@ -951,7 +986,7 @@ class WFFBuilder:
         print(f"Initialized project in {pdir}/")
         print("  project.yaml   — edit package name, version, etc.")
         print("  watchface.xml  — edit your watch face design")
-        print("  preview.png    — add a 384x384 preview image")
+        print("  preview.png    — add a preview image (same size as canvas, e.g. 450x450)")
         print(f"\nBuild with: python wff_builder.py build {pdir}")
 
 

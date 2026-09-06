@@ -3,51 +3,177 @@
   "BT-01": {
     "title": "极简数字表盘",
     "static_checks": [
-      {"id": "A1", "desc": "数字时间显示（DigitalClock 或 TimeText）", "pattern": "<DigitalClock|<TimeText", "weight": 2},
-      {"id": "A2", "desc": "日期数据源（[MONTH]/[DAY] 或 CURRENT_DATE）", "pattern": "\\[(MONTH|DAY|DAY_Z|MONTH_S|DAY_OF_WEEK_S)\\]|CURRENT_DATE|MM|dd", "weight": 2},
-      {"id": "A3", "desc": "电池百分比数据源", "pattern": "\\[BATTERY_PERCENT\\]", "weight": 2},
-      {"id": "A4", "desc": "青色系主色（cyan #00xxxx 系）", "pattern": "#ff00[0-9A-Fa-f]{4}|cyan|Cyan", "weight": 1},
-      {"id": "A5", "desc": "深色背景", "pattern": "backgroundColor=\"#[fF][fF]0[0-8]", "weight": 1}
+      {
+        "id": "A1",
+        "desc": "数字时间显示（DigitalClock 或 TimeText）",
+        "pattern": "<DigitalClock|<TimeText",
+        "weight": 2
+      },
+      {
+        "id": "A2",
+        "desc": "日期数据源（[MONTH]/[DAY] 或 CURRENT_DATE）",
+        "pattern": "\\[(MONTH|DAY|DAY_Z|MONTH_S|DAY_OF_WEEK_S)\\]|CURRENT_DATE|MM|dd",
+        "weight": 2
+      },
+      {
+        "id": "A3",
+        "desc": "电池百分比数据源",
+        "pattern": "\\[BATTERY_PERCENT\\]",
+        "weight": 2
+      },
+      {
+        "id": "A4",
+        "desc": "青色系主色（cyan #00xxxx 系）",
+        "pattern": "#ff00[0-9A-Fa-f]{4}|cyan|Cyan",
+        "weight": 1
+      },
+      {
+        "id": "A5",
+        "desc": "深色背景",
+        "pattern": "backgroundColor=\"#[fF][fF]0[0-8]",
+        "weight": 1
+      }
     ]
   },
   "BT-02": {
     "title": "三针模拟表盘",
     "static_checks": [
-      {"id": "A1", "desc": "AnalogClock 元素", "pattern": "<AnalogClock", "weight": 2},
-      {"id": "A2", "desc": "时针 HourHand", "pattern": "<HourHand", "weight": 2},
-      {"id": "A3", "desc": "分针 MinuteHand", "pattern": "<MinuteHand", "weight": 2},
-      {"id": "A4", "desc": "秒针 SecondHand", "pattern": "<SecondHand", "weight": 2},
-      {"id": "A5", "desc": "秒针红色系", "pattern": "<SecondHand[^>]*[^_][Cc]olor=\"#ff(FF)?[0-5]0[0-9A-Fa-f]{2}\"|<SecondHand[\\s\\S]{0,200}?#[fF][fF](FF)?[0-4][0-9A-Fa-f]([0-9A-Fa-f])", "weight": 1},
-      {"id": "A6", "desc": "表圈装饰（Arc/Circle/Stroke）", "pattern": "<Arc|<Circle|<Stroke", "weight": 1}
+      {
+        "id": "A1",
+        "desc": "AnalogClock 元素",
+        "pattern": "<AnalogClock",
+        "weight": 2
+      },
+      {
+        "id": "A2",
+        "desc": "时针 HourHand",
+        "pattern": "<HourHand",
+        "weight": 2
+      },
+      {
+        "id": "A3",
+        "desc": "分针 MinuteHand",
+        "pattern": "<MinuteHand",
+        "weight": 2
+      },
+      {
+        "id": "A4",
+        "desc": "秒针 SecondHand",
+        "pattern": "<SecondHand",
+        "weight": 2
+      },
+      {
+        "id": "A5",
+        "desc": "秒针红色系（color/tintColor, R≥C0 G/B≤7F）",
+        "pattern": "<SecondHand[^>]{0,400}?([tT]int[Cc]olor|[Cc]olor)=\"#[fF][fF][cC-fF][0-9A-Fa-f][0-7][0-9A-Fa-f][0-7][0-9A-Fa-f]\"",
+        "weight": 1
+      },
+      {
+        "id": "A6",
+        "desc": "表圈装饰（矢量 Arc/Circle/Stroke 或光栅 dial 背景图）",
+        "pattern": "<Arc\\b|<Circle\\b|<Stroke\\b|<PartImage[\\s\\S]{0,250}?<Image[^>]{0,150}?resource=\"[a-zA-Z_0-9]*dial[a-zA-Z_0-9]*\"",
+        "weight": 1
+      }
     ]
   },
   "BT-03": {
     "title": "混合表盘 + 心率 Complication",
     "static_checks": [
-      {"id": "A1", "desc": "数字时间显示", "pattern": "<DigitalClock|<TimeText", "weight": 2},
-      {"id": "A2", "desc": "Complication 插槽", "pattern": "<ComplicationSlot", "weight": 3},
-      {"id": "A3", "desc": "插槽类型/心率相关配置", "pattern": "type=\"[^\"]*\"|HEART_RATE|heart", "weight": 1},
-      {"id": "A4", "desc": "渐变背景（LinearGradient/RadialGradient/SweepGradient）", "pattern": "<LinearGradient|<RadialGradient|<SweepGradient|gradient", "weight": 1}
+      {
+        "id": "A1",
+        "desc": "数字时间显示",
+        "pattern": "<DigitalClock|<TimeText",
+        "weight": 2
+      },
+      {
+        "id": "A2",
+        "desc": "Complication 插槽",
+        "pattern": "<ComplicationSlot",
+        "weight": 3
+      },
+      {
+        "id": "A3",
+        "desc": "插槽类型/心率相关配置",
+        "pattern": "type=\"[^\"]*\"|HEART_RATE|heart",
+        "weight": 1
+      },
+      {
+        "id": "A4",
+        "desc": "渐变背景（LinearGradient/RadialGradient/SweepGradient）",
+        "pattern": "<LinearGradient|<RadialGradient|<SweepGradient|gradient",
+        "weight": 1
+      }
     ]
   },
   "BT-04": {
     "title": "低电量条件变色",
     "static_checks": [
-      {"id": "A1", "desc": "Condition 条件元素", "pattern": "<Condition", "weight": 3},
-      {"id": "A2", "desc": "条件引用电池数据源", "pattern": "<Condition[^>]*expression=\"[^\"]*BATTERY_PERCENT", "weight": 3},
-      {"id": "A3", "desc": "低电量阈值 20", "pattern": "BATTERY_PERCENT[^\"<]*<\\s*20|<\\s*20[^\"<]*BATTERY_PERCENT", "weight": 2},
-      {"id": "A4", "desc": "红色分支存在", "pattern": "#ff(FF)?[0-4][0-9A-Fa-f]{2}[0-9A-Fa-f]|#[fF][fF](FF)?[0-4][0-9A-Fa-f]([0-9A-Fa-f])", "weight": 1},
-      {"id": "A5", "desc": "电池百分比显示", "pattern": "\\[BATTERY_PERCENT\\]", "weight": 2}
+      {
+        "id": "A1",
+        "desc": "Condition 条件元素",
+        "pattern": "<Condition",
+        "weight": 3
+      },
+      {
+        "id": "A2",
+        "desc": "条件引用电池数据源",
+        "pattern": "<Condition[^>]*expression=\"[^\"]*BATTERY_PERCENT",
+        "weight": 3
+      },
+      {
+        "id": "A3",
+        "desc": "低电量阈值 20",
+        "pattern": "BATTERY_PERCENT[^\"<]*<\\s*20|<\\s*20[^\"<]*BATTERY_PERCENT",
+        "weight": 2
+      },
+      {
+        "id": "A4",
+        "desc": "红色分支存在",
+        "pattern": "#ff(FF)?[0-4][0-9A-Fa-f]{2}[0-9A-Fa-f]|#[fF][fF](FF)?[0-4][0-9A-Fa-f]([0-9A-Fa-f])",
+        "weight": 1
+      },
+      {
+        "id": "A5",
+        "desc": "电池百分比显示",
+        "pattern": "\\[BATTERY_PERCENT\\]",
+        "weight": 2
+      }
     ]
   },
   "BT-05": {
     "title": "Ambient 独立场景",
     "static_checks": [
-      {"id": "A1", "desc": "数字或模拟时间显示", "pattern": "<DigitalClock|<TimeText|<AnalogClock", "weight": 2},
-      {"id": "A2", "desc": "日期数据源", "pattern": "\\[(MONTH|DAY|DAY_Z|MONTH_S|DAY_OF_WEEK_S)\\]|CURRENT_DATE|MM|dd", "weight": 1},
-      {"id": "A3", "desc": "步数数据源", "pattern": "\\[STEP_COUNT\\]", "weight": 1},
-      {"id": "A4", "desc": "AMBIENT Variant ≥2 个（多个元素独立 ambient 处理）", "pattern": "<Variant[^>]*mode=\"AMBIENT\"", "weight": 3, "min_count": 2},
-      {"id": "A5", "desc": "存在 hide 隐藏处理（ambient 隐藏内容）", "pattern": "target=\"(alpha|opacity)\"[^>]*value=\"0\"|HIDE", "weight": 2}
+      {
+        "id": "A1",
+        "desc": "数字或模拟时间显示",
+        "pattern": "<DigitalClock|<TimeText|<AnalogClock",
+        "weight": 2
+      },
+      {
+        "id": "A2",
+        "desc": "日期数据源",
+        "pattern": "\\[(MONTH|DAY|DAY_Z|MONTH_S|DAY_OF_WEEK_S)\\]|CURRENT_DATE|MM|dd",
+        "weight": 1
+      },
+      {
+        "id": "A3",
+        "desc": "步数数据源",
+        "pattern": "\\[STEP_COUNT\\]",
+        "weight": 1
+      },
+      {
+        "id": "A4",
+        "desc": "AMBIENT Variant ≥2 个（多个元素独立 ambient 处理）",
+        "pattern": "<Variant[^>]*mode=\"AMBIENT\"",
+        "weight": 3,
+        "min_count": 2
+      },
+      {
+        "id": "A5",
+        "desc": "存在 hide 隐藏处理（ambient 隐藏内容）",
+        "pattern": "target=\"(alpha|opacity)\"[^>]*value=\"0\"|HIDE",
+        "weight": 2
+      }
     ]
   },
   "common": {

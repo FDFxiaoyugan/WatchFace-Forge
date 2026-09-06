@@ -159,15 +159,24 @@ ComplicationSlot `type="RANGED_VALUE"`（系统渲染），不要试图给 Arc �
 > 属性**必填**（指向 drawable），**没有 `color` 属性**（只有 `tintColor` 给图片染色）。
 > 纯矢量画指针不可行——针的 PNG 需自备（Pillow 生成：细长矩形+透明底，指向 12 点方向）。
 
+> 📐 **旋转中心公式（盲测 Round 2 修正 2026-09-06）**：旋转中心 =
+> `(x + pivotX·width, y + pivotY·height)`，**必须精确等于表盘圆心**（如 450 画布
+> = (225,225)）。针放错位置时指针绕非圆心转，真机上三针不交汇于一点。
+> 12 点竖直针：`x = 圆心x − 宽/2`，`y = 圆心y − 针长`。
+
 ```xml
 <AnalogClock x="0" y="0" width="450" height="450">
-    <HourHand resource="hand_hour" x="215" y="100" width="20" height="200"
+    <!-- 旋转中心 (214+11, 110+115)=(225,225) = 圆心 ✓ -->
+    <HourHand resource="hand_hour" x="214" y="110" width="22" height="115"
              pivotX="0.5" pivotY="1.0"/>
-    <MinuteHand resource="hand_minute" x="218" y="60" width="14" height="240"
+    <!-- 旋转中心 (217+8, 60+165)=(225,225) ✓ -->
+    <MinuteHand resource="hand_minute" x="217" y="60" width="16" height="165"
                 pivotX="0.5" pivotY="1.0"/>
-    <!-- 秒针：可加 Sweep（平滑扫秒，频率 2/5/10/15Hz）或 Tick（跳动动画） -->
-    <SecondHand resource="hand_second" x="221" y="40" width="8" height="280"
-                pivotX="0.5" pivotY="1.0" alpha="255">
+    <!-- 秒针（细+红；Sweep 平滑扫秒；AMBIENT 隐藏）。
+         带配重尾部：图高 235 = 针长 195 + 尾部 40，pivotY = 195/235 ≈ 0.8298
+         （pivot 不在图片边缘时按占比推算），旋转中心仍精确 (225,225) -->
+    <SecondHand resource="hand_second" x="221" y="30" width="8" height="235"
+                pivotX="0.5" pivotY="0.8298" tintColor="#ffff3b30" alpha="255">
         <Variant mode="AMBIENT" target="alpha" value="0"/>
         <Sweep frequency="10"/>
     </SecondHand>

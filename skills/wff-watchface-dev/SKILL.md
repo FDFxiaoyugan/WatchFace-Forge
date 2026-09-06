@@ -5,6 +5,14 @@
 
 ---
 
+
+## 环境前置（宿主机一次性）
+
+- **Java 17+**：官方 wff-validator.jar 需要（`java -version` 检查；OpenJDK 21 可用）
+- **Android SDK**：`ANDROID_HOME` 下需 `build-tools/34.0.0/`（aapt2/apksigner）
+  **和 `platforms/android-34/android.jar`**（aapt2 link 的 `-I` 参数）——缺
+  android.jar 时 link 失败，装 platform 即可
+
 ## When to Use
 
 - 用户想"做一个 Wear OS 表盘"
@@ -105,6 +113,10 @@ python client/wff_api.py build projects/my_watch
 - Template 至少一个 Parameter，静态文本直接写 `<Font>text</Font>`（R29）
 - **ComplicationSlot 的 `displayName` 用 `@string/` 资源引用**（R30）：字符串放项目
   `res/values/strings.xml`（builder 自动合并）；slotId 从 1 开始
+- **指针三坐标公式**（R31 前置）：旋转中心 `(x+pivotX·w, y+pivotY·h)` 必须等于圆心；
+  12 点竖直针 `y=圆心y−针长`；带配重尾 `pivotY=针长/图高`
+- **指针 PNG 左右 alpha 对称**（R31）：偶数宽 PIL 细线抗锯齿不对称 → 秒针错位；
+  奇数宽画布或精确光栅化；交付前校验质心 `== width/2`
 - 列表属性空格分隔：`colors="#ffAABBCC #ff112233"`
 - 布尔枚举大写：`isCustomizable="TRUE"`
 - project.yaml 不写行内注释
