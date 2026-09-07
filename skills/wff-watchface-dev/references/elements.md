@@ -230,16 +230,36 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
 
 ### `<Condition>` — 条件渲染
 
+> ⚠️ **Condition 元素本身没有 `expression` 属性**（R32，官方 XSD 实证 2026-09-07）。
+> 条件算式定义在子元素 `<Expressions>/<Expression name="...">` 的**文本内容**里，
+> `<Compare expression="...">` 通过 name **引用**（XSD keyref 强制）。
+> 比较运算符只有 `>` `>=` `==`（**没有 `<` `<=`**——`<` 在 XML 里非法，官方设计
+> 就是用反转写法）：`[BATTERY_PERCENT] < 20` 必须写成 `20 > [BATTERY_PERCENT]`。
+> 首个命中的 Compare 渲染，其余不渲染；都没命中走 `<Default>`（可选）。
+
 ```xml
-<Condition expression="[BATTERY_PERCENT] < 20">
-    <Compare expression="1">
-        <PartText>...</PartText>
+<Condition>
+    <Expressions>
+        <Expression name="battery_low">20 > [BATTERY_PERCENT]</Expression>
+    </Expressions>
+    <Compare expression="battery_low">
+        <PartText x="45" y="300" width="360" height="48">
+            <Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="28" color="#ffFF4444">[BATTERY_PERCENT]% LOW</Font></Text>
+        </PartText>
     </Compare>
     <Default>
-        <PartText>...</PartText>
+        <PartText x="45" y="300" width="360" height="48">
+            <Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="28" color="#ffededf2">[BATTERY_PERCENT]%</Font></Text>
+        </PartText>
     </Default>
 </Condition>
 ```
+
+| 子元素 | 说明 |
+|--------|------|
+| `<Expressions>` | **必填**，≥1 个 `<Expression name="...">`，算式写在元素文本 |
+| `<Compare expression="引用名">` | **必填** ≥1 个；expression 必须引用 Expressions 里定义的 name |
+| `<Default>` | 可选；所有 Compare 都不命中时渲染 |
 
 ### `<Transform>` — 动态变换
 

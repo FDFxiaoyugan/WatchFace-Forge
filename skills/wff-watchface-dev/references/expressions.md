@@ -186,10 +186,10 @@
 | `~` | 按位取反 | |
 | `!` | 逻辑非 | `![BATTERY_IS_LOW]` |
 | `\|` | 按位或 | |
-| `\|\|` | 逻辑或 | `[BATTERY_IS_LOW] \|\| [BATTERY_PERCENT] < 15` |
+| `\|\|` | 逻辑或 | `[BATTERY_IS_LOW] \|\| 15 > [BATTERY_PERCENT]` |
 | `&` | 按位与 | |
 | `&&` | 逻辑与 | `[WEATHER.IS_AVAILABLE] && [WEATHER.IS_DAY]` |
-| `>` `>=` `<` `<=` | 比较 | `[BATTERY_PERCENT] >= 80` |
+| `>` `>=` `==` | 比较 | `80 > [BATTERY_PERCENT]`（**无 `<` `<=`**，见 R32 警示） |
 | `==` | 等于 | `[AMPM_STATE] == 1` |
 | `? :` | 三元条件 | `[AMPM_STATE] == 1 ? "PM" : "AM"` |
 | `(` `)` | 分组 | `([HOUR_0_23] * 15) + ([MINUTE] / 4)` |
@@ -224,7 +224,7 @@
 表达式可用于以下属性（类型为 `arithmeticExpressionType` 的属性）：
 
 - `Transform/@value` — 动态变换（位置/旋转/缩放/透明度）
-- `Condition/@expression` — 条件渲染
+- `Condition/Expressions/Expression` — 条件渲染（算式在 Expression 文本，Compare 按 name 引用）
 - `Compare/@expression` — 条件分支
 - `Parameter/@expression` — 模板参数
 - `Variant/@value` — 变体值
@@ -251,13 +251,21 @@
 <!-- 注意：矢量 Arc 的 startAngle/endAngle 只支持静态值，
      动态进度环用 ComplicationSlot type="RANGED_VALUE"（系统渲染） -->
 
-<!-- 低电量变红 -->
-<Condition expression="[BATTERY_PERCENT] < 20">
-    <Compare expression="1">
-        <PartText><Text><Font color="#ffFF4444">低电量</Font></Text></PartText>
+<!-- 低电量变红：算式定义在 Expression 文本，Compare 按 name 引用；
+     "低于 20" 必须反转写成 20 > [BATTERY_PERCENT]（无 < 运算符，R32） -->
+<Condition>
+    <Expressions>
+        <Expression name="battery_low">20 > [BATTERY_PERCENT]</Expression>
+    </Expressions>
+    <Compare expression="battery_low">
+        <PartText x="45" y="300" width="360" height="48">
+            <Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="28" color="#ffFF4444">[BATTERY_PERCENT]% LOW</Font></Text>
+        </PartText>
     </Compare>
     <Default>
-        <PartText><Text><Font color="#ff00F5FF">正常</Font></Text></PartText>
+        <PartText x="45" y="300" width="360" height="48">
+            <Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="28" color="#ff00F5FF">[BATTERY_PERCENT]%</Font></Text>
+        </PartText>
     </Default>
 </Condition>
 

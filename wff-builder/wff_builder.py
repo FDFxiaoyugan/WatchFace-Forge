@@ -331,6 +331,32 @@ def _check_rule_27(xml_text: str):
     return True, "OK"
 
 
+def _check_rule_32(xml_text: str):
+    """R32: Condition 结构三查（XSD 实证 2026-09-07，官方 conditionElement.xsd）
+
+    1) <Condition expression="..."> 属性不存在（旧知识层错误写法）
+    2) <Condition> 必须含 <Expressions><Expression name="...">算式</Expression>
+    3) <Compare expression="..."> 是对 Expression/@name 的引用（keyref）
+    另: 运算符无 < <=（XML 非法字符），"低于X" 写成 X > [SRC]
+    """
+    xml_text = _strip_xml_comments(xml_text)
+    if "<Condition" not in xml_text:
+        return True, "OK"
+    for m in re.finditer(r'<Condition\b[^>]*\bexpression\s*=', xml_text):
+        return False, f"Condition 无 expression 属性 (算式在 Expressions/Expression 文本, R32): {m.group(0)[:80]}"
+    for m in re.finditer(r'<Condition\b[^>]*>(.*?)</Condition>', xml_text, re.DOTALL):
+        inner = m.group(1)
+        if '<Expressions>' not in inner or '<Expression' not in inner:
+            return False, "Condition 内缺 <Expressions><Expression name=...> (R32, XSD 必填)"
+        names = set(re.findall(r'<Expression\b[^>]*\bname\s*=\s*"([^"]+)"', inner))
+        for cm in re.finditer(r'<Compare\b[^>]*\bexpression\s*=\s*"([^"]+)"', inner):
+            if cm.group(1).strip() not in names:
+                return False, f"Compare expression=\"{cm.group(1)}\" 未在 Expressions 中定义 (R32 keyref)"
+    for m in re.finditer(r'\[[A-Z_0-9]+\]\s*<\s*[0-9]', xml_text):
+        return False, f"表达式无 < 运算符 (反转写: 20 > [SRC], R32): {m.group(0)[:60]}"
+    return True, "OK"
+
+
 def _check_rule_28(xml_text: str):
     """R28: BoundingShape 用 slot 局部坐标（真机实证 2026-08-31 第二轮）
 
@@ -440,6 +466,10 @@ WFF_RULES = [
         "Template 至少含一个 Parameter; 静态文本直接写 <Font>text</Font>",
         {"bad": '<Template>--</Template>',
          "good": '<Font family="SYNC_TO_DEVICE" size="24">--</Font>'}),
+    WFFRule("R32", "error", _check_rule_32,
+        "Condition: 算式在 Expressions/Expression 文本, Compare 按 name 引用; 无 < 运算符",
+        {"bad": '<Condition expression="[BATTERY_PERCENT] < 20"><Compare expression="1">',
+         "good": '<Condition><Expressions><Expression name="low">20 > [BATTERY_PERCENT]</Expression></Expressions><Compare expression="low">'}),
 ]
 
 

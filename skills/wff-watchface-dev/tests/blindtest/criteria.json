@@ -23,14 +23,14 @@
       },
       {
         "id": "A4",
-        "desc": "青色系主色（cyan #00xxxx 系）",
-        "pattern": "#ff00[0-9A-Fa-f]{4}|cyan|Cyan",
+        "desc": "青色系主色（R=00 系, color/tintColor, alpha 任意）",
+        "pattern": "([tT]int[Cc]olor|[Cc]olor)=\"#[0-9A-Fa-f]{2}00[0-9A-Fa-f]{4}\"|cyan|Cyan",
         "weight": 1
       },
       {
         "id": "A5",
-        "desc": "深色背景",
-        "pattern": "backgroundColor=\"#[fF][fF]0[0-8]",
+        "desc": "深色背景（backgroundColor 深色值或全屏背景图）",
+        "pattern": "backgroundColor=\"#[fF][fF]0[0-8]|<PartImage[^>]*x=\"0\"[^>]*y=\"0\"[^>]*width=\"450\"",
         "weight": 1
       }
     ]
@@ -116,20 +116,20 @@
       },
       {
         "id": "A2",
-        "desc": "条件引用电池数据源",
-        "pattern": "<Condition[^>]*expression=\"[^\"]*BATTERY_PERCENT",
+        "desc": "Condition 块内引用电池数据源（Expressions 或 Compare）",
+        "pattern": "<Condition>[\\s\\S]{0,600}?BATTERY_PERCENT",
         "weight": 3
       },
       {
         "id": "A3",
-        "desc": "低电量阈值 20",
-        "pattern": "BATTERY_PERCENT[^\"<]*<\\s*20|<\\s*20[^\"<]*BATTERY_PERCENT",
+        "desc": "低电量阈值 20（反转 20 > [BATTERY_PERCENT] 或 &lt; 转义）",
+        "pattern": "20\\s*>\\s*\\[?BATTERY_PERCENT|\\[BATTERY_PERCENT\\][^>]{0,30}&lt;\\s*20",
         "weight": 2
       },
       {
         "id": "A4",
-        "desc": "红色分支存在",
-        "pattern": "#ff(FF)?[0-4][0-9A-Fa-f]{2}[0-9A-Fa-f]|#[fF][fF](FF)?[0-4][0-9A-Fa-f]([0-9A-Fa-f])",
+        "desc": "红色分支在 Compare 块内（color/tintColor, R≥C0 G/B≤7F）",
+        "pattern": "<Compare[\\s\\S]{0,900}?([tT]int[Cc]olor|[Cc]olor)=\"#[0-9A-Fa-f]{2}[cC-fF][0-9A-Fa-f][0-7][0-9A-Fa-f][0-7][0-9A-Fa-f]\"",
         "weight": 1
       },
       {

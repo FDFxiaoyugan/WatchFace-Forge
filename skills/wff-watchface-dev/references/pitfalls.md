@@ -1,6 +1,6 @@
 # WFF 踩坑大全
 
-> 一期 16 条规则（2026-08-15 真机验证）+ 盲测/真机复盘扩充至 31 条（R17-R31）。
+> 一期 16 条规则（2026-08-15 真机验证）+ 盲测/真机复盘扩充至 32 条（R17-R32）。
 > **每条规则都是用真机安装失败换来的。写 WFF XML 前必读。**
 
 ---
@@ -284,7 +284,30 @@ PIL `ImageDraw` 的 `rectangle/polygon` 右边界是 inclusive——偶数宽度
 交付前校验：`质心x = sum(x·alpha)/sum(alpha) == width/2`，逐行 alpha 序列左右对称。
 参考实现：BT-02 交付（4× 超采样 + 扫描线，hand_second 8 宽行 alpha [0,0,127,255,255,127,0,0] 完全对称）。
 
+
+### R32: Condition 无 expression 属性；算式在 Expression 文本、Compare 按 name 引用；无 `<` 运算符（XSD 实证 2026-09-07）
+
+官方 XSD（v5 `common/conditionElement.xsd` + keyref）真实结构：
+
+```xml
+<Condition>
+  <Expressions>
+    <Expression name="battery_low">20 > [BATTERY_PERCENT]</Expression>
+  </Expressions>
+  <Compare expression="battery_low">…Part…</Compare>
+  <Default>…Part…</Default>   <!-- 可选兜底 -->
+</Condition>
+```
+
+三个易错点（旧知识层三处全错，盲测 Round 3 前修正）：
+1. `Condition` **没有** `expression` 属性——算式只能定义在 `Expressions/Expression` 的文本内容
+2. `Compare/@expression` 是对 `Expression/@name` 的**引用**（XSD keyref 强制校验），不是算式本身
+3. 运算符枚举只有 `>` `>=` `==`（XSD `_operatorType`：+ - * / % ~ ! | || & && ( ) > >= ? : ==）
+   ——**没有 `<` `<=`**。"<20" 必须反转写 `20 > [BATTERY_PERCENT]`（`<` 也是 XML 非法字符）
+首个命中的 Compare 渲染，其余不渲染；全不命中走 Default。已验证示例过 wff-validator v5。
+
 ---
+
 
 ## 🔧 构建约束（APK 打包层面）
 

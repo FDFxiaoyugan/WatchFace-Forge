@@ -243,12 +243,21 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
 ### 条件渲染（低电量变色）
 
 ```xml
-<Condition expression="[BATTERY_PERCENT] < 20">
-    <Compare expression="1">
-        <Font color="#ffFF4444">低电量</Font>
+<!-- R32: 算式在 Expression 文本 + Compare 按 name 引用；
+     "低于 20" 反转写 20 > [BATTERY_PERCENT]（无 < 运算符） -->
+<Condition>
+    <Expressions>
+        <Expression name="battery_low">20 > [BATTERY_PERCENT]</Expression>
+    </Expressions>
+    <Compare expression="battery_low">
+        <PartText x="45" y="300" width="360" height="48">
+            <Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="28" color="#ffFF4444">[BATTERY_PERCENT]% LOW</Font></Text>
+        </PartText>
     </Compare>
     <Default>
-        <Font color="#ff00F5FF">正常</Font>
+        <PartText x="45" y="300" width="360" height="48">
+            <Text align="CENTER"><Font family="SYNC_TO_DEVICE" size="28" color="#ff00F5FF">[BATTERY_PERCENT]%</Font></Text>
+        </PartText>
     </Default>
 </Condition>
 ```

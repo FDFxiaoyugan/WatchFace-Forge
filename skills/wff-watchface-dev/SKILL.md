@@ -117,6 +117,8 @@ python client/wff_api.py build projects/my_watch
   12 点竖直针 `y=圆心y−针长`；带配重尾 `pivotY=针长/图高`
 - **指针 PNG 左右 alpha 对称**（R31）：偶数宽 PIL 细线抗锯齿不对称 → 秒针错位；
   奇数宽画布或精确光栅化；交付前校验质心 `== width/2`
+- **Condition 正确结构**（R32）：算式在 `<Expressions><Expression name>` 文本，
+  `<Compare expression="引用名">`；运算符只有 `>` `>=` `==`——"低于X"写成 `X > [SRC]`
 - 列表属性空格分隔：`colors="#ffAABBCC #ff112233"`
 - 布尔枚举大写：`isCustomizable="TRUE"`
 - project.yaml 不写行内注释
