@@ -3,6 +3,13 @@
 > Agent Skill: 教任意 AI agent 开发 Wear OS Watch Face Format (WFF) 表盘。
 > 从一行需求到可安装 APK，全流程 agent 自主完成。
 
+**版本 v0.3.0**（2026-09-08）— 盲测四轮全 PASS 后发布。版本史：
+- v0.1.0（2026-08-24）首版端到端验证
+- v0.2.0（2026-08-27）Round 1 回灌：知识层大修 11 处（嵌套方向/HH:mm/Complication 属性集）
+- v0.2.2（2026-08-31）真机三轮复盘：R26-R30 + 规则 20 条
+- v0.3.0（2026-09-08）盲测四轮收官：R31-R32、环境自查清单、inventory attributeGroup
+  修复、R13 白名单 XSD 全集、商务风配方、PartDraw 整层 Variant 范式、规则 21 条
+
 ---
 
 
