@@ -10,6 +10,22 @@
       "doc": "AnalogClock is a container that represents a traditional clock with\n        rotating hands.",
       "attributes": [
         {
+          "name": "pivotX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of x in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
+          "name": "pivotY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of y in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
           "name": "angle",
           "type": "angleType",
           "use": "optional",
@@ -286,6 +302,22 @@
       "doc": "Draw arc line with given bound. Center point of arc is the center of the bounds.\n        Angle is given in degrees with 0 indicating 12 o'clock.",
       "attributes": [
         {
+          "name": "startAngle",
+          "type": "angleType",
+          "use": "required",
+          "default": null,
+          "doc": "Start angle in degrees.",
+          "from_group": "angleAttributeGroupRequired"
+        },
+        {
+          "name": "endAngle",
+          "type": "angleType",
+          "use": "required",
+          "default": null,
+          "doc": "End angle in degrees.",
+          "from_group": "angleAttributeGroupRequired"
+        },
+        {
           "name": "centerX",
           "type": "xs:float",
           "use": "required",
@@ -492,6 +524,22 @@
       "name": "BoundingArc",
       "doc": "",
       "attributes": [
+        {
+          "name": "startAngle",
+          "type": "angleType",
+          "use": "required",
+          "default": null,
+          "doc": "Start angle in degrees.",
+          "from_group": "angleAttributeGroupRequired"
+        },
+        {
+          "name": "endAngle",
+          "type": "angleType",
+          "use": "required",
+          "default": null,
+          "doc": "End angle in degrees.",
+          "from_group": "angleAttributeGroupRequired"
+        },
         {
           "name": "centerX",
           "type": "xs:float",
@@ -725,6 +773,22 @@
       "doc": "",
       "attributes": [
         {
+          "name": "pivotX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of x in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
+          "name": "pivotY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of y in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
           "name": "name",
           "type": "xs:string",
           "use": "optional",
@@ -950,6 +1014,22 @@
       "name": "DigitalClock",
       "doc": "DigitalClock is a container for text-based formatted time.",
       "attributes": [
+        {
+          "name": "pivotX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of x in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
+          "name": "pivotY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of y in scope [0,1].",
+          "from_group": "pivot2D"
+        },
         {
           "name": "angle",
           "type": "angleType",
@@ -1315,6 +1395,22 @@
       "doc": "The Group element contains other groups or parts as children.\n        This is an important node in the scene graph that lays out the components on the scene.\n        The group does not have the ability to draw on its own, but it affects the position, size,\n        angle or color of the child hierarchies.",
       "attributes": [
         {
+          "name": "pivotX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of x in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
+          "name": "pivotY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of y in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
           "name": "id",
           "type": null,
           "use": "optional",
@@ -1511,6 +1607,22 @@
       "name": "HourHand",
       "doc": "A image that represents an hour hand, it rotates 360 degree in 12 hours.",
       "attributes": [
+        {
+          "name": "pivotX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of x in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
+          "name": "pivotY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of y in scope [0,1].",
+          "from_group": "pivot2D"
+        },
         {
           "name": "resource",
           "type": "resourcePathType",
@@ -1967,6 +2079,22 @@
       "name": "MinuteHand",
       "doc": "A image that represent a minute hand, it rotates 360 degree in 1 hour.",
       "attributes": [
+        {
+          "name": "pivotX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of x in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
+          "name": "pivotY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of y in scope [0,1].",
+          "from_group": "pivot2D"
+        },
         {
           "name": "resource",
           "type": "resourcePathType",
@@ -2589,6 +2717,22 @@
       "doc": "A image that represents a second hand, it rotates 360 degree in 1 minute.",
       "attributes": [
         {
+          "name": "pivotX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of x in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
+          "name": "pivotY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of y in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
           "name": "resource",
           "type": "resourcePathType",
           "use": "required",
@@ -2830,6 +2974,22 @@
       "doc": "Set a gradient color consisting of a progressive transition between two or more colors that\n        sweep an angle from startAngle to endAngle",
       "attributes": [
         {
+          "name": "startAngle",
+          "type": "angleType",
+          "use": "required",
+          "default": null,
+          "doc": "Start angle in degrees.",
+          "from_group": "angleAttributeGroupRequired"
+        },
+        {
+          "name": "endAngle",
+          "type": "angleType",
+          "use": "required",
+          "default": null,
+          "doc": "End angle in degrees.",
+          "from_group": "angleAttributeGroupRequired"
+        },
+        {
           "name": "centerX",
           "type": "xs:float",
           "use": "required",
@@ -2903,6 +3063,22 @@
       "doc": "Specifies Plain Text configuration for any text",
       "attributes": [
         {
+          "name": "align",
+          "type": null,
+          "use": "optional",
+          "default": "CENTER",
+          "doc": "Horizontal Alignment of the tag. The default is CENTER.",
+          "from_group": "alignAttributeGroup"
+        },
+        {
+          "name": "verticalAlign",
+          "type": null,
+          "use": "optional",
+          "default": "CENTER",
+          "doc": "Vertical Alignment of the tag. The default is CENTER. If maxLines is not equal to 1, the default becomes TOP.",
+          "from_group": "alignAttributeGroup"
+        },
+        {
           "name": "ellipsis",
           "type": "booleanType",
           "use": "optional",
@@ -2950,6 +3126,38 @@
       "name": "TextCircular",
       "doc": "Specifies Circular Text configuration",
       "attributes": [
+        {
+          "name": "startAngle",
+          "type": "angleType",
+          "use": "required",
+          "default": null,
+          "doc": "Start angle in degrees.",
+          "from_group": "angleAttributeGroupRequired"
+        },
+        {
+          "name": "endAngle",
+          "type": "angleType",
+          "use": "required",
+          "default": null,
+          "doc": "End angle in degrees.",
+          "from_group": "angleAttributeGroupRequired"
+        },
+        {
+          "name": "align",
+          "type": null,
+          "use": "optional",
+          "default": "CENTER",
+          "doc": "Horizontal Alignment of the tag. The default is CENTER.",
+          "from_group": "alignAttributeGroup"
+        },
+        {
+          "name": "verticalAlign",
+          "type": null,
+          "use": "optional",
+          "default": "CENTER",
+          "doc": "Vertical Alignment of the tag. The default is CENTER. If maxLines is not equal to 1, the default becomes TOP.",
+          "from_group": "alignAttributeGroup"
+        },
         {
           "name": "centerX",
           "type": "xs:float",
@@ -3076,6 +3284,38 @@
       "name": "TimeText",
       "doc": "TimeText renders the time within the DigitalClock container.",
       "attributes": [
+        {
+          "name": "align",
+          "type": null,
+          "use": "optional",
+          "default": "CENTER",
+          "doc": "Horizontal Alignment of the tag. The default is CENTER.",
+          "from_group": "alignAttributeGroup"
+        },
+        {
+          "name": "verticalAlign",
+          "type": null,
+          "use": "optional",
+          "default": "CENTER",
+          "doc": "Vertical Alignment of the tag. The default is CENTER. If maxLines is not equal to 1, the default becomes TOP.",
+          "from_group": "alignAttributeGroup"
+        },
+        {
+          "name": "pivotX",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of x in scope [0,1].",
+          "from_group": "pivot2D"
+        },
+        {
+          "name": "pivotY",
+          "type": "xs:float",
+          "use": "optional",
+          "default": null,
+          "doc": "Normalized floating pivot point of y in scope [0,1].",
+          "from_group": "pivot2D"
+        },
         {
           "name": "family",
           "type": "xs:string",

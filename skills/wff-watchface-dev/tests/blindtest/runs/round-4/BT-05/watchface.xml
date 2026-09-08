@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<WatchFace width="450" height="450">
+    <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
+    <Metadata key="PREVIEW_TIME" value="10:08:32"/>
+    <Scene backgroundColor="#ff0A0F17">
+        <!-- 装饰层：细外环 + 上下两段金色断弧（商务点缀）；AMBIENT 整体隐藏省电 -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Arc centerX="225" centerY="225" width="428" height="428"
+                 direction="CLOCKWISE" startAngle="0" endAngle="360">
+                <Stroke color="#ff1E2A3A" thickness="2"/>
+            </Arc>
+            <Arc centerX="225" centerY="225" width="428" height="428"
+                 direction="CLOCKWISE" startAngle="300" endAngle="360">
+                <Stroke color="#ffD4AF37" thickness="4"/>
+            </Arc>
+            <Arc centerX="225" centerY="225" width="428" height="428"
+                 direction="CLOCKWISE" startAngle="120" endAngle="180">
+                <Stroke color="#ffD4AF37" thickness="4"/>
+            </Arc>
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+        </PartDraw>
+
+        <!-- 时间：Active 亮白 SEMI_BOLD；AMBIENT 暗灰 THIN（省电，仅保留时间） -->
+        <DigitalClock x="0" y="0" width="450" height="450">
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
+                      align="CENTER" x="0" y="120" width="450" height="130" alpha="255">
+                <Variant mode="AMBIENT" target="alpha" value="0"/>
+                <Font family="SYNC_TO_DEVICE" size="100" weight="SEMI_BOLD" color="#ffF2F5F8"/>
+            </TimeText>
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
+                      align="CENTER" x="0" y="120" width="450" height="130" alpha="0">
+                <Variant mode="AMBIENT" target="alpha" value="255"/>
+                <Font family="SYNC_TO_DEVICE" size="100" weight="THIN" color="#ff7E878F"/>
+            </TimeText>
+        </DigitalClock>
+
+        <!-- 日期：周几短名, 月短名 日（AMBIENT 隐藏） -->
+        <PartText x="0" y="262" width="450" height="44">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Text align="CENTER">
+                <Font family="SYNC_TO_DEVICE" size="30" weight="NORMAL" color="#ffB9C2CE">
+                    <Template>%s, %s %s
+                        <Parameter expression="[DAY_OF_WEEK_S]"/>
+                        <Parameter expression="[MONTH_S]"/>
+                        <Parameter expression="[DAY_Z]"/>
+                    </Template>
+                </Font>
+            </Text>
+        </PartText>
+
+        <!-- 分隔金线（AMBIENT 隐藏） -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Line startX="185" startY="322" endX="265" endY="322">
+                <Stroke color="#ffD4AF37" thickness="2"/>
+            </Line>
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+        </PartDraw>
+
+        <!-- 步数标签（AMBIENT 隐藏） -->
+        <PartText x="0" y="342" width="450" height="26">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Text align="CENTER">
+                <Font family="SYNC_TO_DEVICE" size="18" weight="NORMAL" color="#ff7E8B9B" letterSpacing="6">STEPS</Font>
+            </Text>
+        </PartText>
+
+        <!-- 步数值（AMBIENT 隐藏） -->
+        <PartText x="0" y="370" width="450" height="56">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Text align="CENTER">
+                <Font family="SYNC_TO_DEVICE" size="42" weight="SEMI_BOLD" color="#ffF2F5F8">
+                    <Template>%s
+                        <Parameter expression="[STEP_COUNT]"/>
+                    </Template>
+                </Font>
+            </Text>
+        </PartText>
+    </Scene>
+</WatchFace>

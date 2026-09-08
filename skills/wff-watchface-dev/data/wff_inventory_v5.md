@@ -42,6 +42,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<HourHand>`, `<MinuteHand>`, `<SecondHand>`, `<Localization>`, `<Variant>`
 - **Attributes:**
+  - `@pivotX` (xs:float)
+  - `@pivotY` (xs:float)
   - `@angle` (angleType)
   - `@scaleX` (xs:float)
   - `@scaleY` (xs:float)
@@ -55,6 +57,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<Localization>`, `<Variant>`, `<TimeText>`
 - **Attributes:**
+  - `@pivotX` (xs:float)
+  - `@pivotY` (xs:float)
   - `@angle` (angleType)
   - `@scaleX` (xs:float)
   - `@scaleY` (xs:float)
@@ -80,6 +84,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<Variant>`
 - **Attributes:**
+  - `@pivotX` (xs:float)
+  - `@pivotY` (xs:float)
   - `@resource` (resourcePathType) **(required)**
   - `@tintColor` (colorAttributeType)
 - *Defined in: `clock/analogClock.xsd`*
@@ -99,6 +105,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<Variant>`
 - **Attributes:**
+  - `@pivotX` (xs:float)
+  - `@pivotY` (xs:float)
   - `@resource` (resourcePathType) **(required)**
   - `@tintColor` (colorAttributeType)
 - *Defined in: `clock/analogClock.xsd`*
@@ -109,6 +117,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<Variant>`, `<Sweep>`, `<Tick>`
 - **Attributes:**
+  - `@pivotX` (xs:float)
+  - `@pivotY` (xs:float)
   - `@resource` (resourcePathType) **(required)**
   - `@tintColor` (colorAttributeType)
 - *Defined in: `clock/analogClock.xsd`*
@@ -136,6 +146,10 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<Variant>`, `<BitmapFont>`, `<Font>`
 - **Attributes:**
+  - `@align` (inline)
+  - `@verticalAlign` (inline)
+  - `@pivotX` (xs:float)
+  - `@pivotY` (xs:float)
   - `@family` (xs:string) **(required)**
   - `@size` (positiveFloatType) **(required)**
   - `@color` (colorAttributeType)
@@ -218,6 +232,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<Localization>`, `<Gyro>`, `<Launch>`, `<Transform>`, `<Reference>`, `<Variant>`, `<PartText>`, `<PartImage>`, `<PartAnimatedImage>`, `<PartDraw>`, `<ScreenReader>`, `<Condition>`, `<ListConfiguration>`, `<BooleanConfiguration>`, `<AnalogClock>`
 - **Attributes:**
+  - `@pivotX` (xs:float)
+  - `@pivotY` (xs:float)
   - `@id` (inline)
   - `@name` (inline) **(required)**
   - `@angle` (angleType)
@@ -289,6 +305,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 ### `<BoundingArc>`
 
 - **Attributes:**
+  - `@startAngle` (angleType) **(required)**
+  - `@endAngle` (angleType) **(required)**
   - `@centerX` (xs:float) **(required)**
   - `@centerY` (xs:float) **(required)**
   - `@width` (positiveFloatType) **(required)**
@@ -333,6 +351,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<DefaultProviderPolicy>`, `<BoundingShape>`, `<Complication>`, `<Variant>`, `<ScreenReader>`
 - **Attributes:**
+  - `@pivotX` (xs:float)
+  - `@pivotY` (xs:float)
   - `@name` (xs:string)
   - `@angle` (angleType)
   - `@scaleX` (xs:float)
@@ -466,6 +486,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<Stroke>`, `<WeightedStroke>`, `<Transform>`, `<Reference>`
 - **Attributes:**
+  - `@startAngle` (angleType) **(required)**
+  - `@endAngle` (angleType) **(required)**
   - `@centerX` (xs:float) **(required)**
   - `@centerY` (xs:float) **(required)**
   - `@width` (positiveFloatType) **(required)**
@@ -583,6 +605,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<Transform>`, `<Reference>`
 - **Attributes:**
+  - `@startAngle` (angleType) **(required)**
+  - `@endAngle` (angleType) **(required)**
   - `@centerX` (xs:float) **(required)**
   - `@centerY` (xs:float) **(required)**
   - `@colors` (colorListType) **(required)**
@@ -714,6 +738,8 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<Font>`, `<BitmapFont>`
 - **Attributes:**
+  - `@align` (inline)
+  - `@verticalAlign` (inline)
   - `@ellipsis` (booleanType)
   - `@maxLines` (xs:integer)
   - `@lineSpacing` (inline)
@@ -726,6 +752,10 @@ XSD files: 99 | Elements: 90 | Enums: 29
 
 - **Children:** `<Transform>`, `<Reference>`, `<Font>`, `<BitmapFont>`
 - **Attributes:**
+  - `@startAngle` (angleType) **(required)**
+  - `@endAngle` (angleType) **(required)**
+  - `@align` (inline)
+  - `@verticalAlign` (inline)
   - `@centerX` (xs:float) **(required)**
   - `@centerY` (xs:float) **(required)**
   - `@direction` (circularDirectionType)

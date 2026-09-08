@@ -146,6 +146,31 @@ ComplicationSlot `type="RANGED_VALUE"`（系统渲染），不要试图给 Arc �
 **形状**（PartDraw 直接子元素）：`<Arc>` `<Ellipse>` `<Line>` `<Rectangle>` `<RoundRectangle>`
 > ⚠️ **没有 `<Circle>` 和 `<Path>`**——画圆用 Ellipse（width=height），x/y/width/height 定包围盒。
 
+五种形状的属性（粗体=必填；`**` 标注来自 XSD attributeGroup，与 inventory v5 同步）：
+
+| 形状 | 属性 |
+|------|------|
+| `<Arc>` | **centerX** **centerY** **width** **height** **startAngle** **endAngle**（角度制，0=12点方向）, direction=`CLOCKWISE`/`COUNTER_CLOCKWISE`（默认 CW） |
+| `<Ellipse>` | **x** **y** **width** **height**（x/y=包围盒左上角） |
+| `<Line>` | **startX** **startY** **endX** **endY**（线段两端坐标） |
+| `<Rectangle>` | **x** **y** **width** **height** |
+| `<RoundRectangle>` | **x** **y** **width** **height** **cornerRadiusX** **cornerRadiusY**（R27：无单一 cornerRadius） |
+
+> Arc 的 startAngle/endAngle 也可用表达式（angleExpressionAttributeGroupRequired，
+> 如动态进度环 `endAngle="[SECOND]*6"`——但真机验证仅静态值可靠，动态环建议
+> ComplicationSlot type="RANGED_VALUE"）。
+
+**Variant 可整体挂在 PartDraw 上**：装饰层（多个形状）需在 AMBIENT 一次隐藏时，
+不必逐形状写 Variant，直接挂父 PartDraw（官方 XSD 合法、BT-05 真机验证有效）：
+
+```xml
+<PartDraw x="0" y="0" width="450" height="450">
+    <Variant mode="AMBIENT" target="alpha" value="0"/>  <!-- 整层隐藏 -->
+    <Arc ...><Stroke .../></Arc>
+    <Line .../>
+</PartDraw>
+```
+
 **样式**（形状的子元素，必选其一）：`<Fill>` `<Stroke>`
 
 **渐变**（Fill/Stroke 的子元素）：`<LinearGradient>` `<RadialGradient>` `<SweepGradient>`

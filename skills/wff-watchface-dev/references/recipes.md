@@ -262,6 +262,34 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
 </Condition>
 ```
 
+
+### 商务风（business）——BT-05 真机验证交付沉淀
+
+适用：抬腕全彩信息 + AOD 极简。核心是**字号层级 + 金色点缀 + 大留白**：
+
+- 布局骨架：时间 size 84-100 BOLD（y≈110）→ 日期 size 28-30 灰（y≈240）→
+  数据（步数等）size 44-52 BOLD（y≈310）→ 底部装饰细线
+- 配色：黑底 `#ff0a0d12` 系 + 白字 `#ffededf2` + 点缀金 `#ffFFC940`（唯一彩色，
+  只用于装饰线/标签，不用在大面积元素上）
+- AMBIENT 策略：双 TimeText 交换（active 时间 alpha=255→0，ambient 时间 0→255，
+  ambient 版变灰）；日期/数据/装饰整体 `Variant value="0"` 隐藏（挂 PartDraw 更简洁）
+- AOD 只留时间 = 省电核心；风格一致靠 ambient 时间坐标与 active 完全重合
+
+### preview.png 镜像渲染要点（Pillow 自绘时）
+
+> R24 说"Pillow 自绘兜底"，但预览图与 XML **布局/颜色/角度对齐**有坑：
+
+1. **弧线角度坐标系**：WFF `startAngle` 0°=12 点方向顺时针；PIL `arc()` 的
+   start/end 是数学角度（0°=3 点方向逆时针）。映射：`pil_start = wff_angle - 90`
+   （再注意 PIL 逆时针 vs WFF CLOCKWISE 的方向反转）。BT-05 用
+   `end=start+arc_deg` 画进度弧对齐成功
+2. **字体渲染**：Pillow 默认字体无 BOLD——用 `ImageFont.truetype` 加粗体字库
+   （如 NotoSansSC-Bold），否则预览图比真机细一圈
+3. **逐元素镜像**：按 XML 的 x/y/width/height + align 逐个画；CENTER 对齐的
+   文本要 measure 后居中，别用默认 anchor
+4. 预览图是静态印象分——与真机渲染有亚像素差异是正常的，但**大方向（角度/
+   布局/配色）必须一致**，否则用户预期错位
+
 ### 用户自定义颜色
 
 ```xml
