@@ -170,8 +170,8 @@
       },
       {
         "id": "A5",
-        "desc": "存在 hide 隐藏处理（ambient 隐藏内容）",
-        "pattern": "target=\"(alpha|opacity)\"[^>]*value=\"0\"|HIDE",
+        "desc": "AMBIENT 隐藏处理（Variant value=\"0\"，属性顺序无关）",
+        "pattern": "<Variant\\b(?=[^>]*mode=\"AMBIENT\")(?=[^>]*value=\"0\")[^>]*/?>",
         "weight": 2
       }
     ]
