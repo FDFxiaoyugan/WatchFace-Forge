@@ -6,12 +6,24 @@
 ---
 
 
-## 环境前置（宿主机一次性）
+## 环境前置（宿主机一次性，含自查与补齐清单）
 
-- **Java 17+**：官方 wff-validator.jar 需要（`java -version` 检查；OpenJDK 21 可用）
-- **Android SDK**：`ANDROID_HOME` 下需 `build-tools/34.0.0/`（aapt2/apksigner）
-  **和 `platforms/android-34/android.jar`**（aapt2 link 的 `-I` 参数）——缺
-  android.jar 时 link 失败，装 platform 即可
+**自查**（构建前逐项确认，缺什么补什么）：
+
+| 组件 | 检查 | 缺失时的补齐 |
+|------|------|--------------|
+| Java 17+ | `java -version` | apt 装 openjdk-21，或 tarball 解压到用户目录后设 JAVA_HOME |
+| aapt2 | `$ANDROID_HOME/build-tools/34.0.0/aapt2 -h` | 下载 build-tools_r34-linux.zip；**解压后顶层目录是 android-14，需改名 34.0.0** |
+| apksigner | 同目录 `apksigner --version` | 同上（build-tools 内含） |
+| android.jar | `$ANDROID_HOME/platforms/android-34/android.jar` | 下载 `platform-34-ext7_r02.zip`（**不是** platform-34_r02.zip，那个 404）解压到 platforms/android-34 |
+
+**路径探测顺序**：builder 先读 `ANDROID_HOME` 环境变量；未设置时兜底查
+`/opt/android-sdk`。SDK 组件装到任意位置后 `export ANDROID_HOME=<路径>` 即可。
+
+**⚠️ ARM64 宿主限制**：aapt2 官方 Linux 构建是 x86_64 only。ARM 宿主上 builder
+走"预编译模板"兜底——该模板**只注册了 drawable/preview 一个资源槽位**，
+多 drawable 表盘（指针 PNG/dial 背景等）会丢图。ARM 上构建多图盘必须在
+x86_64 机器（或 Docker x86_64）上进行。
 
 ## When to Use
 

@@ -1,0 +1,5 @@
+package_name: com.example.batterywatch
+version_code: 1
+version_name: "1.0"
+watch_face_name: Battery Watch
+wff_version: 1

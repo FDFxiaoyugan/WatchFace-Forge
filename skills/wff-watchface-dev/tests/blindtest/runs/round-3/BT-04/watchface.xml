@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<WatchFace width="450" height="450">
+    <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
+    <Metadata key="PREVIEW_TIME" value="10:08:32"/>
+    <Scene backgroundColor="#ff000000">
+        <!-- 数字时钟：Active 模式亮色大字 -->
+        <DigitalClock x="0" y="0" width="450" height="450">
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
+                      align="CENTER" x="0" y="120" width="450" height="120" alpha="255">
+                <Variant mode="AMBIENT" target="alpha" value="0"/>
+                <Font family="SYNC_TO_DEVICE" size="100" weight="BOLD" color="#ffffffff"/>
+            </TimeText>
+            <!-- AMBIENT 模式暗色细字 -->
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
+                      align="CENTER" x="0" y="120" width="450" height="120" alpha="0">
+                <Variant mode="AMBIENT" target="alpha" value="255"/>
+                <Font family="SYNC_TO_DEVICE" size="100" weight="THIN" color="#ff888888"/>
+            </TimeText>
+        </DigitalClock>
+
+        <!-- 日期（AMBIENT 隐藏） -->
+        <PartText x="0" y="258" width="450" height="50">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Text align="CENTER">
+                <Font family="SYNC_TO_DEVICE" size="30" weight="NORMAL" color="#ffAAAAAA">
+                    <Template>%s/%s
+                        <Parameter expression="[MONTH]"/>
+                        <Parameter expression="[DAY]"/>
+                    </Template>
+                </Font>
+            </Text>
+        </PartText>
+
+        <!-- 电池百分比：正常时白色；低于 20% 变红提醒充电（R32 条件结构） -->
+        <Condition>
+            <Expressions>
+                <Expression name="battery_low">20 > [BATTERY_PERCENT]</Expression>
+            </Expressions>
+            <Compare expression="battery_low">
+                <PartText x="0" y="322" width="450" height="64">
+                    <Variant mode="AMBIENT" target="alpha" value="80"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="46" weight="BOLD" color="#ffff4444">
+                            <Template>%s%%
+                                <Parameter expression="[BATTERY_PERCENT]"/>
+                            </Template>
+                        </Font>
+                    </Text>
+                </PartText>
+            </Compare>
+            <Default>
+                <PartText x="0" y="322" width="450" height="64">
+                    <Variant mode="AMBIENT" target="alpha" value="80"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="46" weight="BOLD" color="#ffffffff">
+                            <Template>%s%%
+                                <Parameter expression="[BATTERY_PERCENT]"/>
+                            </Template>
+                        </Font>
+                    </Text>
+                </PartText>
+            </Default>
+        </Condition>
+    </Scene>
+</WatchFace>
