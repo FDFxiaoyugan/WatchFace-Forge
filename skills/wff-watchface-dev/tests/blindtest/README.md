@@ -83,6 +83,7 @@ python3 tests/blindtest/score_blindtest.py --all runs --markdown report.md
 | BT-03 | 混合 + 心率 complication | ComplicationSlot、混合布局 |
 | BT-04 | 低电量条件变色 | Condition 表达式、分支渲染 |
 | BT-05 | Ambient 独立场景 | Variant mode=AMBIENT、多模式设计 |
+| BT-08 | 可定制组件 | List/Boolean 双模式、ComplicationSlot、编辑器自定义全链路 |
 
 难度梯度：BT-01 < BT-02 ≈ BT-05 < BT-03 ≈ BT-04（后两张考 skill 知识层覆盖面）。
 
