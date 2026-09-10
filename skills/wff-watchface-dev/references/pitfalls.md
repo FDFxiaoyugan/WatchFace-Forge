@@ -256,8 +256,9 @@ XSD + build）全部抓不住这种"合法但空白"。正确写法：
 
 `<Template>--</Template>` 无 Parameter 非法（官方 XSD: content of 'Template' is
 not complete）。EMPTY 占位等静态文本直接写 `<Font ...>--</Font>`（Font 是
-mixed=true）。无数据兜底还可以用 `<Complication type="EMPTY">` 渲染占位符
-（supportedTypes 加 EMPTY）。
+mixed=true）——**但 Font 必须在 `<Text>` 内**（R39：`PartText > Text > Font`
+三层，直挂 PartText 被 validator 拒）。无数据兜底还可以用
+`<Complication type="EMPTY">` 渲染占位符（supportedTypes 加 EMPTY）。
 
 ### R30: ComplicationSlot displayName 用**裸资源名**，不是 @string/ 引用（R30 结论反转，真机复测 2026-09-09）
 
@@ -279,7 +280,9 @@ mixed=true）。无数据兜底还可以用 `<Complication type="EMPTY">` 渲染
 配套修复（维持有效）：
 - 字符串资源仍放项目 `res/values/strings.xml`（builder 合并进 arsc），元素
   `displayName` 值与资源名一致
-- `slotId` 从 1 开始（官方示例惯例），全局唯一
+- `slotId` 官方 samples 从 **0** 开始（Flavors/Complications 一致；类型 xs:string 无
+  数值约束，从 1 也合法）；XSD `xs:unique` 强制全局唯一。配套：Slot 数量上限 **8**
+  （Scene maxOccurs=8，R38）
 - 官方教程与 samples（android/wear-os-samples/WatchFaceFormat）全部实证裸名写法
 
 ### R31: 指针 PNG 左右 alpha 必须对称（真机实证 2026-09-06，盲测 Round 2）
@@ -396,6 +399,80 @@ XSD 只说 startAngle/endAngle 是角度数值，语义靠实验锁定（ArcLab 
 3. `cap="ROUND"`（圆头端点）官方 sample 在用，安全
 
 易错：想要"时间上方拱形"写成 `180→360`（得到 C 形左半弧）——上半拱是 `-90→90`。
+
+### R37: List/Boolean 配置有**两套模式**，id 两边必须对应（XSD 引用链 + Flavors sample 实证 2026-09-10）
+
+XSD 引用链实证：主 schema include 的 `userConfigurationsElement.xsd`（容器版）
+与 Scene/Group/指针 include 的 `booleanConfigurationElement.xsd`/
+`listConfigurationElement.xsd`（渲染版）**两套并存**——这与 Color 不同
+（Color 的独立 element 版是废弃的，Boolean/List 的渲染版是活跃的）：
+
+| | 容器版（UserConfigurations 内） | 渲染版（Scene/Group/Hand 内） |
+|---|---|---|
+| 职责 | **编辑器 UI 元数据** | **每选项的渲染内容** |
+| ListConfiguration | 必填 id/displayName/defaultValue；ListOption 纯属性（id + displayName/icon/complicationSlotIds/childSettingIds） | 只写 id；ListOption id + **内嵌完整部件**（Part/Group/Condition/Clock） |
+| BooleanConfiguration | 纯属性（id/displayName/defaultValue/icon），**无子元素** | 只写 id；BooleanOption id="TRUE\|FALSE" + 内嵌部件 |
+| 数量 | 每配置一次 | 同 id 的配置可在多处挂（每处渲染自己的内容） |
+
+三个易错点：
+1. **id 必须两边一致**——容器版定义选项列表（编辑器显示），渲染版按 id 匹配
+   选项渲染内容。渲染版出现容器版没有的 ListOption id = 无效
+2. **Boolean 渲染版可以只放 TRUE 一个 BooleanOption**（官方 Flavors sample 的
+   showHr 即此）——FALSE 状态=该处不渲染，天然"开关显隐"
+3. ListOption 的 `complicationSlotIds` 属性（容器版）：选中该选项时才启用对应
+   complication 槽位——风格联动槽位显隐的官方机制
+
+完整示例（过 wff-validator v5）见 recipes.md §4 组件包配方。
+
+### R38: ComplicationSlot 上限 8 个、slotId 全局唯一、slotId 从 0 开始（XSD 实证 2026-09-10）
+
+- Scene 内 `ComplicationSlot` **maxOccurs=8**（sceneElement.xsd）
+- `slotId` 是 `xs:string`（无数值约束），XSD `xs:unique` 强制唯一
+- 官方 samples（Flavors/Complications）slotId 全部从 **0** 开始——旧说法
+  "从 1 开始（官方示例惯例）"是错的，已修正
+- `BoundingOval/RoundBox` 支持 `outlinePadding`（编辑器选中描边内边距）
+
+### R39: PartText 文本是三层结构 `PartText > Text > Font`（XSD v1/v5 一致，validator 强制）
+
+```xml
+<!-- ✅ 正确: Text 是 TextElement 的具体替换成员 -->
+<PartText x="0" y="0" width="90" height="90" tintColor="[CONFIGURATION.themeColor.0]">
+    <Text align="CENTER" ellipsis="TRUE">
+        <Font family="SYNC_TO_DEVICE" size="24">
+            <Template><![CDATA[%s]]>
+                <Parameter expression="[COMPLICATION.TEXT]"/>
+            </Template>
+        </Font>
+    </Text>
+</PartText>
+<!-- ❌ Font 直挂 PartText: 渲染器可能宽容, 但 wff-validator 拒绝 -->
+```
+
+- `PartText` 可用 `tintColor` 绑 `[CONFIGURATION.x]`（官方 Complications sample）
+- **颜色位索引语法**：`[CONFIGURATION.themeColor.0]` 取 ColorOption 第 0 色
+  （ColorOption colors 可多色空格分隔）；单色时无索引引用（P2 真机实证）也可
+- 表达式含 `&&`/`!= null` 等时用 **CDATA** 包裹（`<![CDATA[[X] != null && [Y] != null]]>`）
+- 高级：Font 内可挂 `<Outline color width>` 描边（color 可绑配置色）
+
+### R40: Complication 数据有无的分支渲染用 Condition + null 判断（官方 Complications sample 模式）
+
+provider 无数据时整个 `<Complication type="...">` 不渲染（R26），但**有部分字段**
+（如只有 TEXT 无 TITLE/图标）时需要分支布局——官方模式：
+
+```xml
+<Condition>
+    <Expressions>
+        <Expression name="imgAndTitle"><![CDATA[[COMPLICATION.MONOCHROMATIC_IMAGE] != null && [COMPLICATION.TITLE] != null]]></Expression>
+        <Expression name="imgOnly"><![CDATA[[COMPLICATION.MONOCHROMATIC_IMAGE] != null]]></Expression>
+    </Expressions>
+    <Compare expression="imgAndTitle">…图标+标题布局…</Compare>
+    <Compare expression="imgOnly">…仅图标布局…</Compare>
+    <Default>…兜底…</Default>
+</Condition>
+```
+
+三元兜底同样常用（Flavors sample）：`[HEART_RATE] != null ? [HEART_RATE] : "--"`
+（字符串字面量在 XML 属性里用 `&quot;--&quot;` 转义）。
 
 ---
 

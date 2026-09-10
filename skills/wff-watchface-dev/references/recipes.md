@@ -328,6 +328,116 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
 </SecondHand>
 ```
 
+### 配方 4：组件包表盘——风格切换 + 开关 + 双槽位（wff-validator v5 PASSED 2026-09-10）
+
+三件套组件能力：**List 风格切换**（两套时钟样式）+ **Boolean 开关**（关=不渲染）+
+**双 Complication 槽**。骨架完整可用（R37 两套模式 / R39 三层文本结构）：
+
+```xml
+<?xml version="1.0"?>
+<WatchFace width="450" height="450">
+    <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
+    <Metadata key="PREVIEW_TIME" value="10:08:32"/>
+
+    <!-- ① 容器版: 编辑器 UI 元数据 (id/defaultValue 必填; displayName 裸资源名 R30) -->
+    <UserConfigurations>
+        <ColorConfiguration id="themeColor" displayName="theme_color" defaultValue="0">
+            <ColorOption id="0" displayName="color_zero" colors="#ff00E5FF"/>
+            <ColorOption id="1" displayName="color_one" colors="#ffFFC940"/>
+        </ColorConfiguration>
+        <ListConfiguration id="clockStyle" displayName="clock_style" defaultValue="0">
+            <ListOption id="0" displayName="style_thin" icon="style_thin_icon"/>
+            <ListOption id="1" displayName="style_bold" icon="style_bold_icon"/>
+        </ListConfiguration>
+        <BooleanConfiguration id="showSeconds" displayName="show_seconds" defaultValue="TRUE"/>
+    </UserConfigurations>
+
+    <Scene backgroundColor="#ff111111">
+        <!-- ② 渲染版: 只写 id (与容器版一致), ListOption id + 内嵌完整部件 -->
+        <ListConfiguration id="clockStyle">
+            <ListOption id="0">
+                <DigitalClock x="0" y="0" width="450" height="450">
+                    <TimeText format="h:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER"
+                              x="0" y="220" width="450" height="100">
+                        <Font family="SYNC_TO_DEVICE" size="96" weight="THIN"
+                              color="[CONFIGURATION.themeColor.0]"/>
+                    </TimeText>
+                </DigitalClock>
+            </ListOption>
+            <ListOption id="1">
+                <DigitalClock x="0" y="0" width="450" height="450">
+                    <TimeText format="h:mm" hourFormat="SYNC_TO_DEVICE" align="CENTER"
+                              x="0" y="220" width="450" height="100">
+                        <Font family="SYNC_TO_DEVICE" size="96" weight="BOLD"
+                              color="[CONFIGURATION.themeColor.0]"/>
+                    </TimeText>
+                </DigitalClock>
+            </ListOption>
+        </ListConfiguration>
+
+        <!-- ③ Boolean 渲染版: 只放 TRUE 选项 = 关时不渲染 (官方 showHr 模式) -->
+        <BooleanConfiguration id="showSeconds">
+            <BooleanOption id="TRUE">
+                <PartText x="150" y="330" width="150" height="60">
+                    <Text>
+                        <Font family="SYNC_TO_DEVICE" size="36" weight="NORMAL"
+                              color="#ff888888">SS</Font>
+                    </Text>
+                </PartText>
+            </BooleanOption>
+        </BooleanConfiguration>
+
+        <!-- ④ 双槽位: slotId 从 0 起, 内部局部坐标 (R28), Slot 上限 8 (R38) -->
+        <ComplicationSlot x="60" y="140" width="90" height="90" slotId="0"
+                          displayName="slot_left" supportedTypes="SHORT_TEXT SMALL_IMAGE EMPTY">
+            <BoundingOval x="0" y="0" width="90" height="90" outlinePadding="2.0"/>
+            <Complication type="SHORT_TEXT">
+                <PartDraw x="0" y="0" width="90" height="90">
+                    <Ellipse x="0" y="0" width="90" height="90">
+                        <Stroke thickness="4" color="[CONFIGURATION.themeColor.0]"/>
+                    </Ellipse>
+                </PartDraw>
+                <PartText x="0" y="0" width="90" height="90" tintColor="[CONFIGURATION.themeColor.0]">
+                    <Text ellipsis="TRUE">
+                        <Font family="SYNC_TO_DEVICE" size="24">
+                            <Template><![CDATA[%s]]>
+                                <Parameter expression="[COMPLICATION.TEXT]"/>
+                            </Template>
+                        </Font>
+                    </Text>
+                </PartText>
+            </Complication>
+        </ComplicationSlot>
+        <ComplicationSlot x="300" y="140" width="90" height="90" slotId="1"
+                          displayName="slot_right" supportedTypes="SHORT_TEXT SMALL_IMAGE EMPTY">
+            <BoundingOval x="0" y="0" width="90" height="90" outlinePadding="2.0"/>
+            <Complication type="SHORT_TEXT">
+                <PartText x="0" y="0" width="90" height="90" tintColor="[CONFIGURATION.themeColor.0]">
+                    <Text ellipsis="TRUE">
+                        <Font family="SYNC_TO_DEVICE" size="24">
+                            <Template><![CDATA[%s]]>
+                                <Parameter expression="[COMPLICATION.TEXT]"/>
+                            </Template>
+                        </Font>
+                    </Text>
+                </PartText>
+            </Complication>
+        </ComplicationSlot>
+    </Scene>
+</WatchFace>
+```
+
+进阶件（按需加）：
+- **槽位联动风格**：容器版 ListOption 加 `complicationSlotIds="0 1"`（空格分隔），
+  选该风格才显示对应槽
+- **级联子设置**：`childSettingIds` 引用下层配置 id
+- **Flavors 预设**（UserConfigurations 内）：`<Flavors><Flavor id displayName icon>`
+  内 `<Configuration id optionId>` + `<ComplicationSlot slotId>` 预设默认 provider
+  （DefaultProviderPolicy defaultSystemProvider/defaultSystemProviderType）
+- **Photos 照片背景**（UserConfigurations 内）：`<PhotosConfiguration id displayName
+  defaultValue configType="SINGLE|MULTIPLE" highlight="..."/>`
+- 数据有无分支（R40）：Condition + `[COMPLICATION.X] != null` + CDATA
+
 ---
 
 ## project.yaml 配套配置
@@ -346,7 +456,7 @@ wff_version: 1              # 1=Wear OS 4 (minSdk 33), 2+=Wear OS 5+ (minSdk 34)
 # 初始化项目
 python wff-builder/wff_builder.py init projects/my_watch
 
-# 验证 (24 条规则 + XSD)
+# 验证 (27 条规则 + XSD)
 python wff-builder/wff_builder.py validate projects/my_watch
 
 # 构建 APK

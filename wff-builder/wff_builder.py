@@ -527,6 +527,86 @@ def _check_rule_35(xml_text: str):
     return True, "OK"
 
 
+def _check_rule_37(xml_text: str):
+    """R37: List/Boolean 配置 id 两边对应（XSD 引用链 + Flavors sample 实证 2026-09-10）
+
+    容器版（UserConfigurations 内）定义选项列表；渲染版（Scene/Group 内）按 id
+    匹配选项渲染内容。渲染版的 ListOption id 必须在容器版中定义；
+    渲染版 BooleanConfiguration 的 id 也应在容器版存在（否则编辑器无此开关）。
+    """
+    xml_text = _strip_xml_comments(xml_text)
+    uc = re.search(r'<UserConfigurations>(.*?)</UserConfigurations>', xml_text, re.DOTALL)
+    uc_text = uc.group(1) if uc else ""
+    # 容器版各配置 id → ListOption ids
+    container = {}
+    for m in re.finditer(r'<ListConfiguration\b([^>]*?)(?:/>|>(.*?)</ListConfiguration>)', uc_text, re.DOTALL):
+        cid = re.search(r'\bid="([^"]+)"', m.group(1))
+        if cid:
+            opts = set(re.findall(r'<ListOption\b[^>]*\bid="([^"]+)"', m.group(2) or ""))
+            container[cid.group(1)] = opts
+    bool_ids = set(re.findall(r'<BooleanConfiguration\b[^>]*\bid="([^"]+)"', uc_text))
+    list_ids = set(container.keys())
+    # 渲染版: UserConfigurations 之外的部分
+    body = xml_text.replace(uc.group(0), '') if uc else xml_text
+    for m in re.finditer(r'<ListConfiguration\b[^>]*\bid="([^"]+)"[^>]*>(.*?)</ListConfiguration>', body, re.DOTALL):
+        rid, inner = m.group(1), m.group(2)
+        if rid not in list_ids:
+            return False, (f"渲染版 ListConfiguration id=\"{rid}\" 未在 UserConfigurations 容器版定义 (R37); "
+                           f"容器版已有: {sorted(list_ids) or '无'}")
+        for oid in re.findall(r'<ListOption\b[^>]*\bid="([^"]+)"', inner):
+            if oid not in container[rid]:
+                return False, (f"渲染版 ListOption id=\"{oid}\" 不在容器版 ListConfiguration \"{rid}\" 的选项集 {sorted(container[rid])} 内 (R37)")
+    for m in re.finditer(r'<BooleanConfiguration\b[^>]*\bid="([^"]+)"[^>]*>\s*<BooleanOption', body):
+        bid = m.group(1)
+        if bid not in bool_ids:
+            return False, (f"渲染版 BooleanConfiguration id=\"{bid}\" 未在 UserConfigurations 容器版定义 (R37); "
+                           "容器版缺此开关则编辑器无法控制该渲染块")
+    # 渲染版 BooleanOption id 只能 TRUE/FALSE
+    for m in re.finditer(r'<BooleanOption\b[^>]*\bid="([^"]+)"', body):
+        if m.group(1) not in ("TRUE", "FALSE"):
+            return False, f"BooleanOption id=\"{m.group(1)}\" 非法 (R37): 只能 TRUE 或 FALSE"
+    return True, "OK"
+
+
+def _check_rule_38(xml_text: str):
+    """R38: ComplicationSlot 上限 8、slotId 全局唯一（sceneElement.xsd maxOccurs=8 + xs:unique）
+
+    slotId 官方 samples 从 0 开始（类型 xs:string 无数值约束）。
+    """
+    xml_text = _strip_xml_comments(xml_text)
+    slots = re.findall(r'<ComplicationSlot\b[^>]*>', xml_text)
+    if len(slots) > 8:
+        return False, f"ComplicationSlot 数量 {len(slots)} 超上限 8 (R38, sceneElement.xsd maxOccurs)"
+    ids = []
+    for s in slots:
+        m = re.search(r'\bslotId="([^"]+)"', s)
+        if m:
+            ids.append(m.group(1))
+    dups = [i for i in set(ids) if ids.count(i) > 1]
+    if dups:
+        return False, f"slotId 重复: {sorted(dups)} (R38, XSD xs:unique 强制全局唯一)"
+    return True, "OK"
+
+
+def _check_rule_39(xml_text: str):
+    """R39: PartText 文本三层结构 PartText > Text > Font（XSD v1/v5 一致，validator 强制）
+
+    Font 直挂 PartText：渲染器可能宽容，但 wff-validator 拒绝（v0.4.0 预审实证）。
+    检测：PartText 直接子元素中出现 <Font（无 <Text> 包装）。
+    """
+    xml_text = _strip_xml_comments(xml_text)
+    for m in re.finditer(r'<PartText\b[^>]*>(.*?)</PartText>', xml_text, re.DOTALL):
+        inner = m.group(1)
+        has_font = re.search(r'<Font\b', inner)
+        has_text = re.search(r'<Text\b', inner)
+        if has_font and not has_text:
+            # Font 前没有 Text 包装 → 报错 (Font 可能在 Outline 内部, 但那也在 Text 内)
+            return False, ("PartText 直接含 <Font> 缺 <Text> 包装层 (R39): "
+                           "PartText > Text > Font 三层结构, wff-validator 强制; "
+                           "参考: <PartText ...><Text align=\"CENTER\"><Font ...>...</Font></Text></PartText>")
+    return True, "OK"
+
+
 def _check_rule_28(xml_text: str):
     """R28: BoundingShape 用 slot 局部坐标（真机实证 2026-08-31 第二轮）
 
@@ -648,6 +728,18 @@ WFF_RULES = [
         "Arc centerX/centerY 是 PartDraw 局部坐标: 椭圆溢出容器被裁, 弧线变斜线",
         {"bad": '<PartDraw width="320" height="44"><Arc centerX="225" ... width="320" ...>',
          "good": '<PartDraw width="320" height="44"><Arc centerX="160" centerY="22" width="320" height="44" ...>'}),
+    WFFRule("R37", "error", _check_rule_37,
+        "List/Boolean 渲染版 id 必须与容器版对应; BooleanOption id 只能 TRUE/FALSE",
+        {"bad": '<ListConfiguration id="style"><ListOption id="9">…</ListOption>…(容器版无 id=9)',
+         "good": '容器版 <ListConfiguration id="style"><ListOption id="0"/><ListOption id="1"/> + 渲染版 ListOption id 只用 0/1'}),
+    WFFRule("R38", "error", _check_rule_38,
+        "ComplicationSlot 上限 8 个, slotId 全局唯一 (官方从 0 起)",
+        {"bad": '9 个 ComplicationSlot 或 slotId="1" 重复',
+         "good": '≤8 个槽, slotId 各不相同'}),
+    WFFRule("R39", "error", _check_rule_39,
+        "PartText > Text > Font 三层结构, Font 直挂 PartText 被 validator 拒",
+        {"bad": '<PartText ...><Font family="SYNC_TO_DEVICE" ...>text</Font></PartText>',
+         "good": '<PartText ...><Text align="CENTER"><Font family="SYNC_TO_DEVICE" ...>text</Font></Text></PartText>'}),
 ]
 
 

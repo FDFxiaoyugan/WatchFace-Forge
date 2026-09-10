@@ -1,182 +1,253 @@
 {
-  "_comment": "盲测验收标准（机器可读）。此文件不给被测 agent 看，仅供 score_blindtest.py 使用。static_checks 为对 watchface.xml 原文的正则检查（re.search，DOTALL），weight 权重。",
-  "BT-01": {
-    "title": "极简数字表盘",
-    "static_checks": [
-      {
-        "id": "A1",
-        "desc": "数字时间显示（DigitalClock 或 TimeText）",
-        "pattern": "<DigitalClock|<TimeText",
-        "weight": 2
-      },
-      {
-        "id": "A2",
-        "desc": "日期数据源（[MONTH]/[DAY] 或 CURRENT_DATE）",
-        "pattern": "\\[(MONTH|DAY|DAY_Z|MONTH_S|DAY_OF_WEEK_S)\\]|CURRENT_DATE|MM|dd",
-        "weight": 2
-      },
-      {
-        "id": "A3",
-        "desc": "电池百分比数据源",
-        "pattern": "\\[BATTERY_PERCENT\\]",
-        "weight": 2
-      },
-      {
-        "id": "A4",
-        "desc": "青色系主色（R=00 系, color/tintColor, alpha 任意）",
-        "pattern": "([tT]int[Cc]olor|[Cc]olor)=\"#[0-9A-Fa-f]{2}00[0-9A-Fa-f]{4}\"|cyan|Cyan",
-        "weight": 1
-      },
-      {
-        "id": "A5",
-        "desc": "深色背景（backgroundColor 深色值或全屏背景图）",
-        "pattern": "backgroundColor=\"#[fF][fF]0[0-8]|<PartImage[^>]*x=\"0\"[^>]*y=\"0\"[^>]*width=\"450\"",
-        "weight": 1
-      }
-    ]
-  },
-  "BT-02": {
-    "title": "三针模拟表盘",
-    "static_checks": [
-      {
-        "id": "A1",
-        "desc": "AnalogClock 元素",
-        "pattern": "<AnalogClock",
-        "weight": 2
-      },
-      {
-        "id": "A2",
-        "desc": "时针 HourHand",
-        "pattern": "<HourHand",
-        "weight": 2
-      },
-      {
-        "id": "A3",
-        "desc": "分针 MinuteHand",
-        "pattern": "<MinuteHand",
-        "weight": 2
-      },
-      {
-        "id": "A4",
-        "desc": "秒针 SecondHand",
-        "pattern": "<SecondHand",
-        "weight": 2
-      },
-      {
-        "id": "A5",
-        "desc": "秒针红色系（color/tintColor, R≥C0 G/B≤7F）",
-        "pattern": "<SecondHand[^>]{0,400}?([tT]int[Cc]olor|[Cc]olor)=\"#[fF][fF][cC-fF][0-9A-Fa-f][0-7][0-9A-Fa-f][0-7][0-9A-Fa-f]\"",
-        "weight": 1
-      },
-      {
-        "id": "A6",
-        "desc": "表圈装饰（矢量 Arc/Circle/Stroke 或光栅 dial 背景图）",
-        "pattern": "<Arc\\b|<Circle\\b|<Stroke\\b|<PartImage[\\s\\S]{0,250}?<Image[^>]{0,150}?resource=\"[a-zA-Z_0-9]*dial[a-zA-Z_0-9]*\"",
-        "weight": 1
-      }
-    ]
-  },
-  "BT-03": {
-    "title": "混合表盘 + 心率 Complication",
-    "static_checks": [
-      {
-        "id": "A1",
-        "desc": "数字时间显示",
-        "pattern": "<DigitalClock|<TimeText",
-        "weight": 2
-      },
-      {
-        "id": "A2",
-        "desc": "Complication 插槽",
-        "pattern": "<ComplicationSlot",
-        "weight": 3
-      },
-      {
-        "id": "A3",
-        "desc": "插槽类型/心率相关配置",
-        "pattern": "type=\"[^\"]*\"|HEART_RATE|heart",
-        "weight": 1
-      },
-      {
-        "id": "A4",
-        "desc": "渐变背景（LinearGradient/RadialGradient/SweepGradient）",
-        "pattern": "<LinearGradient|<RadialGradient|<SweepGradient|gradient",
-        "weight": 1
-      }
-    ]
-  },
-  "BT-04": {
-    "title": "低电量条件变色",
-    "static_checks": [
-      {
-        "id": "A1",
-        "desc": "Condition 条件元素",
-        "pattern": "<Condition",
-        "weight": 3
-      },
-      {
-        "id": "A2",
-        "desc": "Condition 块内引用电池数据源（Expressions 或 Compare）",
-        "pattern": "<Condition>[\\s\\S]{0,600}?BATTERY_PERCENT",
-        "weight": 3
-      },
-      {
-        "id": "A3",
-        "desc": "低电量阈值 20（反转 20 > [BATTERY_PERCENT] 或 &lt; 转义）",
-        "pattern": "20\\s*>\\s*\\[?BATTERY_PERCENT|\\[BATTERY_PERCENT\\][^>]{0,30}&lt;\\s*20",
-        "weight": 2
-      },
-      {
-        "id": "A4",
-        "desc": "红色分支在 Compare 块内（color/tintColor, R≥C0 G/B≤7F）",
-        "pattern": "<Compare[\\s\\S]{0,900}?([tT]int[Cc]olor|[Cc]olor)=\"#[0-9A-Fa-f]{2}[cC-fF][0-9A-Fa-f][0-7][0-9A-Fa-f][0-7][0-9A-Fa-f]\"",
-        "weight": 1
-      },
-      {
-        "id": "A5",
-        "desc": "电池百分比显示",
-        "pattern": "\\[BATTERY_PERCENT\\]",
-        "weight": 2
-      }
-    ]
-  },
-  "BT-05": {
-    "title": "Ambient 独立场景",
-    "static_checks": [
-      {
-        "id": "A1",
-        "desc": "数字或模拟时间显示",
-        "pattern": "<DigitalClock|<TimeText|<AnalogClock",
-        "weight": 2
-      },
-      {
-        "id": "A2",
-        "desc": "日期数据源",
-        "pattern": "\\[(MONTH|DAY|DAY_Z|MONTH_S|DAY_OF_WEEK_S)\\]|CURRENT_DATE|MM|dd",
-        "weight": 1
-      },
-      {
-        "id": "A3",
-        "desc": "步数数据源",
-        "pattern": "\\[STEP_COUNT\\]",
-        "weight": 1
-      },
-      {
-        "id": "A4",
-        "desc": "AMBIENT Variant ≥2 个（多个元素独立 ambient 处理）",
-        "pattern": "<Variant[^>]*mode=\"AMBIENT\"",
-        "weight": 3,
-        "min_count": 2
-      },
-      {
-        "id": "A5",
-        "desc": "AMBIENT 隐藏处理（Variant value=\"0\"，属性顺序无关）",
-        "pattern": "<Variant\\b(?=[^>]*mode=\"AMBIENT\")(?=[^>]*value=\"0\")[^>]*/?>",
-        "weight": 2
-      }
-    ]
-  },
-  "common": {
-    "desc": "所有卡片通用：validate 16/16 + build 成功（由脚本动态执行，不在 static_checks）"
-  }
+ "_comment": "盲测验收标准（机器可读）。此文件不给被测 agent 看，仅供 score_blindtest.py 使用。static_checks 为对 watchface.xml 原文的正则检查（re.search，DOTALL），weight 权重。",
+ "BT-01": {
+  "title": "极简数字表盘",
+  "static_checks": [
+   {
+    "id": "A1",
+    "desc": "数字时间显示（DigitalClock 或 TimeText）",
+    "pattern": "<DigitalClock|<TimeText",
+    "weight": 2
+   },
+   {
+    "id": "A2",
+    "desc": "日期数据源（[MONTH]/[DAY] 或 CURRENT_DATE）",
+    "pattern": "\\[(MONTH|DAY|DAY_Z|MONTH_S|DAY_OF_WEEK_S)\\]|CURRENT_DATE|MM|dd",
+    "weight": 2
+   },
+   {
+    "id": "A3",
+    "desc": "电池百分比数据源",
+    "pattern": "\\[BATTERY_PERCENT\\]",
+    "weight": 2
+   },
+   {
+    "id": "A4",
+    "desc": "青色系主色（R=00 系, color/tintColor, alpha 任意）",
+    "pattern": "([tT]int[Cc]olor|[Cc]olor)=\"#[0-9A-Fa-f]{2}00[0-9A-Fa-f]{4}\"|cyan|Cyan",
+    "weight": 1
+   },
+   {
+    "id": "A5",
+    "desc": "深色背景（backgroundColor 深色值或全屏背景图）",
+    "pattern": "backgroundColor=\"#[fF][fF]0[0-8]|<PartImage[^>]*x=\"0\"[^>]*y=\"0\"[^>]*width=\"450\"",
+    "weight": 1
+   }
+  ]
+ },
+ "BT-02": {
+  "title": "三针模拟表盘",
+  "static_checks": [
+   {
+    "id": "A1",
+    "desc": "AnalogClock 元素",
+    "pattern": "<AnalogClock",
+    "weight": 2
+   },
+   {
+    "id": "A2",
+    "desc": "时针 HourHand",
+    "pattern": "<HourHand",
+    "weight": 2
+   },
+   {
+    "id": "A3",
+    "desc": "分针 MinuteHand",
+    "pattern": "<MinuteHand",
+    "weight": 2
+   },
+   {
+    "id": "A4",
+    "desc": "秒针 SecondHand",
+    "pattern": "<SecondHand",
+    "weight": 2
+   },
+   {
+    "id": "A5",
+    "desc": "秒针红色系（color/tintColor, R≥C0 G/B≤7F）",
+    "pattern": "<SecondHand[^>]{0,400}?([tT]int[Cc]olor|[Cc]olor)=\"#[fF][fF][cC-fF][0-9A-Fa-f][0-7][0-9A-Fa-f][0-7][0-9A-Fa-f]\"",
+    "weight": 1
+   },
+   {
+    "id": "A6",
+    "desc": "表圈装饰（矢量 Arc/Circle/Stroke 或光栅 dial 背景图）",
+    "pattern": "<Arc\\b|<Circle\\b|<Stroke\\b|<PartImage[\\s\\S]{0,250}?<Image[^>]{0,150}?resource=\"[a-zA-Z_0-9]*dial[a-zA-Z_0-9]*\"",
+    "weight": 1
+   }
+  ]
+ },
+ "BT-03": {
+  "title": "混合表盘 + 心率 Complication",
+  "static_checks": [
+   {
+    "id": "A1",
+    "desc": "数字时间显示",
+    "pattern": "<DigitalClock|<TimeText",
+    "weight": 2
+   },
+   {
+    "id": "A2",
+    "desc": "Complication 插槽",
+    "pattern": "<ComplicationSlot",
+    "weight": 3
+   },
+   {
+    "id": "A3",
+    "desc": "插槽类型/心率相关配置",
+    "pattern": "type=\"[^\"]*\"|HEART_RATE|heart",
+    "weight": 1
+   },
+   {
+    "id": "A4",
+    "desc": "渐变背景（LinearGradient/RadialGradient/SweepGradient）",
+    "pattern": "<LinearGradient|<RadialGradient|<SweepGradient|gradient",
+    "weight": 1
+   }
+  ]
+ },
+ "BT-04": {
+  "title": "低电量条件变色",
+  "static_checks": [
+   {
+    "id": "A1",
+    "desc": "Condition 条件元素",
+    "pattern": "<Condition",
+    "weight": 3
+   },
+   {
+    "id": "A2",
+    "desc": "Condition 块内引用电池数据源（Expressions 或 Compare）",
+    "pattern": "<Condition>[\\s\\S]{0,600}?BATTERY_PERCENT",
+    "weight": 3
+   },
+   {
+    "id": "A3",
+    "desc": "低电量阈值 20（反转 20 > [BATTERY_PERCENT] 或 &lt; 转义）",
+    "pattern": "20\\s*>\\s*\\[?BATTERY_PERCENT|\\[BATTERY_PERCENT\\][^>]{0,30}&lt;\\s*20",
+    "weight": 2
+   },
+   {
+    "id": "A4",
+    "desc": "红色分支在 Compare 块内（color/tintColor, R≥C0 G/B≤7F）",
+    "pattern": "<Compare[\\s\\S]{0,900}?([tT]int[Cc]olor|[Cc]olor)=\"#[0-9A-Fa-f]{2}[cC-fF][0-9A-Fa-f][0-7][0-9A-Fa-f][0-7][0-9A-Fa-f]\"",
+    "weight": 1
+   },
+   {
+    "id": "A5",
+    "desc": "电池百分比显示",
+    "pattern": "\\[BATTERY_PERCENT\\]",
+    "weight": 2
+   }
+  ]
+ },
+ "BT-05": {
+  "title": "Ambient 独立场景",
+  "static_checks": [
+   {
+    "id": "A1",
+    "desc": "数字或模拟时间显示",
+    "pattern": "<DigitalClock|<TimeText|<AnalogClock",
+    "weight": 2
+   },
+   {
+    "id": "A2",
+    "desc": "日期数据源",
+    "pattern": "\\[(MONTH|DAY|DAY_Z|MONTH_S|DAY_OF_WEEK_S)\\]|CURRENT_DATE|MM|dd",
+    "weight": 1
+   },
+   {
+    "id": "A3",
+    "desc": "步数数据源",
+    "pattern": "\\[STEP_COUNT\\]",
+    "weight": 1
+   },
+   {
+    "id": "A4",
+    "desc": "AMBIENT Variant ≥2 个（多个元素独立 ambient 处理）",
+    "pattern": "<Variant[^>]*mode=\"AMBIENT\"",
+    "weight": 3,
+    "min_count": 2
+   },
+   {
+    "id": "A5",
+    "desc": "AMBIENT 隐藏处理（Variant value=\"0\"，属性顺序无关）",
+    "pattern": "<Variant\\b(?=[^>]*mode=\"AMBIENT\")(?=[^>]*value=\"0\")[^>]*/?>",
+    "weight": 2
+   }
+  ]
+ },
+ "common": {
+  "desc": "所有卡片通用：validate 16/16 + build 成功（由脚本动态执行，不在 static_checks）"
+ },
+ "BT-08": {
+  "title": "可定制组件表盘",
+  "static_checks": [
+   {
+    "id": "A1",
+    "desc": "容器版 UserConfigurations（编辑器 UI 元数据）",
+    "pattern": "<UserConfigurations>",
+    "weight": 3
+   },
+   {
+    "id": "A2",
+    "desc": "容器版 ListConfiguration（时钟风格切换 UI，含 defaultValue）",
+    "pattern": "<UserConfigurations>[\\s\\S]{0,2000}?<ListConfiguration[^>]*\\bdefaultValue=",
+    "weight": 3
+   },
+   {
+    "id": "A3",
+    "desc": "容器版 ListOption ≥2 个（风格选项）",
+    "pattern": "(<ListOption\\b[^>]*\\bid=[^>]*>[\\s\\S]{0,800}?){2}",
+    "weight": 2
+   },
+   {
+    "id": "A4",
+    "desc": "渲染版 ListConfiguration（Scene 内，id 与容器版对应）",
+    "pattern": "</UserConfigurations>[\\s\\S]*<Scene[\\s\\S]{0,4000}?<ListConfiguration[^>]*\\bid=",
+    "weight": 3
+   },
+   {
+    "id": "A5",
+    "desc": "BooleanConfiguration 容器版（开关 UI）",
+    "pattern": "<UserConfigurations>[\\s\\S]{0,2000}?<BooleanConfiguration[^>]*(\\bid=|\\bdefaultValue=)",
+    "weight": 3
+   },
+   {
+    "id": "A6",
+    "desc": "Boolean 渲染版 BooleanOption id=TRUE（关=不渲染模式或含 FALSE）",
+    "pattern": "</UserConfigurations>[\\s\\S]*<BooleanOption[^>]*\\bid=\\\"(TRUE|FALSE)\\\"",
+    "weight": 3
+   },
+   {
+    "id": "A7",
+    "desc": "ColorConfiguration（主题颜色选项）",
+    "pattern": "<ColorConfiguration[^>]*\\bdefaultValue=[\\s\\S]{0,500}?<ColorOption",
+    "weight": 2
+   },
+   {
+    "id": "A8",
+    "desc": "ComplicationSlot ≥2 个（左右槽）",
+    "pattern": "(<ComplicationSlot\\b[\\s\\S]{0,2000}?){2}",
+    "weight": 3
+   },
+   {
+    "id": "A9",
+    "desc": "slotId 全局唯一且槽内 Complication 有渲染内容（PartText/PartDraw）",
+    "pattern": "<ComplicationSlot[^>]*\\bslotId=\\\"[^\\\"]+\\\"[\\s\\S]{0,3000}?</ComplicationSlot>",
+    "weight": 2
+   },
+   {
+    "id": "A10",
+    "desc": "文本三层结构 PartText > Text > Font（R39）",
+    "pattern": "<PartText[^>]*>[\\s\\S]{0,200}?<Text[\\s\\S]{0,2000}?<Font",
+    "weight": 2
+   },
+   {
+    "id": "A11",
+    "desc": "配置色绑定（[CONFIGURATION.x] 引用）",
+    "pattern": "\\[CONFIGURATION\\.[A-Za-z_][A-Za-z0-9_.]*\\]",
+    "weight": 2
+   }
+  ]
+ }
 }

@@ -3,7 +3,7 @@
 > Agent Skill: 教任意 AI agent 开发 Wear OS Watch Face Format (WFF) 表盘。
 > 从一行需求到可安装 APK，全流程 agent 自主完成。
 
-**版本 v0.4.0**（2026-09-10）— P2 编辑器破案 + 颜色包主线。版本史：
+**版本 v0.4.0**（2026-09-10）— P2 编辑器破案 + 颜色包主线。**v0.5.0 组件包知识层已入库（2026-09-10 预审），待盲测+真机后发布**。版本史：
 - v0.1.0（2026-08-24）首版端到端验证
 - v0.2.0（2026-08-27）Round 1 回灌：知识层大修 11 处（嵌套方向/HH:mm/Complication 属性集）
 - v0.2.2（2026-08-31）真机三轮复盘：R26-R30 + 规则 20 条
@@ -49,7 +49,7 @@ x86_64 机器（或 Docker x86_64）上进行。
 python wff-builder/wff_builder.py init projects/my_watch
 
 # 2. 写 watchface.xml（参考 recipes.md 配方）
-# 3. 验证（24 条规则 + XSD）
+# 3. 验证（27 条规则 + XSD）
 python wff-builder/wff_builder.py validate projects/my_watch
 
 # 4. 构建 APK
@@ -65,7 +65,7 @@ python client/wff_api.py build projects/my_watch
 |------|------|--------|
 | [elements.md](./references/elements.md) | WFF v5 全量元素树 + 属性 | 需要查"某个元素叫什么/有什么属性"时 |
 | [expressions.md](./references/expressions.md) | 数据源 + 运算符 + 函数 | 需要写动态表达式时 |
-| [pitfalls.md](./references/pitfalls.md) | 36 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
+| [pitfalls.md](./references/pitfalls.md) | 40 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
 | [recipes.md](./references/recipes.md) | 3 种典型表盘完整模板 | 开始一个新表盘时 |
 
 ## WFF XML Skeleton
@@ -115,6 +115,7 @@ python client/wff_api.py build projects/my_watch
 | 只看时间 | minimal-digital | `examples/minimal-digital/` |
 | 指针表盘 | analog-hands | `recipes.md` §2 |
 | 信息密集 | hybrid-complication | `recipes.md` §3 |
+| 可定制组件 | configurable-components | `recipes.md` §4 |
 
 ### 3. 写 WFF XML
 
@@ -150,6 +151,13 @@ python client/wff_api.py build projects/my_watch
   容器弧段被裁成"斜线"；居中写 `centerX=容器宽/2`
 - **Arc 角度 0°=12点、顺时针正、负角合法**（R36）：上半拱 `-90→90`；`180→360`
   是左半弧 C 形（开口朝右）
+- **List/Boolean 两套模式，id 两边对应**（R37）：容器版（UserConfigurations 内）
+  = 编辑器 UI 元数据；渲染版（Scene/Group 内）= Option id + 内嵌部件。Boolean
+  渲染版可只放 TRUE（FALSE=不渲染）。ListOption `complicationSlotIds` 联动槽位显隐
+- **ComplicationSlot 上限 8、slotId 唯一、从 0 起**（R38）
+- **PartText > Text > Font 三层**（R39）：Font 直挂 PartText 被 validator 拒
+  （渲染器宽容也不行）；`[CONFIGURATION.<id>.<N>]` 取多色 ColorOption 第 N 色位；
+  表达式含 `&&` 用 CDATA
 - 列表属性空格分隔：`colors="#ffAABBCC #ff112233"`
 - 布尔枚举大写：`isCustomizable="TRUE"`
 - project.yaml 不写行内注释

@@ -400,12 +400,12 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
 > 📌 **booleanType 枚举是大写 `TRUE`/`FALSE`**（`isCustomizable="TRUE"`），小写
 > `true` 不合法（XSD `booleanType` 自定义枚举，非 xs:boolean）。
 
-> ⚠️ **`displayName` 必须是 `@string/` 资源引用**（R30，真机实证 2026-08-31）：官方
-> 语义是 "A resource ID ... displayed in the watch face editor"。裸文本在部分 OEM
-> 编辑器（三星 One UI）解析失败会导致自定义入口异常。字符串定义放项目
-> `res/values/strings.xml`（wff_builder 自动合并进 resources.arsc）：
-> `<string name="complication_slot_display">DATA</string>`。
-> `slotId` 建议从 1 开始（官方示例惯例），保持全局唯一。
+> ⚠️ **`displayName` 用裸资源名**（R30 反转版，真机复测 2026-09-09）：`displayName="slot_heart_rate"`
+> 与 `res/values/strings.xml` 中资源名一致。res/raw 与 res/xml 不经 aapt2 编译，`@string/`
+> 前缀在这些文件里是字面量，WFF 库按名自查 arsc。
+> `slotId` 官方 samples 从 **0** 开始（Flavors/Complications 一致），XSD `xs:unique`
+> 强制全局唯一；Scene 内 ComplicationSlot **上限 8 个**（R38）。
+> `BoundingOval` 支持 `outlinePadding`（编辑器选中外框内边距，官方 sample 在用）。
 
 Complication 类型：`SHORT_TEXT` `LONG_TEXT` `MONOCHROMATIC_IMAGE` `SMALL_IMAGE` `PHOTO_IMAGE` `RANGED_VALUE` `GOAL_PROGRESS` `WEIGHTED_ELEMENTS` `EMPTY`
 
@@ -418,22 +418,68 @@ DefaultProvider：`APP_SHORTCUT` `DATE` `DAY_OF_WEEK` `FAVORITE_CONTACT` `NEXT_E
 
 ## 用户配置
 
-### `<UserConfigurations>`
+### `<UserConfigurations>`（容器版——编辑器 UI 元数据，挂在 Scene 前）
 
 ```xml
 <UserConfigurations>
-    <UserConfiguration id="color_theme" ...>
-        <ListOption displayName="Blue" value="blue"/>
-        <ListOption displayName="Red" value="red"/>
-    </UserConfiguration>
-    <UserConfiguration id="show_seconds" type="Boolean" .../>
-    <UserConfiguration id="bg_photo" type="Photos" .../>
+    <ColorConfiguration id="themeColor" displayName="theme_color" defaultValue="0">
+        <ColorOption id="0" displayName="color_zero" colors="#ff00E5FF #ff071629"/>
+    </ColorConfiguration>
+    <ListConfiguration id="clockStyle" displayName="clock_style" defaultValue="0">
+        <ListOption id="0" displayName="style_thin" icon="style_thin_icon"/>
+        <ListOption id="1" displayName="style_bold" icon="style_bold_icon"/>
+    </ListConfiguration>
+    <BooleanConfiguration id="showSeconds" displayName="show_seconds" defaultValue="TRUE"/>
+    <PhotosConfiguration id="bg" displayName="bg_label" defaultValue="..."
+                         configType="SINGLE" highlight="highlight_icon"/>
+    <Flavors>
+        <Flavor id="flavorOne" displayName="flavor_one_label" icon="flavor_one_icon">
+            <Configuration id="themeColor" optionId="1"/>
+            <Configuration id="showSeconds" optionId="FALSE"/>
+            <ComplicationSlot slotId="0">
+                <DefaultProviderPolicy defaultSystemProvider="SUNRISE_SUNSET"
+                                       defaultSystemProviderType="EMPTY"/>
+            </ComplicationSlot>
+        </Flavor>
+    </Flavors>
 </UserConfigurations>
 ```
 
-配置类型：`List`（下拉选择）、`Boolean`（开关）、`Color`（颜色选择器）、`Photos`（用户照片）、`Flavors`（预设风格）
+- **没有 `<UserConfiguration>` 这个元素**（旧知识层写法是错的，XSD v5 无此元素）；
+  五种配置各是独立元素：`ColorConfiguration` `ListConfiguration` `BooleanConfiguration`
+  `PhotosConfiguration` `Flavors`
+- `ListConfiguration` 必填 id/displayName/defaultValue；`ListOption` 纯属性
+  （id + displayName/icon/`complicationSlotIds`/`childSettingIds`——空格分隔多值）
+- `BooleanConfiguration` 容器版**纯属性无子元素**（defaultValue 取 TRUE/FALSE）
+- `PhotosConfiguration` configType 枚举 `SINGLE`/`MULTIPLE`；`Flavors/Flavor` 是
+  预设组合（Configuration optionId + ComplicationSlot 预设 provider）
+- `displayName` 一律裸资源名（R30）
 
-引用方式：`[CONFIGURATION.color_theme]`
+### List/Boolean **渲染版**（Scene/Group/指针内——每选项的渲染内容，R37）
+
+```xml
+<!-- Scene 内; id 与容器版一致 -->
+<ListConfiguration id="clockStyle">
+    <ListOption id="0"><DigitalClock>…细体时间…</DigitalClock></ListOption>
+    <ListOption id="1"><DigitalClock>…粗体时间…</DigitalClock></ListOption>
+</ListConfiguration>
+
+<BooleanConfiguration id="showSeconds">
+    <BooleanOption id="TRUE"><PartText>…秒…</PartText></BooleanOption>
+    <!-- 可只放 TRUE: FALSE 状态=该处不渲染 (官方 showHr 模式) -->
+</BooleanConfiguration>
+```
+
+BooleanOption/ListOption 内嵌单个部件：PartElementGroup / Group / Condition /
+AnalogClock / DigitalClock。渲染版可挂在 HourHand/MinuteHand/SecondHand 内
+（多套指针样式切换）。
+
+### 引用方式
+
+- 无索引：`[CONFIGURATION.themeColor]`（单色 ColorOption，P2 真机实证）
+- **色位索引**：`[CONFIGURATION.themeColor.0]`（多色 colors 取第 0 位，官方 sample）
+- 数据有无判断：`[CONFIGURATION.x] != null`；三元 `[A] != null ? [A] : "--"`
+- 复杂表达式（含 `&&`）用 CDATA 包裹（R39）
 
 ---
 

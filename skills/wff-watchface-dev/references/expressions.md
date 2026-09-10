@@ -127,7 +127,15 @@
 
 | 数据源 | 说明 |
 |--------|------|
-| `[CONFIGURATION.<id>]` | 引用用户配置项的当前值 |
+| `[CONFIGURATION.<id>]` | 引用用户配置项的当前值（单色 ColorOption / List 选中 id / Boolean TRUE\|FALSE） |
+| `[CONFIGURATION.<id>.<N>]` | **色位索引**：多色 ColorOption（`colors="#A #B #C"`）取第 N 色位 |
+
+- 数据有无判断：`[CONFIGURATION.<id>] != null`；三元兜底
+  `[X] != null ? [X] : "--"`（字符串字面量在 XML 属性里转义 `&quot;--&quot;`）
+- 表达式含 `&&` `||` 等 XML 敏感字符时，把整个 Expression 文本放进
+  `<![CDATA[...]]>`（官方 Complications sample 模式）
+- List/Boolean 渲染切换不靠表达式，靠**渲染版配置**（R37：
+  Scene 内 ListConfiguration/BooleanConfiguration 的 Option id 对应）；
 
 ### Complication
 
