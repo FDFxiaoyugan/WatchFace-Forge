@@ -143,6 +143,15 @@ Group 用于组织部件并应用变体。典型模式：一个 ACTIVE Group + �
 **没有 `sweepAngle` 属性**；且角度只支持静态值——动态进度环用
 ComplicationSlot `type="RANGED_VALUE"`（系统渲染），不要试图给 Arc 写表达式角度。
 
+> ⚠️ **Arc 角度语义速查（R36，ArcLab 像素级实证 2026-09-09）**：
+> 0°=12点、**顺时针**为正、**负角度合法**。
+> 上半拱 `-90→90`（开口朝下）；`180→360` 是左半弧 C 形（开口朝右，不是上半拱）；
+> 官方电量环 `-150→150` 缺口朝下。`cap="ROUND"` 官方 sample 在用。
+>
+> ⚠️ **Arc 几何是 PartDraw 局部坐标（R35，斜线悬案实证 2026-09-10）**：
+> centerX/centerY 相对**父容器**（0,0=容器左上角），椭圆 bbox 溢出容器的弧段
+> 被直接裁剪。居中写法：`centerX = 容器width/2, centerY = 容器height/2`。
+
 **形状**（PartDraw 直接子元素）：`<Arc>` `<Ellipse>` `<Line>` `<Rectangle>` `<RoundRectangle>`
 > ⚠️ **没有 `<Circle>` 和 `<Path>`**——画圆用 Ellipse（width=height），x/y/width/height 定包围盒。
 

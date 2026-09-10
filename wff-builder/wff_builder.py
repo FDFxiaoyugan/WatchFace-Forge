@@ -30,6 +30,7 @@ import json
 import shutil
 import hashlib
 import re
+import math
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -94,8 +95,11 @@ MANIFEST_TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>
 WATCH_FACE_INFO_TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>
 <WatchFaceInfo>
     <Preview value="@drawable/preview" />
+    <Editable value="true" />
 </WatchFaceInfo>
 """
+# Editable=true: One UI 表盘编辑器「自定义」按钮的开关 (P2 根因, 2026-09-09 官方 sample 实证)
+# 缺失时表盘可正常渲染/选择, 但编辑器不出现自定义入口
 
 STRINGS_TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>
 <resources>
@@ -444,6 +448,85 @@ def _check_rule_32(xml_text: str):
     return True, "OK"
 
 
+def _check_rule_34(xml_text: str):
+    """R34: 圆形表盘溢出检查（真机实证 2026-09-10，P2 拱顶被切数像素）
+
+    圆屏只显示画布的内切圆。顶层元素 bbox 的四角到画布中心距离 > 半径，
+    该角即被屏幕切掉。顶部/底部窄条元素尤其高危（内切圆在竖直方向亏欠最多）。
+    """
+    xml_text = _strip_xml_comments(xml_text)
+    wm = re.search(r'<WatchFace\b[^>]*\bwidth="([\d.]+)"', xml_text)
+    hm = re.search(r'<WatchFace\b[^>]*\bheight="([\d.]+)"', xml_text)
+    if not (wm and hm):
+        return True, "OK"
+    W, H = float(wm.group(1)), float(hm.group(1))
+    cx, cy, R = W / 2, H / 2, min(W, H) / 2
+    # Scene 直接子元素 (全局坐标)
+    scene = re.search(r'<Scene\b[^>]*>(.*)</Scene>', xml_text, re.DOTALL)
+    if not scene:
+        return True, "OK"
+    for m in re.finditer(r'<(PartDraw|PartText|PartImage|DigitalClock|AnalogClock|Group)\b([^>]*?)(/>|>)',
+                         scene.group(1)):
+        attrs = m.group(2)
+        x = re.search(r'\bx="(-?[\d.]+)"', attrs)
+        y = re.search(r'\by="(-?[\d.]+)"', attrs)
+        w = re.search(r'\bwidth="([\d.]+)"', attrs)
+        h = re.search(r'\bheight="([\d.]+)"', attrs)
+        if not all([x, y, w, h]):
+            continue
+        x0, y0 = float(x.group(1)), float(y.group(1))
+        x1, y1 = x0 + float(w.group(1)), y0 + float(h.group(1))
+        # 全画布容器是常见合法 pattern (内容实际居中/有内边距), 跳过
+        if x0 <= 5 and y0 <= 5 and x1 >= W - 5 and y1 >= H - 5:
+            continue
+        # 四角到中心最大距离
+        dmax = max(math.hypot(px - cx, py - cy)
+                   for px in (x0, x1) for py in (y0, y1))
+        if dmax > R + 0.5:
+            overflow = dmax - R
+            return False, (f"<{m.group(1)}> ({x0:.0f},{y0:.0f} {w.group(1)}x{h.group(1)}) "
+                           f"bbox 角超出内切圆 {overflow:.0f}px, 圆屏边缘会切掉 (R34); "
+                           f"参考: 内切圆中心({cx:.0f},{cy:.0f}) 半径{R:.0f}, "
+                           f"顶部元素 y≥{cy - R:.0f}+安全边距, 或收窄宽度")
+    return True, "OK"
+
+
+def _check_rule_35(xml_text: str):
+    """R35: Arc 椭圆 bbox 溢出父 PartDraw 容器（真机实证 2026-09-10 斜线悬案）
+
+    Arc 的 centerX/centerY 是 PartDraw **局部坐标**。椭圆中心偏离容器中心时，
+    溢出容器的弧段被直接裁剪——表现为"斜线"/"半段弧"。
+    检测：每对 (PartDraw 容器 w/h, 内部 Arc bbox) 比对。
+    """
+    xml_text = _strip_xml_comments(xml_text)
+    for m in re.finditer(
+            r'<PartDraw\b([^>]*?)(/>|>(.*?)</PartDraw>)', xml_text, re.DOTALL):
+        attrs = m.group(1)
+        body = m.group(3) or ""
+        cw = re.search(r'\bwidth="([\d.]+)"', attrs)
+        ch = re.search(r'\bheight="([\d.]+)"', attrs)
+        if not (cw and ch) or "<Arc" not in body:
+            continue
+        CW, CH = float(cw.group(1)), float(ch.group(1))
+        for am in re.finditer(r'<Arc\b([^>]*)>', body):
+            aa = am.group(1)
+            ax = re.search(r'\bcenterX="(-?[\d.]+)"', aa)
+            ay = re.search(r'\bcenterY="(-?[\d.]+)"', aa)
+            aw = re.search(r'\bwidth="([\d.]+)"', aa)
+            ah = re.search(r'\bheight="([\d.]+)"', aa)
+            if not all([ax, ay, aw, ah]):
+                continue
+            ex0 = float(ax.group(1)) - float(aw.group(1)) / 2
+            ey0 = float(ay.group(1)) - float(ah.group(1)) / 2
+            ex1 = float(ax.group(1)) + float(aw.group(1)) / 2
+            ey1 = float(ay.group(1)) + float(ah.group(1)) / 2
+            if ex0 < -0.5 or ey0 < -0.5 or ex1 > CW + 0.5 or ey1 > CH + 0.5:
+                return False, (f"Arc 椭圆 bbox ({ex0:.0f},{ey0:.0f})-({ex1:.0f},{ey1:.0f}) "
+                               f"溢出 PartDraw 容器 {CW:.0f}x{CH:.0f}, 溢出段被裁剪 (R35 斜线悬案); "
+                               f"centerX/centerY 是局部坐标, 居中应写: centerX={CW/2:.0f} centerY={CH/2:.0f}")
+    return True, "OK"
+
+
 def _check_rule_28(xml_text: str):
     """R28: BoundingShape 用 slot 局部坐标（真机实证 2026-08-31 第二轮）
 
@@ -557,7 +640,34 @@ WFF_RULES = [
         "Condition: 算式在 Expressions/Expression 文本, Compare 按 name 引用; 无 < 运算符",
         {"bad": '<Condition expression="[BATTERY_PERCENT] < 20"><Compare expression="1">',
          "good": '<Condition><Expressions><Expression name="low">20 > [BATTERY_PERCENT]</Expression></Expressions><Compare expression="low">'}),
+    WFFRule("R34", "warn", _check_rule_34,
+        "圆屏只显示画布内切圆: 顶层元素 bbox 角超出内切圆会被屏幕切掉",
+        {"bad": '<PartDraw x="0" y="0" width="450" height="80">  <!-- 顶部窄条四角全在外 -->',
+         "good": '<PartDraw x="105" y="12" width="240" height="72">  <!-- 角点距离中心 ≤ 半径 -->'}),
+    WFFRule("R35", "warn", _check_rule_35,
+        "Arc centerX/centerY 是 PartDraw 局部坐标: 椭圆溢出容器被裁, 弧线变斜线",
+        {"bad": '<PartDraw width="320" height="44"><Arc centerX="225" ... width="320" ...>',
+         "good": '<PartDraw width="320" height="44"><Arc centerX="160" centerY="22" width="320" height="44" ...>'}),
 ]
+
+
+def check_watch_face_info(project_dir: str):
+    """R33 (项目级): res/xml/watch_face_info.xml 必须存在且含 <Editable value="true"/>
+
+    One UI 表盘编辑器「自定义」按钮的总开关 (P2 根因, 2026-09-09 四轮单变量迭代实证;
+    官方 samples: android/wear-os-samples/WatchFaceFormat)。缺失时表盘渲染/选择/安装
+    全正常, 仅编辑器不出现自定义入口——所有 UserConfigurations 相关修复都救不了它。
+    返回 (passed, detail)。
+    """
+    info_path = Path(project_dir) / "res" / "xml" / "watch_face_info.xml"
+    if not info_path.exists():
+        return False, ("res/xml/watch_face_info.xml 不存在 (R33): 编辑器自定义按钮的开关文件; "
+                       "builder build 会自动生成 (模板已含 Editable), 手写项目必须自带")
+    text = _strip_xml_comments(info_path.read_text(encoding="utf-8"))
+    if not re.search(r'<Editable\b[^>]*\bvalue\s*=\s*"true"', text):
+        return False, ('watch_face_info.xml 缺 <Editable value="true"/> (R33): '
+                       'One UI 编辑器自定义按钮总开关, 缺失则 UserConfigurations 不显示入口')
+    return True, "OK"
 
 
 def validate_watchface_xml(xml_text: str, verbose=False) -> list:
@@ -672,7 +782,8 @@ class WFFBuilder:
         strings_xml = STRINGS_TEMPLATE.format(
             watch_face_name=self.config["watch_face_name"]
         )
-        # 项目级 strings.xml：displayName 等编辑器资源必须是 @string/ 引用（真机实证 2026-08-31）
+        # 项目级 strings.xml：displayName 等编辑器资源用裸资源名引用 (WFF 库按名自查 arsc,
+        # res/raw XML 不经 aapt2 编译, @string/ 前缀是字面量会查不到; 官方 sample 实证 2026-09-09)
         project_strings = self.project_dir / "res" / "values" / "strings.xml"
         if project_strings.is_file():
             extra = project_strings.read_text(encoding="utf-8")
@@ -1130,9 +1241,25 @@ def main():
         wf_text = wf_path.read_text()
         print(f"Validating {wf_path.name}...")
         failures = validate_watchface_xml(wf_text, verbose=True)
+        # R33 项目级检查 (watch_face_info.xml 独立于 watchface.xml)
+        # 分级: 文件不存在 → warn (builder build 自动生成含 Editable 的模板);
+        #       文件存在但缺 Editable → error (明确 bug: 开关没开, 编辑器无自定义入口)
+        info_ok, info_detail = check_watch_face_info(project_dir)
+        info_missing = info_detail.startswith("res/xml/watch_face_info.xml 不存在")
+        if not info_ok:
+            sev = "warn" if info_missing else "error"
+            failures.append({"rule_id": "R33", "severity": sev,
+                         "detail": info_detail,
+                         "fix": "res/xml/watch_face_info.xml 加 <Editable value=\"true\"/>",
+                         "examples": {"good": "<WatchFaceInfo><Preview value=\"@drawable/preview\"/><Editable value=\"true\"/></WatchFaceInfo>"}}
+            )
+            print(f"  [{'FAIL' if sev == 'error' else 'WARN'}] R33: {info_detail}")
+        else:
+            print(f"  [PASS] R33: OK (watch_face_info.xml 含 Editable)")
         errors = [f for f in failures if f["severity"] == "error"]
         warnings = [f for f in failures if f["severity"] == "warn"]
-        print(f"\nSummary: {len(WFF_RULES) - len(failures)}/{len(WFF_RULES)} passed, {len(errors)} errors, {len(warnings)} warnings")
+        total = len(WFF_RULES) + 1  # + R33 项目级
+        print(f"\nSummary: {total - len(failures)}/{total} passed, {len(errors)} errors, {len(warnings)} warnings")
         if errors:
             sys.exit(1)
     elif cmd == "build":

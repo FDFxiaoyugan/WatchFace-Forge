@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<!-- P2 对照实验: UserConfigurations + ColorConfiguration (v2) -->
+<!-- 验证点: ①One UI 编辑器自定义按钮出现 ②颜色选项可选 ③选中后渲染切换 -->
+<WatchFace width="450" height="450">
+    <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
+    <Metadata key="PREVIEW_TIME" value="10:06:00"/>
+
+    <!-- 顺序: Metadata → UserConfigurations → Scene (watchface.xsd 权威) -->
+    <UserConfigurations>
+        <ColorConfiguration id="themeColor"
+                            displayName="theme_color"
+                            defaultValue="cyan">
+            <ColorOption id="cyan" displayName="color_cyan" colors="#ff00E5FF"/>
+            <ColorOption id="gold" displayName="color_gold" colors="#ffFFC940"/>
+            <ColorOption id="red"  displayName="color_red"  colors="#ffFF5555"/>
+        </ColorConfiguration>
+    </UserConfigurations>
+
+    <Scene backgroundColor="#ff000000">
+        <!-- 顶部装饰弧线: 验证 Stroke 位置的 colorAttributeType 表达式 -->
+        <!-- 布局修正: TimeText y=基线语义, 96px 字形占 y≈44-140 → 弧线放 10-36 -->
+        <PartDraw x="105" y="8" width="240" height="72">
+            <Arc centerX="120" centerY="36" width="240" height="72" startAngle="-90" endAngle="90">
+                <Stroke color="[CONFIGURATION.themeColor]" thickness="6" cap="ROUND"/>
+            </Arc>
+        </PartDraw>
+
+        <DigitalClock x="0" y="0" width="450" height="450">
+            <TimeText format="hh:mm" hourFormat="SYNC_TO_DEVICE"
+                      align="CENTER" x="0" y="140" width="450" height="120" alpha="255">
+                <Variant mode="AMBIENT" target="alpha" value="70"/>
+                <Font family="SYNC_TO_DEVICE" size="96" weight="BOLD"
+                      color="[CONFIGURATION.themeColor]"/>
+            </TimeText>
+        </DigitalClock>
+
+        <!-- 电池百分比: 静态白字对照组 (不引用配置) -->
+        <PartText x="0" y="300" width="450" height="60">
+            <Text align="CENTER">
+                <Font family="SYNC_TO_DEVICE" size="40" weight="BOLD" color="#ffededf2">
+                    <Template>%s%%
+                        <Parameter expression="[BATTERY_PERCENT]"/>
+                    </Template>
+                </Font>
+            </Text>
+        </PartText>
+    </Scene>
+</WatchFace>

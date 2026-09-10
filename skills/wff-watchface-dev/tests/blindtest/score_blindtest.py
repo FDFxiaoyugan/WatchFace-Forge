@@ -105,14 +105,18 @@ def score_static(card_id, project_dir):
 
 
 def score_validate(project_dir):
-    """Layer 2: wff-builder validate (16 rules)."""
+    """Layer 2: wff-builder validate (24 rules, v0.4.0).
+
+    口径: error 才挂 (rc != 0 或 errors > 0); warning 不算失败——
+    warn 语义是提示 (R33 无文件提示 / R34 圆屏溢出提示), builder build 同样不因 warn 阻断。
+    """
     rc, out = run_cmd([sys.executable, str(WFF_BUILDER), "validate", str(project_dir)])
     m = re.search(r"Summary:\s*(\d+)/(\d+) passed,\s*(\d+) errors?,\s*(\d+) warnings?", out)
     if not m:
         return {"passed": False, "rule_summary": None, "raw_tail": out.strip().splitlines()[-3:] if out.strip() else "no output", "rc": rc}
     passed, total, errors, warnings = int(m[1]), int(m[2]), int(m[3]), int(m[4])
     return {
-        "passed": rc == 0 and errors == 0 and passed == total,
+        "passed": rc == 0 and errors == 0,
         "rule_summary": f"{passed}/{total} passed, {errors} errors, {warnings} warnings",
         "rc": rc,
     }

@@ -259,16 +259,28 @@ not complete）。EMPTY 占位等静态文本直接写 `<Font ...>--</Font>`（F
 mixed=true）。无数据兜底还可以用 `<Complication type="EMPTY">` 渲染占位符
 （supportedTypes 加 EMPTY）。
 
-### R30: ComplicationSlot displayName 必须是 @string/ 资源引用（真机实证 2026-08-31 第三轮）
+### R30: ComplicationSlot displayName 用**裸资源名**，不是 @string/ 引用（R30 结论反转，真机复测 2026-09-09）
 
-官方语义："A resource ID corresponding to a localized name for the complication
-slot, which is displayed in the watch face editor"。裸文本（如 displayName="DATA"）
-XSD 合法但部分 OEM 编辑器（三星 One UI Watch）解析资源引用失败，可能导致编辑器
-不显示 complication 自定义入口。配套修复：
-- 字符串放项目 `res/values/strings.xml`，wff_builder 构建时自动合并进 resources.arsc
+> ⚠️ 本条曾写"必须是 @string/ 资源引用"（2026-08-31 第一版），方向反了。
+> 2026-09-09 P2 四轮单变量迭代复测证明 @string/ 无效，裸资源名才对。
+
+`res/raw/watch_face.xml` 与 `res/xml/watch_face_info.xml` **不经 aapt2 编译**，
+`@string/xxx` 在这些文件里只是字面量字符串，WFF 运行库按资源名自查 arsc——
+所以 displayName 直接写裸名 `theme_color`：
+
+```xml
+<!-- ✅ 正确: 裸资源名, WFF 库按名自查 -->
+<ColorConfiguration id="themeColor" displayName="theme_color" ...>
+<ComplicationSlot ... displayName="slot_heart_rate" ...>
+<!-- ❌ 错误: res/raw|xml 里 @string/ 是字面量, 查不到 -->
+<ColorConfiguration id="themeColor" displayName="@string/theme_color" ...>
+```
+
+配套修复（维持有效）：
+- 字符串资源仍放项目 `res/values/strings.xml`（builder 合并进 arsc），元素
+  `displayName` 值与资源名一致
 - `slotId` 从 1 开始（官方示例惯例），全局唯一
-- 三星 One UI 8 Watch (Wear OS 6) 第三方表盘存在多个已知系统 bug（AOD 切换等，
-  sammobile 2026-01 报道），排查时先做对照实验：长按三星自带表盘看编辑器行为
+- 官方教程与 samples（android/wear-os-samples/WatchFaceFormat）全部实证裸名写法
 
 ### R31: 指针 PNG 左右 alpha 必须对称（真机实证 2026-09-06，盲测 Round 2）
 
@@ -305,6 +317,85 @@ PIL `ImageDraw` 的 `rectangle/polygon` 右边界是 inclusive——偶数宽度
 3. 运算符枚举只有 `>` `>=` `==`（XSD `_operatorType`：+ - * / % ~ ! | || & && ( ) > >= ? : ==）
    ——**没有 `<` `<=`**。"<20" 必须反转写 `20 > [BATTERY_PERCENT]`（`<` 也是 XML 非法字符）
 首个命中的 Compare 渲染，其余不渲染；全不命中走 Default。已验证示例过 wff-validator v5。
+
+### R33: watch_face_info.xml 必须含 `<Editable value="true"/>`——编辑器自定义按钮总开关（真机实证 2026-09-09 P2 破案）
+
+One UI 表盘编辑器「自定义」按钮的**唯一开关**是 `res/xml/watch_face_info.xml` 里的：
+
+```xml
+<WatchFaceInfo>
+    <Preview value="@drawable/preview" />
+    <Editable value="true" />
+</WatchFaceInfo>
+```
+
+关键行为（P2 悬案四轮单变量迭代定位：wff_version=2 无效 → displayName 裸名无效 →
+watch_face_info.xml 加 Editable **破案**）：
+- 缺失 Editable：表盘渲染/选择/安装全正常，**仅编辑器不出现自定义入口**——
+  之前所有悬案（R30 无效、UserConfigurations 无效、wff_version 无效）的真正根因
+- 有 Editable 无 UserConfigurations：按钮出现但编辑页无选项（ArcLab 实证）——
+  按钮由 Editable 决定，**选项内容由 UserConfigurations 决定**
+- 有 Editable + ColorConfiguration：按钮出现 + 颜色三选 + 选中全局变色（P2 终版实证）
+
+builder `build` 自动生成含 Editable 的 watch_face_info（v0.4.0 起模板内置）；
+`validate` 的 R33 检查项目自带文件：文件存在但缺 Editable = error，无文件 = warn。
+官方 samples：`android/wear-os-samples/WatchFaceFormat`。
+
+### R34: 圆屏只显示画布内切圆——顶层元素贴边会被切（真机实证 2026-09-10，P2 拱顶被切数像素）
+
+450×450 画布映射圆屏后，可见区域是**内切圆**（中心 225,225，半径 225）。
+四角区域完全不可见；竖直方向顶部 y<25 / 底部 y>425 的水平窄条也基本被切
+（弦长公式：距边缘 dy 的水平可用宽度 = 2·√(225² − (225−dy)²)）。
+
+| 元素位置 | 是否被切 | 判断 |
+|---|---|---|
+| 顶部窄条 (0,0,450,80) | ❌ 四角全灭 | 角到中心距离 √(225²+145²)=267 > 225 |
+| 顶部居中 (105,8,240,72) | ⚠️ 角溢出 23px | √(120²+217²)=248 > 225（P2 真机现象） |
+| 中央 (105,189,240,72) | ✅ | 262 ≤ 225×安全系数… 角距 137 |
+
+校验：`wff_builder validate` R34 自动检查 Scene 直接子元素 bbox 四角到中心距离。
+设计准则：贴顶/贴底元素压在 y=25..425 内并收窄宽度；弧线/圆环沿内切圆布置天然安全。
+
+### R35: Arc 的 centerX/centerY 是 PartDraw 局部坐标——椭圆溢出容器被裁成"斜线"（真机实证 2026-09-10 斜线悬案）
+
+Arc 椭圆几何（centerX/centerY/width/height）是**父 PartDraw 的局部坐标系**，
+(0,0) = 容器左上角。椭圆 bbox 超出容器边界的弧段**直接被裁剪**——真机表现为
+"弧度很小、像一条斜线"（实际是上半拱的左半段，右半段溢出被裁）。
+
+```xml
+<!-- ❌ 斜线悬案原版: 椭圆中心 (225,30) 偏离容器中心 (160,22), 右半拱溢出 320 宽容器 -->
+<PartDraw x="65" y="8" width="320" height="44">
+    <Arc centerX="225" centerY="30" width="320" height="44" startAngle="-90" endAngle="90"/>
+
+<!-- ✅ 居中椭圆: centerX=容器宽/2, centerY=容器高/2 -->
+<PartDraw x="105" y="8" width="240" height="72">
+    <Arc centerX="120" centerY="36" width="240" height="72" startAngle="-90" endAngle="90"/>
+```
+
+校验：`wff_builder validate` R35 自动比对每对 (PartDraw 容器, 内部 Arc bbox)。
+同族坑（R28 BoundingShape 局部坐标）：WFF 的子元素坐标一律相对最近容器， Complication 子元素同理。
+
+### R36: Arc 角度语义——0°=12点方向，顺时针为正，负角度合法（像素级五发全中实证 2026-09-09 ArcLab）
+
+XSD 只说 startAngle/endAngle 是角度数值，语义靠实验锁定（ArcLab 对照表盘，
+像素聚类分析每道弧的实际象限）：
+
+| XML 参数 | 渲染弧段 | 开口朝向 |
+|---|---|---|
+| `0 → 90` | 12点 → 3点（右上四分之一） | 左下 |
+| `90 → 180` | 3点 → 6点（右下四分之一） | 左上 |
+| `180 → 270` | 6点 → 9点（左下四分之一） | 右上 |
+| `270 → 360` | 9点 → 12点（左上四分之一） | 右下 |
+| **`-90 → 90`** | **上半拱（跨 0°，12点对称）** | **下** ✓ |
+| `180 → 360` | 左半弧（C 形） | 右 |
+
+三个要点：
+1. **0° = 12 点方向**（不是数学惯用的 3 点/右方向），**顺时针为正**
+2. **负角度合法**——`startAngle="-90" endAngle="90"` 跨 0° 画上半拱，官方电量环
+   用 `-150 → 150` 缺口朝下
+3. `cap="ROUND"`（圆头端点）官方 sample 在用，安全
+
+易错：想要"时间上方拱形"写成 `180→360`（得到 C 形左半弧）——上半拱是 `-90→90`。
 
 ---
 

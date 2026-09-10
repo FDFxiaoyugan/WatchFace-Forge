@@ -2,6 +2,79 @@
 
 All notable changes to the WFF Watch Face Development Skill.
 
+## [0.4.0] - 2026-09-10
+
+P2 breakthrough day (2026-09-09) + Arc semantics closure (2026-09-10): the
+editor customize-button mystery is fully solved, and the color-configuration
+pipeline is real-device verified end-to-end (button appears → 3 color options
+→ global color change on selection).
+
+### Root Cause 5 (R33, CONFIRMED): watch_face_info.xml needs `<Editable value="true"/>`
+- Four single-variable iterations: wff_version=2 (no effect) → displayName bare
+  resource name (no effect) → **watch_face_info.xml + Editable (SOLVED)**:
+  editor customize button appears, 3 color options selectable, selection
+  changes face colors globally
+- Behavior matrix: missing Editable = everything renders but NO customize entry
+  (all prior UserConfigurations fixes were masked by this); Editable without
+  UserConfigurations = button present but empty options page (ArcLab evidence);
+  Editable + ColorConfiguration = full custom color flow
+- This was the true root cause behind the entire R30/UserConfigurations/
+  wff_version dead-end history
+- Official samples: android/wear-os-samples/WatchFaceFormat
+
+### Root Cause 6 (R30 REVERSED): displayName uses bare resource names
+- res/raw/watch_face.xml and res/xml/watch_face_info.xml are NOT compiled by
+  aapt2 — `@string/xxx` is a literal string there; the WFF runtime looks
+  resources up by bare name in arsc
+- Old R30 ("must use @string/") had the direction backwards; retest failures
+  were masked by the missing Editable switch. Official tutorials + samples
+  all use bare names
+
+### Arc semantics locked by pixel-level experiment (R36)
+- ArcLab control face: 6 arcs (0→90, 90→180, 180→270, 270→360, -90→90,
+  annotated) rendered on device; per-color pixel clustering identified each
+  arc's quadrant — all 5 matched the hypothesis
+- **0° = 12 o'clock, clockwise positive, negative angles legal**
+- upper arch = `-90→90` (opening down); `180→360` = left C-arc (opening right)
+- official battery ring `-150→150` gap-down explained; cap="ROUND" confirmed safe
+
+### Arc geometry is PartDraw-local (R35) + round-screen clipping (R34)
+- P2 arc "looks like a diagonal line" mystery: centerX=225 in a 320-wide
+  PartDraw → ellipse bbox overflows container → overflow arc clipped; only
+  the ascending half remained. Fix: centerX = containerWidth/2
+- P2 v5 real-device: arc top clipped a few pixels at round-screen edge →
+  new R34 geometry rule: top-level element bbox corners vs inscribed circle
+  (450 canvas: circle center 225,225 r=225; y<25 rows mostly invisible)
+
+### Added
+- wff_builder rules R34 (inscribed-circle overflow, warn) and R35 (Arc ellipse
+  vs PartDraw container overflow, warn); R33 project-level check
+  (watch_face_info.xml + Editable: missing file = warn, file without
+  Editable = error); total rules 21 → 24 (23 in-rule + 1 project-level)
+- wff_builder WATCH_FACE_INFO_TEMPLATE now emits `<Editable value="true"/>`
+- pitfalls.md R33/R34/R35/R36; elements.md Arc semantics quick-reference box;
+  recipes.md color-configuration snippet rewritten to XSD v5 authoritative
+  structure (old `UserConfiguration type="Color"` was invalid) + passed
+  wff-validator before merging
+- SKILL.md quick-rules updated: R30 reversed, R33 two-piece customize kit,
+  R34/R35/R36 arc & screen geometry
+
+### Verified
+- Color recipe + R33/R35 doc snippets pass official wff-validator v5
+- R34 correctly flags P2 project (23px corner overflow = real device symptom);
+  R35 reproduces the diagonal-line case (bad→FAIL, good→PASS); R33 comment-
+  stripping can't be fooled
+- P2 terminal APK real-device verified: customize button + 3-color selection
+  + symmetric upper-arch arc (user accepted; top edge clipping accepted as
+  known cosmetic)
+
+## [0.3.0] - 2026-09-08
+
+Blind-test Phase 4C complete: 4/4 rounds PASS (BT-02 analog three-hands,
+BT-03 digital layout, BT-04 conditional color, BT-05 ambient variant).
+BT-01 demoted to smoke card. Skill declared production-ready for the
+agent-driven workflow.
+
 ## [0.2.2] - 2026-08-31
 
 Third real-device round (Galaxy Watch6, One UI 8.0 / Wear OS 6): complication

@@ -133,7 +133,8 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
     <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
     <Metadata key="PREVIEW_TIME" value="10:08:32"/>
     <Scene backgroundColor="#ff111111">
-        <!-- 装饰环（静态矢量弧；动态进度环用 ComplicationSlot RANGED_VALUE，Arc 角度不支持表达式） -->
+        <!-- 装饰环（静态矢量弧；动态进度环用 ComplicationSlot RANGED_VALUE，Arc 角度不支持表达式）
+             角度语义 R36: 0°=12点 顺时针正 负角合法 —— 0→180=下半弧, -90→90=上半拱, -150→150 官方电量环缺口朝下 -->
         <PartDraw x="0" y="0" width="450" height="450">
             <Arc centerX="225" centerY="225" width="420" height="420"
                  direction="CLOCKWISE" startAngle="0" endAngle="360">
@@ -290,15 +291,30 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
 4. 预览图是静态印象分——与真机渲染有亚像素差异是正常的，但**大方向（角度/
    布局/配色）必须一致**，否则用户预期错位
 
-### 用户自定义颜色
+### 用户自定义颜色（ColorConfiguration，XSD v5 权威结构 + P2 真机实证 2026-09-09）
 
 ```xml
-<!-- 在 UserConfigurations 中定义 -->
-<UserConfiguration id="accent_color" type="Color" displayName="强调色"/>
+<!-- UserConfigurations 容器挂在 Scene 之前（不是 Scene 内） -->
+<UserConfigurations>
+    <ColorConfiguration id="themeColor" displayName="theme_color"
+                        defaultValue="cyan">
+        <ColorOption id="cyan" displayName="color_cyan" colors="#ff00E5FF"/>
+        <ColorOption id="gold" displayName="color_gold" colors="#ffFFC940"/>
+        <ColorOption id="red"  displayName="color_red"  colors="#ffFF5555"/>
+    </ColorConfiguration>
+</UserConfigurations>
 
-<!-- 在元素中引用 -->
-<Font color="[CONFIGURATION.accent_color]">10:08</Font>
+<!-- 在元素颜色属性中引用 [CONFIGURATION.<id>] -->
+<Font color="[CONFIGURATION.themeColor]">10:08</Font>
+<Stroke color="[CONFIGURATION.themeColor]" thickness="6"/>
 ```
+
+关键点（P2 全链路真机实证）：
+- `ColorConfiguration` 必填 `id`/`displayName`/`defaultValue`；`ColorOption` 纯属性结构
+  （id + displayName + colors），**不是**内嵌渲染组
+- `displayName` 用**裸资源名**（R30 反转版）：与 `res/values/strings.xml` 中资源名
+  一致，不写 `@string/` 前缀
+- 编辑器出现自定义按钮需 watch_face_info.xml 含 `<Editable value="true"/>`（R33）
 
 ### 动态旋转（指针平滑动画）
 
@@ -330,7 +346,7 @@ wff_version: 1              # 1=Wear OS 4 (minSdk 33), 2+=Wear OS 5+ (minSdk 34)
 # 初始化项目
 python wff-builder/wff_builder.py init projects/my_watch
 
-# 验证 (16 条规则 + XSD)
+# 验证 (24 条规则 + XSD)
 python wff-builder/wff_builder.py validate projects/my_watch
 
 # 构建 APK

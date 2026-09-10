@@ -3,12 +3,15 @@
 > Agent Skill: 教任意 AI agent 开发 Wear OS Watch Face Format (WFF) 表盘。
 > 从一行需求到可安装 APK，全流程 agent 自主完成。
 
-**版本 v0.3.0**（2026-09-08）— 盲测四轮全 PASS 后发布。版本史：
+**版本 v0.4.0**（2026-09-10）— P2 编辑器破案 + 颜色包主线。版本史：
 - v0.1.0（2026-08-24）首版端到端验证
 - v0.2.0（2026-08-27）Round 1 回灌：知识层大修 11 处（嵌套方向/HH:mm/Complication 属性集）
 - v0.2.2（2026-08-31）真机三轮复盘：R26-R30 + 规则 20 条
 - v0.3.0（2026-09-08）盲测四轮收官：R31-R32、环境自查清单、inventory attributeGroup
   修复、R13 白名单 XSD 全集、商务风配方、PartDraw 整层 Variant 范式、规则 21 条
+- v0.4.0（2026-09-10）P2 大满贯日：R33 Editable（编辑器自定义按钮总开关）+ R30
+  反转（displayName 裸资源名）+ R34/R35 圆屏溢出与 Arc 容器溢出校验 + R36 Arc
+  角度语义（ArcLab 像素级实证）、颜色包 UserConfigurations 全链路真机验证、规则 24 条
 
 ---
 
@@ -46,7 +49,7 @@ x86_64 机器（或 Docker x86_64）上进行。
 python wff-builder/wff_builder.py init projects/my_watch
 
 # 2. 写 watchface.xml（参考 recipes.md 配方）
-# 3. 验证（20 条规则 + XSD）
+# 3. 验证（24 条规则 + XSD）
 python wff-builder/wff_builder.py validate projects/my_watch
 
 # 4. 构建 APK
@@ -62,7 +65,7 @@ python client/wff_api.py build projects/my_watch
 |------|------|--------|
 | [elements.md](./references/elements.md) | WFF v5 全量元素树 + 属性 | 需要查"某个元素叫什么/有什么属性"时 |
 | [expressions.md](./references/expressions.md) | 数据源 + 运算符 + 函数 | 需要写动态表达式时 |
-| [pitfalls.md](./references/pitfalls.md) | 29 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
+| [pitfalls.md](./references/pitfalls.md) | 36 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
 | [recipes.md](./references/recipes.md) | 3 种典型表盘完整模板 | 开始一个新表盘时 |
 
 ## WFF XML Skeleton
@@ -115,7 +118,7 @@ python client/wff_api.py build projects/my_watch
 
 ### 3. 写 WFF XML
 
-**必读 [pitfalls.md](./references/pitfalls.md) 的 MUST 规则（R01-R29）**
+**必读 [pitfalls.md](./references/pitfalls.md) 的 MUST 规则（R01-R36）**
 
 关键规则速记：
 - 颜色 8 位 ARGB：`#ffRRGGBB`（不是 `#RRGGBB`）
@@ -130,14 +133,23 @@ python client/wff_api.py build projects/my_watch
 - **ComplicationSlot 的 BoundingShape 用局部坐标**（0,0 起，尺寸=slot 尺寸），
   写全局坐标槽位整体消失且编辑器无自定义入口（R28）
 - Template 至少一个 Parameter，静态文本直接写 `<Font>text</Font>`（R29）
-- **ComplicationSlot 的 `displayName` 用 `@string/` 资源引用**（R30）：字符串放项目
-  `res/values/strings.xml`（builder 自动合并）；slotId 从 1 开始
+- **displayName 用裸资源名**（R30 反转版，2026-09-09 实证）：`displayName="theme_color"`
+  不是 `@string/theme_color`——res/raw 与 res/xml 不经 aapt2 编译，@string/ 是字面量
 - **指针三坐标公式**（R31 前置）：旋转中心 `(x+pivotX·w, y+pivotY·h)` 必须等于圆心；
   12 点竖直针 `y=圆心y−针长`；带配重尾 `pivotY=针长/图高`
 - **指针 PNG 左右 alpha 对称**（R31）：偶数宽 PIL 细线抗锯齿不对称 → 秒针错位；
   奇数宽画布或精确光栅化；交付前校验质心 `== width/2`
 - **Condition 正确结构**（R32）：算式在 `<Expressions><Expression name>` 文本，
   `<Compare expression="引用名">`；运算符只有 `>` `>=` `==`——"低于X"写成 `X > [SRC]`
+- **编辑器自定义入口两件套**（R33）：`res/xml/watch_face_info.xml` 含
+  `<Editable value="true"/>`（按钮开关）+ watchface.xml 内 `<UserConfigurations>`
+  （选项内容）。缺 Editable：一切正常但无自定义按钮；有 Editable 无配置：按钮在但空
+- **圆屏 = 画布内切圆**（R34）：贴顶/贴底元素四角超内切圆被切；450 画布顶部元素
+  压 y≥25 且收窄宽度；validate R34 自动查
+- **Arc 几何是 PartDraw 局部坐标**（R35）：centerX/centerY 相对父容器，椭圆溢出
+  容器弧段被裁成"斜线"；居中写 `centerX=容器宽/2`
+- **Arc 角度 0°=12点、顺时针正、负角合法**（R36）：上半拱 `-90→90`；`180→360`
+  是左半弧 C 形（开口朝右）
 - 列表属性空格分隔：`colors="#ffAABBCC #ff112233"`
 - 布尔枚举大写：`isCustomizable="TRUE"`
 - project.yaml 不写行内注释
@@ -186,7 +198,9 @@ my_watch/
 ├── preview.png           # 384×384 或 450×450 预览图
 └── res/                  # 资源目录（可选）
     ├── drawable/         # 图片
-    └── font/             # 字体
+    ├── font/             # 字体
+    └── xml/
+        └── watch_face_info.xml  # 含 <Editable value="true"/> (R33, builder 自动生成)
 ```
 
 ## project.yaml
@@ -231,8 +245,9 @@ wff_version: 1              # 1=Wear OS 4, 2+=Wear OS 5+
 
 ## Version & Updates
 
-- 当前版本：v0.1.0（Phase 4B 开发中）
-- 知识来源：google/watchface XSD v5 + 一期 16 规则真机验证 + BT-03 真机复盘
-- 更新触发：XSD 规范变更 / 平台 API 契约变更 / 盲测反馈
+- 当前版本：v0.4.0（2026-09-10）
+- 知识来源：google/watchface XSD v5 + 官方 samples + 一期真机验证 + 盲测四轮 +
+  P2 颜色包真机迭代（Editable/displayName 裸名/ArcLab 角度语义像素级实证）
+- 更新触发：XSD 规范变更 / 平台 API 契约变更 / 盲测反馈 / 真机复盘
 - 更新记录：[CHANGELOG.md](./CHANGELOG.md)
 - 维护手册：[SKILL_MAINTENANCE.md](./SKILL_MAINTENANCE.md)
