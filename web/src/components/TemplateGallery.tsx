@@ -188,11 +188,11 @@ export default function TemplateGallery() {
   if (!selectedTemplate) {
     return (
       <div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {templates.map((tmpl) => (
             <div
               key={tmpl.id}
-              className="bg-forge-card border border-forge-border rounded-xl p-6 hover:border-forge-accent/50 transition-all cursor-pointer"
+              className="group cursor-pointer rounded-[22px] border border-forge-border bg-[#15191e] p-6 transition-all hover:-translate-y-1 hover:border-[#657084] hover:bg-[#20252c]"
               onClick={() => handleSelectTemplate(tmpl.id)}
             >
               <div className="flex justify-center mb-4">
@@ -215,11 +215,10 @@ export default function TemplateGallery() {
                   />
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-center mb-1">{tmpl.name}</h3>
-              <p className="text-sm text-forge-muted text-center mb-4">{tmpl.description}</p>
-              <button className="w-full py-2 rounded-lg font-medium transition-all"
-                style={{ background: `${tmpl.preview_color}22`, border: `1px solid ${tmpl.preview_color}55`, color: tmpl.preview_color }}>
-                选择此模板
+              <h3 className="mb-1 text-center text-lg font-semibold">{tmpl.name}</h3>
+              <p className="mb-5 text-center text-sm text-forge-muted">{tmpl.description}</p>
+              <button className="md-button w-full group-hover:bg-[#263e60]">
+                使用此模板
               </button>
             </div>
           ))}
@@ -235,15 +234,15 @@ export default function TemplateGallery() {
         {/* Back button */}
         <button
           onClick={() => { setSelectedTemplate(null); setCdm(null); setResult(null); }}
-          className="mb-6 text-forge-muted hover:text-forge-accent text-sm"
+          className="md-button mb-6"
         >
           ← 返回模板列表
         </button>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left: Customization Panel */}
-          <div className="bg-forge-card border border-forge-border rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold mb-4">自定义表盘</h2>
+          <div className="rounded-[22px] border border-forge-border bg-[#15191e] p-6 space-y-5">
+            <div><span className="md-label">快速调整</span><h2 className="text-xl font-semibold">自定义表盘</h2></div>
 
             {/* Time Color */}
             <ColorInput
@@ -290,7 +289,7 @@ export default function TemplateGallery() {
             <button
               onClick={handleBuild}
               disabled={building !== null}
-              className="w-full py-3 mt-4 rounded-lg font-medium transition-all disabled:opacity-50 bg-forge-accent/20 border border-forge-accent text-forge-accent hover:bg-forge-accent/30"
+              className="md-button md-button--filled mt-4 w-full"
             >
               {building ? "构建中..." : "构建 APK"}
             </button>
@@ -299,8 +298,8 @@ export default function TemplateGallery() {
           {/* Right: Preview + Result */}
           <div className="space-y-6">
             {/* Live Preview */}
-            <div className="bg-forge-card border border-forge-border rounded-xl p-6 text-center">
-              <h3 className="text-sm text-forge-muted mb-4">预览</h3>
+            <div className="rounded-[22px] border border-forge-border bg-[#101318] p-6 text-center">
+              <h3 className="md-label mb-4">实时预览</h3>
               <div
                 className="watch-preview w-48 h-48 mx-auto flex flex-col items-center justify-center"
                 style={{
@@ -332,7 +331,7 @@ export default function TemplateGallery() {
 
             {/* Build Result */}
             {result && (
-              <div className="bg-forge-card border border-forge-border rounded-xl p-6">
+              <div className="rounded-[22px] border border-forge-border bg-[#15191e] p-6">
                 {result.status === "success" ? (
                   <div className="text-center">
                     <div className="text-green-400 text-lg font-semibold mb-2">
@@ -344,7 +343,7 @@ export default function TemplateGallery() {
                     <a
                       href={result.download_url!}
                       download
-                      className="inline-block px-6 py-3 bg-forge-accent/20 border border-forge-accent text-forge-accent rounded-lg font-medium hover:bg-forge-accent/30"
+                      className="md-button md-button--filled"
                     >
                       下载 APK
                     </a>

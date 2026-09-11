@@ -8,7 +8,7 @@
 "use client";
 
 import { useEffect, useState, Suspense, useCallback, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEditorStore, useCanUndo, useCanRedo } from "@/stores/editorStore";
 import FabricCanvas, { defaultTimeText } from "@/components/editor/FabricCanvas";
 import LayerPanel from "@/components/editor/LayerPanel";
@@ -16,17 +16,18 @@ import PropertyPanel from "@/components/editor/PropertyPanel";
 import DataBindingPanel from "@/components/editor/DataBindingPanel";
 import PreviewDevice from "@/components/editor/PreviewDevice";
 import WatchFaceSettings from "@/components/editor/WatchFaceSettings";
+import AppShell from "@/components/ui/AppShell";
+import Icon from "@/components/ui/Icon";
 
 export default function EditorPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-zinc-500">加载编辑器...</div>}>
+    <Suspense fallback={<div className="grid min-h-screen place-items-center text-forge-muted">加载编辑器…</div>}>
       <EditorInner />
     </Suspense>
   );
 }
 
 function EditorInner() {
-  const router = useRouter();
   const params = useSearchParams();
   const taskId = params.get("task_id");
 
@@ -172,49 +173,40 @@ function EditorInner() {
   const timeText = defaultTimeText(cdm);
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-950 text-zinc-200">
+    <AppShell compact><div className="flex h-[calc(100vh-64px)] flex-col bg-[#101318] text-forge-text">
       {/* 顶栏 */}
-      <header className="flex items-center gap-2 px-4 h-12 border-b border-zinc-800 bg-zinc-900/50">
-        <button
-          className="text-zinc-400 hover:text-zinc-200 text-sm"
-          onClick={() => router.push("/")}
-        >
-          ← 返回
-        </button>
-        <div className="h-4 w-px bg-zinc-800" />
-        <span className="text-sm font-medium truncate max-w-[200px]">
-          {cdm.metadata.name}
-        </span>
+      <header className="flex min-h-16 items-center gap-2 border-b border-forge-border bg-[#15191e] px-4">
+        <div className="mr-2 min-w-0"><span className="md-label mb-0">VISUAL EDITOR</span><span className="block max-w-[200px] truncate text-sm font-medium">{cdm.metadata.name}</span></div>
 
         <div className="flex-1" />
 
         <button
           onClick={undo}
           disabled={!canUndo}
-          className="px-2 py-1 text-sm rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800"
+          className="md-icon-button disabled:opacity-30"
           title="撤销 (Ctrl+Z)"
         >
-          ↩
+          <Icon name="undo" size={19}/>
         </button>
         <button
           onClick={redo}
           disabled={!canRedo}
-          className="px-2 py-1 text-sm rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800"
+          className="md-icon-button disabled:opacity-30"
           title="重做 (Ctrl+Shift+Z)"
         >
-          ↪
+          <Icon name="redo" size={19}/>
         </button>
-        <div className="h-4 w-px bg-zinc-800" />
-        <div className="flex items-center rounded bg-zinc-800 text-xs">
-          <button className="px-2 py-1 hover:text-sky-300" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}>−</button>
-          <button className="min-w-12 px-1 py-1 text-zinc-400 hover:text-sky-300" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
-          <button className="px-2 py-1 hover:text-sky-300" onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}>＋</button>
+        <div className="h-6 w-px bg-forge-border" />
+        <div className="flex items-center rounded-full bg-[#292d32] px-1 text-xs">
+          <button className="md-icon-button h-8 w-8" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}><Icon name="zoomOut" size={16}/></button>
+          <button className="min-w-12 px-1 py-1 text-forge-muted hover:text-forge-accent" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
+          <button className="md-icon-button h-8 w-8" onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}><Icon name="zoomIn" size={16}/></button>
         </div>
-        <div className="h-4 w-px bg-zinc-800" />
+        <div className="h-6 w-px bg-forge-border" />
         <button
           onClick={validateCDM}
           disabled={busy}
-          className="px-3 py-1 text-xs rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50"
+          className="md-button h-9 min-h-9 px-4 disabled:opacity-50"
         >
           校验
         </button>
@@ -222,55 +214,55 @@ function EditorInner() {
           onChange={(e) => importCDM(e.target.files?.[0])} />
         <button
           onClick={() => importRef.current?.click()}
-          className="px-3 py-1 text-xs rounded bg-zinc-800 hover:bg-zinc-700"
+          className="md-button h-9 min-h-9 px-4"
         >
           导入 CDM
         </button>
         <button
           onClick={exportCDM}
-          className="px-3 py-1 text-xs rounded bg-zinc-800 hover:bg-zinc-700"
+          className="md-button h-9 min-h-9 px-4"
         >
           导出 CDM
         </button>
         <button
           onClick={() => setShowPreview((v) => !v)}
-          className="px-3 py-1 text-xs rounded bg-zinc-800 hover:bg-zinc-700"
+          className="md-button md-button--tonal h-9 min-h-9 px-4"
         >
-          {showPreview ? "隐藏预览" : "设备预览"}
+          <Icon name="preview" size={16}/>{showPreview ? "隐藏预览" : "设备预览"}
         </button>
         <button
           onClick={buildAPK}
           disabled={busy}
-          className="px-3 py-1 text-xs rounded bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50"
+          className="md-button md-button--filled h-9 min-h-9 px-4 disabled:opacity-50"
         >
-          {busy ? "构建中..." : "编译 APK"}
+          <Icon name="download" size={16}/>{busy ? "构建中…" : "编译 APK"}
         </button>
       </header>
 
       {/* 主体三栏 */}
       <div className="flex-1 flex min-h-0">
         {/* 左: 图层 */}
-        <aside className="w-56 border-r border-zinc-800 bg-zinc-900/30 flex flex-col">
+        <aside className="flex w-60 flex-col border-r border-forge-border bg-[#15191e]">
           <LayerPanel />
         </aside>
 
         {/* 中: 画布 */}
-        <main className="flex-1 flex items-center justify-center overflow-auto bg-[radial-gradient(circle_at_center,#1a1a2e_0%,#0a0a0f_100%)]">
+        <main className="flex flex-1 items-center justify-center overflow-auto bg-[radial-gradient(circle_at_center,#26384f_0%,#101318_48%,#090b0e_100%)]">
           <div className="shrink-0" style={{ width: 450 * zoom, height: 450 * zoom }}>
             <div className="relative w-[450px] h-[450px] overflow-hidden rounded-full"
               style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}>
               <FabricCanvas cdm={cdm} timeText={timeText} />
-              <div className="pointer-events-none absolute inset-0 z-10 border border-dashed border-white/20 rounded-full" />
+              <div className="pointer-events-none absolute inset-0 z-10 rounded-full border border-dashed border-[#a8c7fa]/30" />
             </div>
           </div>
         </main>
 
         {/* 右: 属性 / 数据 */}
-        <aside className="w-72 border-l border-zinc-800 bg-zinc-900/30 flex flex-col">
-          <div className="flex border-b border-zinc-800">
+        <aside className="flex w-80 flex-col border-l border-forge-border bg-[#15191e]">
+          <div className="flex border-b border-forge-border px-2 pt-2">
             <button
-              className={`flex-1 py-2 text-xs ${
-                rightTab === "props" ? "text-sky-300 border-b-2 border-sky-500" : "text-zinc-500"
+              className={`flex-1 rounded-t-xl py-2.5 text-xs ${
+                rightTab === "props" ? "border-b-2 border-forge-accent bg-[#263e60]/40 text-forge-accent" : "text-forge-muted hover:bg-[#292d32]"
               }`}
               onClick={() => setRightTab("props")}
             >
@@ -278,7 +270,7 @@ function EditorInner() {
             </button>
             <button
               className={`flex-1 py-2 text-xs ${
-                rightTab === "data" ? "text-sky-300 border-b-2 border-sky-500" : "text-zinc-500"
+                rightTab === "data" ? "border-b-2 border-forge-accent bg-[#263e60]/40 text-forge-accent" : "text-forge-muted hover:bg-[#292d32]"
               }`}
               onClick={() => setRightTab("data")}
             >
@@ -286,7 +278,7 @@ function EditorInner() {
             </button>
             <button
               className={`flex-1 py-2 text-xs ${
-                rightTab === "settings" ? "text-sky-300 border-b-2 border-sky-500" : "text-zinc-500"
+                rightTab === "settings" ? "border-b-2 border-forge-accent bg-[#263e60]/40 text-forge-accent" : "text-forge-muted hover:bg-[#292d32]"
               }`}
               onClick={() => setRightTab("settings")}
             >
@@ -300,7 +292,7 @@ function EditorInner() {
 
         {/* 预览抽屉 */}
         {showPreview && (
-          <aside className="w-[520px] border-l border-zinc-800 bg-zinc-900/50 overflow-y-auto">
+          <aside className="w-[520px] overflow-y-auto border-l border-forge-border bg-[#15191e]">
             <PreviewDevice />
           </aside>
         )}
@@ -308,10 +300,10 @@ function EditorInner() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm shadow-xl z-50">
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-forge-border bg-[#292d32] px-5 py-3 text-sm shadow-xl">
           {toast}
         </div>
       )}
-    </div>
+    </div></AppShell>
   );
 }

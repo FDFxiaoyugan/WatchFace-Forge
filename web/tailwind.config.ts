@@ -8,12 +8,12 @@ const config: Config = {
     extend: {
       colors: {
         forge: {
-          bg: "#0a0e1a",
-          card: "#111827",
-          border: "#1e293b",
-          accent: "#00F5FF",
-          text: "#e2e8f0",
-          muted: "#64748b",
+          bg: "#101318",
+          card: "#1b1f24",
+          border: "#44474e",
+          accent: "#a8c7fa",
+          text: "#e3e2e6",
+          muted: "#c4c6d0",
         },
       },
     },

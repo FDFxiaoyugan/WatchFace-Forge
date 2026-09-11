@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "WatchFace Forge",
+  title: "WatchFace Forge · Wear OS 表盘工作台",
   description: "AI 驱动的 Wear OS 表盘生成平台",
 };
 
@@ -13,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body className="min-h-screen bg-forge-bg text-forge-text">
+      <body>
         {children}
       </body>
     </html>

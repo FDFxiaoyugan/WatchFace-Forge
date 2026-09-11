@@ -1,7 +1,8 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import AppShell from "@/components/ui/AppShell";
+import Icon from "@/components/ui/Icon";
 
 const SAMPLE_XML = `<?xml version="1.0"?>
 <WatchFace width="450" height="450">
@@ -28,7 +29,6 @@ type BuildResult = {
 };
 
 export default function CIPage() {
-  const router = useRouter();
   const [apiKey, setApiKey] = useState("");
   const [xml, setXml] = useState(SAMPLE_XML);
   const [assets, setAssets] = useState<File[]>([]);
@@ -106,33 +106,33 @@ export default function CIPage() {
     if (file) setXml(await file.text());
   }
 
-  return <main className="min-h-screen px-4 py-8 lg:px-8"><div className="mx-auto max-w-7xl">
-    <header className="mb-7 flex flex-wrap items-end justify-between gap-4">
-      <div><button onClick={() => router.push("/")} className="mb-3 text-sm text-forge-muted hover:text-forge-accent">← 返回首页</button><h1 className="text-3xl font-semibold tracking-tight"><span className="text-forge-accent">Agent</span> CI 工作台</h1><p className="mt-2 text-sm text-forge-muted">WFF XML 三层校验、近似预览、签名 APK 与官方内存报告</p></div>
-      <div className="w-full max-w-md"><label className="mb-1 block text-xs uppercase tracking-wider text-forge-muted">X-API-Key（仅当前标签页）</label><input type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="wff_…" className="w-full rounded-lg border border-forge-border bg-forge-card px-3 py-2 font-mono text-sm outline-none focus:border-forge-accent" /></div>
+  return <AppShell><main className="md-page">
+    <header className="mb-8 flex flex-wrap items-end justify-between gap-6">
+      <div><span className="md-eyebrow"><Icon name="code" size={17}/>Advanced workflow</span><h1 className="mt-3 text-4xl font-medium tracking-[-.04em]">Agent CI 工作台</h1><p className="mt-3 text-forge-muted">从 WFF XML 到可安装 APK，一处完成校验、预览与内存分析。</p></div>
+      <div className="w-full max-w-md"><label className="md-label">X-API-Key · 仅当前标签页</label><input type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="wff_…" className="md-field font-mono text-sm" /></div>
     </header>
 
     <section className="grid gap-5 lg:grid-cols-[1.25fr_.75fr]">
-      <div className="rounded-xl border border-forge-border bg-forge-card p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><h2 className="font-medium">watchface.xml</h2><div className="flex gap-2 text-xs"><label className="cursor-pointer rounded border border-forge-border px-3 py-1.5 hover:border-forge-accent">导入 XML<input type="file" accept=".xml,application/xml" onChange={loadXml} className="hidden" /></label><button onClick={() => setXml(SAMPLE_XML)} className="rounded border border-forge-border px-3 py-1.5 hover:border-forge-accent">恢复示例</button></div></div>
-        <textarea value={xml} onChange={(event) => setXml(event.target.value)} spellCheck={false} className="h-[520px] w-full resize-y rounded-lg border border-forge-border bg-[#080c16] p-4 font-mono text-xs leading-5 text-slate-300 outline-none focus:border-forge-accent" />
-        <label className="mt-3 block text-xs text-forge-muted">素材 assets[]</label><input type="file" multiple onChange={(event) => setAssets(Array.from(event.target.files || []))} className="mt-1 w-full rounded-lg border border-forge-border bg-[#080c16] p-2 text-xs" />
+      <div className="rounded-[22px] border border-forge-border bg-[#15191e] p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><span className="md-label">SOURCE</span><h2 className="font-medium">watchface.xml</h2></div><div className="flex gap-2 text-xs"><label className="md-button cursor-pointer"><Icon name="upload" size={16}/>导入 XML<input type="file" accept=".xml,application/xml" onChange={loadXml} className="hidden" /></label><button onClick={() => setXml(SAMPLE_XML)} className="md-button">恢复示例</button></div></div>
+        <textarea value={xml} onChange={(event) => setXml(event.target.value)} spellCheck={false} className="h-[520px] w-full resize-y rounded-xl border border-forge-border bg-[#090c10] p-5 font-mono text-xs leading-5 text-slate-300 outline-none focus:border-forge-accent" />
+        <label className="md-label mt-4">素材 assets[]</label><input type="file" multiple onChange={(event) => setAssets(Array.from(event.target.files || []))} className="w-full rounded-xl border border-forge-border bg-[#101318] p-3 text-xs" />
         {assets.length > 0 && <p className="mt-2 text-xs text-forge-muted">{assets.map((file) => `${file.name} (${Math.ceil(file.size / 1024)}KB)`).join(" · ")}</p>}
       </div>
 
       <div className="space-y-5">
-        <div className="rounded-xl border border-forge-border bg-forge-card p-4"><div className="grid grid-cols-3 gap-2">
-          {([["validate", "校验", validate], ["preview", "预览", preview], ["build", "构建 APK", buildApk]] as const).map(([id, label, action]) => <button key={id} onClick={action} disabled={busy !== null} className="rounded-lg border border-forge-accent/50 bg-forge-accent/10 px-3 py-2 text-sm text-forge-accent disabled:cursor-wait disabled:opacity-40">{busy === id ? "处理中…" : label}</button>)}
-        </div><div className="mt-3 min-h-10 rounded-lg bg-[#080c16] p-3 text-xs text-slate-300">{message || "等待提交"}{elapsed !== null && <span className="ml-2 text-forge-muted">{elapsed.toFixed(3)}s</span>}</div></div>
+        <div className="rounded-[22px] border border-forge-border bg-[#15191e] p-5"><span className="md-label">PIPELINE</span><div className="grid grid-cols-3 gap-2">
+          {([["validate", "校验", validate], ["preview", "预览", preview], ["build", "构建 APK", buildApk]] as const).map(([id, label, action], index) => <button key={id} onClick={action} disabled={busy !== null} className={index === 2 ? "md-button md-button--filled px-2" : "md-button md-button--tonal px-2"}>{busy === id ? "处理中…" : label}</button>)}
+        </div><div className="mt-4 min-h-12 rounded-xl bg-[#090c10] p-3 text-xs text-slate-300"><span className="mr-2 inline-block h-2 w-2 rounded-full bg-forge-accent"/>{message || "等待提交"}{elapsed !== null && <span className="ml-2 text-forge-muted">{elapsed.toFixed(3)}s</span>}</div></div>
 
-        {validation && <div className="rounded-xl border border-forge-border bg-forge-card p-4"><div className="mb-3 flex items-center justify-between"><h2 className="font-medium">校验日志</h2><span className={validation.valid ? "text-emerald-400" : "text-red-400"}>{issueCounts.errors} errors · {issueCounts.warnings} warnings</span></div><div className="max-h-72 space-y-2 overflow-auto">
+        {validation && <div className="rounded-[22px] border border-forge-border bg-[#15191e] p-5"><div className="mb-3 flex items-center justify-between"><h2 className="font-medium">校验日志</h2><span className={validation.valid ? "text-emerald-400" : "text-red-400"}>{issueCounts.errors} errors · {issueCounts.warnings} warnings</span></div><div className="max-h-72 space-y-2 overflow-auto">
           {validation.errors.length === 0 ? <p className="text-sm text-emerald-400">XSD · Google validator · lint 全部通过</p> : validation.errors.map((item, index) => <div key={`${item.source}-${item.rule}-${index}`} className="rounded border border-forge-border bg-[#080c16] p-3 text-xs"><div className={item.severity === "error" ? "text-red-400" : "text-amber-300"}>{item.source} / {item.rule}{item.line ? ` · line ${item.line}` : ""}</div><p className="mt-1 text-slate-300">{item.message}</p>{item.hint && <p className="mt-1 text-forge-muted">建议：{item.hint}</p>}</div>)}
         </div></div>}
 
-        {frames.length > 0 && <div className="rounded-xl border border-forge-border bg-forge-card p-4"><h2 className="mb-3 font-medium">预览帧 <span className="text-xs font-normal text-amber-300">近似渲染，非设备真相</span></h2><div className="grid grid-cols-2 gap-3">{frames.map((frame) => <figure key={`${frame.time}-${frame.mode}`}><img src={frame.image} alt={`${frame.time} ${frame.mode}`} className="aspect-square w-full rounded-full bg-black" /><figcaption className="mt-1 text-center text-xs text-forge-muted">{frame.time} · {frame.mode}</figcaption></figure>)}</div></div>}
+        {frames.length > 0 && <div className="rounded-[22px] border border-forge-border bg-[#15191e] p-5"><h2 className="mb-3 font-medium">预览帧 <span className="text-xs font-normal text-amber-300">近似渲染，非设备真相</span></h2><div className="grid grid-cols-2 gap-3">{frames.map((frame) => <figure key={`${frame.time}-${frame.mode}`}><img src={frame.image} alt={`${frame.time} ${frame.mode}`} className="aspect-square w-full rounded-full bg-black" /><figcaption className="mt-1 text-center text-xs text-forge-muted">{frame.time} · {frame.mode}</figcaption></figure>)}</div></div>}
 
-        {build && <div className="rounded-xl border border-emerald-800/60 bg-emerald-950/20 p-4 text-sm"><div className="flex items-center justify-between"><h2 className="font-medium text-emerald-300">构建成功</h2><span className="font-mono text-xs text-forge-muted">{build.build_id}</span></div><dl className="mt-3 grid grid-cols-2 gap-2 text-xs"><dt className="text-forge-muted">APK</dt><dd>{(build.apk.size / 1024).toFixed(1)} KB</dd><dt className="text-forge-muted">Active 内存</dt><dd>{build.memory.max_active_bytes ? `${(build.memory.max_active_bytes / 1048576).toFixed(2)} MB` : "不可用"}</dd><dt className="text-forge-muted">Ambient 内存</dt><dd>{build.memory.max_ambient_bytes ? `${(build.memory.max_ambient_bytes / 1048576).toFixed(2)} MB` : "不可用"}</dd></dl><p className="mt-3 break-all font-mono text-[10px] text-forge-muted">SHA-256 {build.apk.sha256}</p><a href={build.apk.url} className="mt-3 inline-flex rounded-lg bg-emerald-500 px-4 py-2 font-medium text-emerald-950">直接下载 APK</a></div>}
+        {build && <div className="rounded-[22px] border border-emerald-800/60 bg-emerald-950/20 p-5 text-sm"><div className="flex items-center justify-between"><h2 className="font-medium text-emerald-300">构建成功</h2><span className="font-mono text-xs text-forge-muted">{build.build_id}</span></div><dl className="mt-3 grid grid-cols-2 gap-2 text-xs"><dt className="text-forge-muted">APK</dt><dd>{(build.apk.size / 1024).toFixed(1)} KB</dd><dt className="text-forge-muted">Active 内存</dt><dd>{build.memory.max_active_bytes ? `${(build.memory.max_active_bytes / 1048576).toFixed(2)} MB` : "不可用"}</dd><dt className="text-forge-muted">Ambient 内存</dt><dd>{build.memory.max_ambient_bytes ? `${(build.memory.max_ambient_bytes / 1048576).toFixed(2)} MB` : "不可用"}</dd></dl><p className="mt-3 break-all font-mono text-[10px] text-forge-muted">SHA-256 {build.apk.sha256}</p><a href={build.apk.url} className="md-button md-button--filled mt-4"><Icon name="download" size={17}/>直接下载 APK</a></div>}
       </div>
     </section>
-  </div></main>;
+  </main></AppShell>;
 }
