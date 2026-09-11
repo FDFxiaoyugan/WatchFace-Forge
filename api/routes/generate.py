@@ -2,7 +2,7 @@
 Generate 路由 — 自然语言 → CDM → APK
 
 POST /api/generate
-  body: {prompt: "霓虹蓝赛博朋克数字表盘", user_id?: "default"}
+  body: {prompt: "霓虹蓝赛博朋克数字表盘", user_id?: "default", ai_config?: {...}}
   → 异步: LLM 生成 CDM → 自动修复 → 编译 WFF → 构建 APK
   → 同步返回: CDM + 下载 URL
 
@@ -52,6 +52,43 @@ class ProgressTracker:
 import tempfile
 import shutil
 from api.routes.build import APK_OUTPUT_DIR
+
+
+@router.post("/ai/test")
+async def test_ai_connection(req: dict):
+    """验证用户临时 OpenAI 兼容配置；不保存或回显密钥。"""
+    try:
+        ai_config = normalize_user_ai_config(req.get("ai_config"))
+    except AIConfigError as exc:
+        return JSONResponse(status_code=400, content={
+            "status": "error",
+            "error_type": "invalid_ai_config",
+            "message": str(exc),
+        })
+
+    if not ai_config:
+        return JSONResponse(status_code=400, content={
+            "status": "error",
+            "error_type": "missing_api_key",
+            "message": "请先填写自定义 AI API Key",
+        })
+
+    gateway = AIGateway(
+        backend="openai",
+        api_key=ai_config["api_key"],
+        base_url=ai_config["base_url"] or None,
+        model=ai_config["model"],
+    )
+    result = gateway.test_connection()
+    if not result["success"]:
+        return JSONResponse(status_code=502, content={
+            "status": "error",
+            "error_type": "ai_connection_failed",
+            "message": result.get("error", "AI 服务连接失败"),
+            "model": result["model"],
+            "latency_ms": result["latency_ms"],
+        })
+    return {"status": "success", **result}
 
 
 @router.post("/generate")

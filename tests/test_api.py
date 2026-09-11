@@ -17,6 +17,30 @@ from api.app import app
 client = TestClient(app)
 
 
+class TestAIConnectionEndpoint:
+    def test_requires_custom_api_key(self):
+        response = client.post("/api/ai/test", json={"ai_config": {"api_key": ""}})
+        assert response.status_code == 400
+        assert response.json()["error_type"] == "missing_api_key"
+
+    def test_success_never_echoes_key_or_model_output(self, monkeypatch):
+        from api.routes import generate
+
+        monkeypatch.setattr(generate.AIGateway, "test_connection", lambda self: {
+            "success": True,
+            "model": self.model,
+            "latency_ms": 12,
+        })
+        secret = "sk-route-secret"
+        response = client.post("/api/ai/test", json={
+            "ai_config": {"api_key": secret, "model": "test-model"},
+        })
+        assert response.status_code == 200
+        assert response.json()["status"] == "success"
+        assert response.json()["model"] == "test-model"
+        assert secret not in response.text
+
+
 class TestHealthEndpoint:
     def test_health(self):
         r = client.get("/api/health")

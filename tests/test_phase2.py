@@ -129,6 +129,15 @@ class TestAIGateway:
         assert "sk-never-echo-this" not in error
         assert "[REDACTED]" in error
 
+    def test_connection_does_not_return_content_or_key(self, monkeypatch):
+        gw = AIGateway(backend="openai", api_key="sk-test-secret", model="test-model")
+        monkeypatch.setattr(gw, "_call_openai", lambda *args, **kwargs: '{"ok":true}')
+        result = gw.test_connection()
+        assert result["success"] is True
+        assert result["model"] == "test-model"
+        assert "content" not in result
+        assert "sk-test-secret" not in str(result)
+
     @pytest.mark.parametrize("url", ["http://ai.example.com/v1", "https://user:pass@ai.example.com/v1", "https://ai.example.com/v1?key=secret"])
     def test_rejects_unsafe_custom_base_url(self, url):
         with pytest.raises(AIConfigError):

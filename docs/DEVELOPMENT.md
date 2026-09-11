@@ -71,7 +71,9 @@ key 并写入被 Git 忽略的 `.env`。`scripts/dev-services.sh` 启动/重启�
 
 `ai_config` 可省略；省略或密钥为空时沿用服务端 AI 配置。不要把真实密钥写进
 文档、截图、issue、日志或 Git。自定义 Base URL 仅接受 HTTPS，且不能在 URL
-中内嵌用户名、密码、查询参数或片段。
+中内嵌用户名、密码、查询参数或片段。设置页的“测试连接”会调用
+`POST /api/ai/test` 发起一次最多 16 token 的真实模型请求，以同时验证密钥、
+Base URL 和模型；响应不会包含密钥或模型输出。
 
 启动服务后访问 `/ci` 使用 Agent CI 工作台。API Key 只保存在当前浏览器
 标签页的 `sessionStorage`，关闭标签页后清除；页面主操作是直接下载 APK，

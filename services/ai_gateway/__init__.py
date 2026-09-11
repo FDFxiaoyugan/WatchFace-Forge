@@ -16,6 +16,7 @@ import json
 import time
 import subprocess
 import os
+from time import perf_counter
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -172,6 +173,31 @@ class AIGateway:
             message = message.replace(self.api_key, "[REDACTED]")
         return message[:500]
 
+    def test_connection(self) -> dict:
+        """用一次最小 completion 验证密钥、端点和所选模型是否都可用。"""
+        started = perf_counter()
+        try:
+            content = self._call_openai(
+                "You are an API connection test. Return JSON only.",
+                'Return exactly {"ok":true}.',
+                max_tokens=16,
+                timeout_seconds=15.0,
+            )
+            if not content.strip():
+                raise RuntimeError("AI 服务返回了空响应")
+            return {
+                "success": True,
+                "model": self.model,
+                "latency_ms": round((perf_counter() - started) * 1000),
+            }
+        except Exception as exc:
+            return {
+                "success": False,
+                "model": self.model,
+                "latency_ms": round((perf_counter() - started) * 1000),
+                "error": self._safe_error(exc),
+            }
+
     def generate_json(
         self,
         system_prompt: str,
@@ -224,7 +250,13 @@ class AIGateway:
         # z-ai 返回格式: {choices: [{message: {content: "..."}}]}
         return data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
-    def _call_openai(self, system_prompt: str, user_prompt: str) -> str:
+    def _call_openai(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        max_tokens: Optional[int] = None,
+        timeout_seconds: Optional[float] = None,
+    ) -> str:
         """通过 OpenAI SDK 调用"""
         if self._openai_client is None:
             from openai import OpenAI
@@ -233,9 +265,9 @@ class AIGateway:
             client_options = {"api_key": self.api_key}
             if self.base_url:
                 client_options["base_url"] = self.base_url
-            self._openai_client = OpenAI(**client_options)
+            self._openai_client = OpenAI(**client_options, timeout=30.0, max_retries=0)
 
-        r = self._openai_client.chat.completions.create(
+        request_options = dict(
             model=self.model,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -243,4 +275,9 @@ class AIGateway:
             ],
             response_format={"type": "json_object"},
         )
+        if max_tokens is not None:
+            request_options["max_tokens"] = max_tokens
+        if timeout_seconds is not None:
+            request_options["timeout"] = timeout_seconds
+        r = self._openai_client.chat.completions.create(**request_options)
         return r.choices[0].message.content or ""
