@@ -2,6 +2,51 @@
 
 All notable changes to the WFF Watch Face Development Skill.
 
+## [0.5.0] - 2026-09-11
+
+Component pack closed loop. Blind-test round 5 (BT-08 configurable components)
+PASS with zero validate-error rounds — the agent delivered a fully
+user-configurable face (clock style switch / seconds toggle / dual
+complication slots / theme colors) and the real device (Galaxy Watch6,
+One UI 8.0) confirmed ALL four customization features work.
+
+### Knowledge: List/Boolean two-mode configuration (R37)
+- XSD include-chain + official Flavors/Complications samples cross-check:
+  container mode (UserConfigurations = editor UI metadata) vs render mode
+  (Scene/Group/hands = Option id + embedded part) coexist — unlike Color
+  whose standalone element version is deprecated; ids must match on both
+  sides; render-mode BooleanOption TRUE-only = off hides content (showHr)
+- ListOption complicationSlotIds / childSettingIds (slot visibility
+  cascading); Flavors presets + PhotosConfiguration documented
+- slotId starts at 0 in official samples (old "start at 1" fixed);
+  ComplicationSlot cap 8; XSD xs:unique
+- PartText > Text > Font three-layer structure (R39, validator-enforced;
+  renderer-tolerated shortcuts fail official validation);
+  [CONFIGURATION.<id>.<N>] color-index syntax; CDATA for && expressions;
+  null-check ternary + Condition branching (R40)
+- elements.md ghost element purged: `<UserConfiguration type=...>` never
+  existed in XSD v5; recipes.md §4 full component-pack recipe (validator
+  PASSED, e2e build+sign verified before merging)
+
+### Builder: rules 24 → 27
+- R37: render-mode List/Boolean id correspondence + BooleanOption enum
+- R38: ComplicationSlot cap/uniqueness
+- R39: PartText>Text>Font layering check
+- R34 fix (BT-08 feedback #3): nested local-coordinate blocks
+  (ComplicationSlot / config render modes / clocks) now stripped before
+  inscribed-circle scan — BT-08 false positive eliminated while P2 and
+  full-width-band true positives retained
+
+### Blind-test round 5 (BT-08)
+- static 28/28, validate 25/27 (0 errors), build 132.6KB signed APK,
+  real-device: all four customization features confirmed
+- Agent self-audited APK internals (binary AXML Editable + raw XML
+  byte-identical); slot bezels moved to Scene-level PartDraw per R26
+- 4 feedback items verified & merged: R34 nested-coordinate bug (fixed),
+  BoundingOval uses x/y not centerX/centerY (XSD geometricAttributesRequired,
+  elements.md corrected), Windows host adaptation (AAPT2/APKSIGNER env
+  vars documented), icon attribute optional (text-label fallback)
+
 ## [0.4.0] - 2026-09-10
 
 P2 breakthrough day (2026-09-09) + Arc semantics closure (2026-09-10): the

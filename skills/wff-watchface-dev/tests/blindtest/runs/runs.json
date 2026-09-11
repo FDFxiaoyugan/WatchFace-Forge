@@ -33,8 +33,9 @@
   },
   "BT-08": {
     "round": 5,
-    "date": "2026-09-10",
-    "status": "kickoff_ready",
-    "note": "组件包轮; 知识层 R37-R40 + 规则 27 条 + 配方 §4 已预审入库; criteria 11 点正反例验证过"
+    "date": "2026-09-11",
+    "validate_fix_rounds": 0,
+    "result": "PASS",
+    "note": "组件包轮; validate 0 修复轮 (2+2 次, 无 error); static 28/28 + 签名 APK 132.6KB; 真机四项自定义全正常 (颜色/字体粗细切换/秒开关/自定义组件, Galaxy Watch6); agent 反馈 4 条全核实: R34 嵌套误报 bug 已修 + BoundingOval x/y 修正 + Windows 适配补充 + icon 可省说明"
   }
 }

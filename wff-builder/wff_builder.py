@@ -465,8 +465,15 @@ def _check_rule_34(xml_text: str):
     scene = re.search(r'<Scene\b[^>]*>(.*)</Scene>', xml_text, re.DOTALL)
     if not scene:
         return True, "OK"
-    for m in re.finditer(r'<(PartDraw|PartText|PartImage|DigitalClock|AnalogClock|Group)\b([^>]*?)(/>|>)',
-                         scene.group(1)):
+    scene_body = scene.group(1)
+    # 剥离嵌套块 (其内部是局部坐标系, 不做全局内切圆检查):
+    # ComplicationSlot/Complication 的子元素、List/Boolean 渲染版 Option 内容 (BT-08 反馈 #3)
+    scene_body = re.sub(r'<ComplicationSlot\b[^>]*(/>|>.*?</ComplicationSlot>)', '', scene_body, flags=re.DOTALL)
+    scene_body = re.sub(r'<ListConfiguration\b[^>]*(/>|>.*?</ListConfiguration>)', '', scene_body, flags=re.DOTALL)
+    scene_body = re.sub(r'<BooleanConfiguration\b[^>]*(/>|>.*?</BooleanConfiguration>)', '', scene_body, flags=re.DOTALL)
+    scene_body = re.sub(r'<AnalogClock\b[^>]*(/>|>.*?</AnalogClock>)|<DigitalClock\b[^>]*(/>|>.*?</DigitalClock>)', '', scene_body, flags=re.DOTALL)
+    for m in re.finditer(r'<(PartDraw|PartText|PartImage|Group)\b([^>]*?)(/>|>)',
+                         scene_body):
         attrs = m.group(2)
         x = re.search(r'\bx="(-?[\d.]+)"', attrs)
         y = re.search(r'\by="(-?[\d.]+)"', attrs)

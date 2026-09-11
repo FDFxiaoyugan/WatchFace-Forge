@@ -3,7 +3,7 @@
 > Agent Skill: 教任意 AI agent 开发 Wear OS Watch Face Format (WFF) 表盘。
 > 从一行需求到可安装 APK，全流程 agent 自主完成。
 
-**版本 v0.4.0**（2026-09-10）— P2 编辑器破案 + 颜色包主线。**v0.5.0 组件包知识层已入库（2026-09-10 预审），待盲测+真机后发布**。版本史：
+**版本 v0.5.0**（2026-09-11）— 组件包（可定制配置全链路）。版本史：
 - v0.1.0（2026-08-24）首版端到端验证
 - v0.2.0（2026-08-27）Round 1 回灌：知识层大修 11 处（嵌套方向/HH:mm/Complication 属性集）
 - v0.2.2（2026-08-31）真机三轮复盘：R26-R30 + 规则 20 条
@@ -12,6 +12,10 @@
 - v0.4.0（2026-09-10）P2 大满贯日：R33 Editable（编辑器自定义按钮总开关）+ R30
   反转（displayName 裸资源名）+ R34/R35 圆屏溢出与 Arc 容器溢出校验 + R36 Arc
   角度语义（ArcLab 像素级实证）、颜色包 UserConfigurations 全链路真机验证、规则 24 条
+- v0.5.0（2026-09-11）组件包闭环：List/Boolean 两套模式（R37）+ slotId 0 起/上限 8
+  （R38）+ PartText>Text>Font 三层（R39）+ Condition null 分支（R40）+ 配方 §4 +
+  Windows 宿主适配 + R34 嵌套误报修复 + BoundingOval x/y 修正；五轮盲测全 PASS
+  （BT-08 真机四项自定义全正常）、规则 27 条
 
 ---
 
@@ -34,6 +38,11 @@
 走"预编译模板"兜底——该模板**只注册了 drawable/preview 一个资源槽位**，
 多 drawable 表盘（指针 PNG/dial 背景等）会丢图。ARM 上构建多图盘必须在
 x86_64 机器（或 Docker x86_64）上进行。
+
+**⚠️ Windows 宿主**（BT-08 盲测实证）：工具名带 `.exe`/`.bat` 后缀，SDK 路径
+探测可能失败。用环境变量指定完整路径：
+`AAPT2=<SDK>\build-tools\34.0.0\aapt2.exe`、`APKSIGNER=<SDK>\build-tools\34.0.0\apksigner.bat`
+（builder 报错信息里有此提示；java 用 `java -version` 同查）。
 
 ## When to Use
 
@@ -253,7 +262,7 @@ wff_version: 1              # 1=Wear OS 4, 2+=Wear OS 5+
 
 ## Version & Updates
 
-- 当前版本：v0.4.0（2026-09-10）
+- 当前版本：v0.5.0（2026-09-11）
 - 知识来源：google/watchface XSD v5 + 官方 samples + 一期真机验证 + 盲测四轮 +
   P2 颜色包真机迭代（Editable/displayName 裸名/ArcLab 角度语义像素级实证）
 - 更新触发：XSD 规范变更 / 平台 API 契约变更 / 盲测反馈 / 真机复盘

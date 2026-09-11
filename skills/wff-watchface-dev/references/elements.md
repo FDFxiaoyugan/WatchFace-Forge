@@ -388,7 +388,9 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
 > ⚠️ **BoundingShape 不可直接实例化**：它是 XSD substitution group 抽象头，
 > 必须写具体成员之一：`<BoundingBox x y width height/>`（直角）、
 > `<BoundingRoundBox x y width height cornerRadius outlinePadding/>`（圆角矩形，最常用）、
-> `<BoundingOval centerX centerY width height/>`、`<BoundingArc .../>`。
+> `<BoundingOval x y width height outlinePadding/>`（椭圆；几何属性是
+> **x/y** 包围盒左上角——XSD `geometricAttributesRequired`，不是 centerX/centerY，
+> BT-08 盲测实证 validator 通过）、`<BoundingArc .../>`。
 > 成员的几何属性（x/y/width/height 等）**必填**。
 > 注意：BoundingShape 只是点击/碰撞区域，**不渲染任何视觉内容**——边框底板要自己在
 > Complication 里用 PartDraw 画。
@@ -448,6 +450,8 @@ DefaultProvider：`APP_SHORTCUT` `DATE` `DAY_OF_WEEK` `FAVORITE_CONTACT` `NEXT_E
 - **没有 `<UserConfiguration>` 这个元素**（旧知识层写法是错的，XSD v5 无此元素）；
   五种配置各是独立元素：`ColorConfiguration` `ListConfiguration` `BooleanConfiguration`
   `PhotosConfiguration` `Flavors`
+- **icon 属性可省**（BT-08 盲测实证）：省略时构建/校验不受影响，编辑器用文本
+  标签显示选项——纯矢量/无位图素材约束下的推荐做法
 - `ListConfiguration` 必填 id/displayName/defaultValue；`ListOption` 纯属性
   （id + displayName/icon/`complicationSlotIds`/`childSettingIds`——空格分隔多值）
 - `BooleanConfiguration` 容器版**纯属性无子元素**（defaultValue 取 TRUE/FALSE）
