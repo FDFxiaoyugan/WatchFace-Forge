@@ -25,6 +25,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "wff-builder"))
 
 from services.cdm_generator import CDMGenerator
+from services.ai_gateway import AIGateway, AIConfigError, normalize_user_ai_config
 from compiler.wff.compiler import WFFCompiler
 from wff_builder import WFFBuilder, validate_watchface_xml
 
@@ -66,13 +67,28 @@ async def generate_watchface(req: dict):
             "message": "prompt is required",
         })
 
+    try:
+        ai_config = normalize_user_ai_config(req.get("ai_config"))
+    except AIConfigError as exc:
+        return JSONResponse(status_code=400, content={
+            "status": "error",
+            "error_type": "invalid_ai_config",
+            "message": str(exc),
+        })
+
     task_id = str(uuid.uuid4())[:8]
     tracker = ProgressTracker(task_id)
 
     # 1. LLM 生成 CDM
     tracker.emit("llm_generating", 20, "正在调用 AI 生成表盘设计...")
 
-    generator = CDMGenerator()
+    gateway = AIGateway(
+        backend="openai",
+        api_key=ai_config["api_key"],
+        base_url=ai_config["base_url"] or None,
+        model=ai_config["model"],
+    ) if ai_config else AIGateway()
+    generator = CDMGenerator(gateway)
     gen_result = generator.generate(prompt, user_id=user_id)
 
     if not gen_result["success"]:

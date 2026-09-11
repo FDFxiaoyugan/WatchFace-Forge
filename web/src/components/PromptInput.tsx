@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
+import { loadAIConfig, toAIRequestConfig, UserAIConfig, EMPTY_AI_CONFIG } from "@/lib/aiConfig";
 
 interface GenerateResult {
   task_id: string;
@@ -30,6 +31,9 @@ export default function PromptInput({ onResult }: { onResult?: (r: GenerateResul
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<{ stage: string; progress: number; message: string } | null>(null);
   const [result, setResult] = useState<GenerateResult | null>(null);
+  const [aiConfig, setAIConfig] = useState<UserAIConfig>(EMPTY_AI_CONFIG);
+
+  useEffect(() => setAIConfig(loadAIConfig()), []);
 
   async function handleGenerate() {
     if (!prompt.trim() || loading) return;
@@ -56,7 +60,7 @@ export default function PromptInput({ onResult }: { onResult?: (r: GenerateResul
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, ai_config: toAIRequestConfig(aiConfig) }),
       });
       const data = await res.json();
       clearInterval(progressTimer);
@@ -66,6 +70,7 @@ export default function PromptInput({ onResult }: { onResult?: (r: GenerateResul
     } catch (err) {
       clearInterval(progressTimer);
       setProgress({ stage: "failed", progress: 100, message: String(err) });
+      setResult({ task_id: "", status: "failed", error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }
@@ -77,6 +82,11 @@ export default function PromptInput({ onResult }: { onResult?: (r: GenerateResul
         <div className="mb-6 flex items-start gap-4">
           <span className="md-feature-icon"><Icon name="spark" size={24}/></span>
           <div><h2 className="text-xl font-semibold">描述你的表盘</h2><p className="mt-1 text-sm text-forge-muted">AI 会生成结构化 CDM，并自动完成 WFF 编译与 APK 构建。</p></div>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-forge-border bg-[#101318] px-4 py-3 text-sm">
+          <span className="flex items-center gap-2 text-forge-muted"><Icon name="settings" size={17}/><span className={`h-2 w-2 rounded-full ${aiConfig.apiKey ? "bg-emerald-400" : "bg-amber-300"}`}/>{aiConfig.apiKey ? `自定义 API · ${aiConfig.model || "gpt-4o"}` : "使用服务端默认 AI"}</span>
+          <button type="button" className="text-forge-accent hover:underline" onClick={() => router.push("/settings")}>配置 AI 服务</button>
         </div>
 
       {/* Input */}

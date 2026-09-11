@@ -44,11 +44,34 @@ npx next build && npx next start -p 3000   # 生产
 | `AI_PROVIDER` | `zai` \| `openai` | `zai` |
 | `ZAI_API_KEY` / `OPENAI_API_KEY` | AI 密钥 | 无（缺失时 AI 端点返回 503） |
 | `OPENAI_BASE_URL` | OpenAI 兼容端点 | 官方 |
+| `OPENAI_MODEL` | 服务端默认 OpenAI 模型 | `gpt-4o` |
 | `WFF_API_KEYS` | `/api/v1/wff/*` 接受的逗号分隔 API Key | 无（未配置时返回 503） |
 
 首次使用 WFF 直通 API 时执行 `./scripts/create-api-key.sh`，它会生成随机
 key 并写入被 Git 忽略的 `.env`。`scripts/dev-services.sh` 启动/重启时会自动
 加载该文件。不要把 `.env` 或真实 key 提交到仓库。
+
+### 用户自定义 AI API（BYOK）
+
+前端 `/settings` 可配置用户自己的 OpenAI 兼容 API Key、HTTPS Base URL 和模型。
+配置只写入当前标签页的 `sessionStorage`；点击 AI 生成时，以 `ai_config` 随该次
+`POST /api/generate` 请求发送。后端只在该请求内构造客户端，不持久化配置，也不
+记录密钥；关闭标签页或点击“使用服务端默认”会清除浏览器配置。请求结构为：
+
+```json
+{
+  "prompt": "极简黑白数字表盘",
+  "ai_config": {
+    "api_key": "用户密钥",
+    "base_url": "https://api.openai.com/v1",
+    "model": "gpt-4o"
+  }
+}
+```
+
+`ai_config` 可省略；省略或密钥为空时沿用服务端 AI 配置。不要把真实密钥写进
+文档、截图、issue、日志或 Git。自定义 Base URL 仅接受 HTTPS，且不能在 URL
+中内嵌用户名、密码、查询参数或片段。
 
 启动服务后访问 `/ci` 使用 Agent CI 工作台。API Key 只保存在当前浏览器
 标签页的 `sessionStorage`，关闭标签页后清除；页面主操作是直接下载 APK，
@@ -57,7 +80,7 @@ key 并写入被 Git 忽略的 `.env`。`scripts/dev-services.sh` 启动/重启�
 ## 测试
 
 ```bash
-# 全量 36 个测试 (core: CDM+编译器 / api: 端点 / phase2: AI 生成链路 mock)
+# 全量测试 (core: CDM+编译器 / api: 端点 / phase2: AI 生成链路 mock)
 python3 -m pytest tests/ -v
 
 # 只跑某模块

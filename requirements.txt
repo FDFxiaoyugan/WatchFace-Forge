@@ -21,5 +21,11 @@ qrcode>=7.4
 # 配置
 PyYAML>=6.0
 
+# AI 兼容接口
+openai>=1.0,<3
+
+# 测试
+pytest>=8.0,<9
+
 # Google WFF schema uses XSD 1.1; xmlschema is MIT and supports XSD 1.1.
 xmlschema>=4.2,<5

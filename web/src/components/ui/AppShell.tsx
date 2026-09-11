@@ -8,6 +8,7 @@ const nav = [
   { href: "/", label: "工作台", icon: "home" as const },
   { href: "/editor", label: "可视化编辑", icon: "palette" as const },
   { href: "/ci", label: "Agent CI", icon: "code" as const },
+  { href: "/settings", label: "AI 设置", icon: "settings" as const },
 ];
 
 export default function AppShell({ children, compact = false }: { children: React.ReactNode; compact?: boolean }) {

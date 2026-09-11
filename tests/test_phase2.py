@@ -13,7 +13,13 @@ sys.path.insert(0, str(PROJECT_ROOT / "wff-builder"))
 
 import pytest
 from services.cdm_generator import CDMGenerator, fix_cdm
-from services.ai_gateway import AIGateway, check_rate_limit, record_request
+from services.ai_gateway import (
+    AIGateway,
+    AIConfigError,
+    check_rate_limit,
+    normalize_user_ai_config,
+    record_request,
+)
 
 
 class TestRateLimit:
@@ -101,6 +107,32 @@ class TestAIGateway:
         """Gateway 应该可以初始化"""
         gw = AIGateway()
         assert gw is not None
+
+    def test_user_key_selects_openai_and_keeps_custom_endpoint(self):
+        config = normalize_user_ai_config({
+            "api_key": "sk-user-secret",
+            "base_url": "https://ai.example.com/v1",
+            "model": "custom-model",
+        })
+        assert config is not None
+        gw = AIGateway(backend="auto", **config)
+        assert gw._get_backend() == "openai"
+        assert gw.base_url == "https://ai.example.com/v1"
+        assert gw.model == "custom-model"
+
+    def test_empty_user_key_uses_server_default(self):
+        assert normalize_user_ai_config({"api_key": "", "base_url": "", "model": ""}) is None
+
+    def test_gateway_redacts_user_key_from_errors(self):
+        gw = AIGateway(backend="openai", api_key="sk-never-echo-this")
+        error = gw._safe_error(RuntimeError("request failed for sk-never-echo-this"))
+        assert "sk-never-echo-this" not in error
+        assert "[REDACTED]" in error
+
+    @pytest.mark.parametrize("url", ["http://ai.example.com/v1", "https://user:pass@ai.example.com/v1", "https://ai.example.com/v1?key=secret"])
+    def test_rejects_unsafe_custom_base_url(self, url):
+        with pytest.raises(AIConfigError):
+            normalize_user_ai_config({"api_key": "sk-test", "base_url": url, "model": "gpt-4o"})
 
     def test_parse_json_from_code_block(self):
         """应该能从 markdown 代码块中提取 JSON"""

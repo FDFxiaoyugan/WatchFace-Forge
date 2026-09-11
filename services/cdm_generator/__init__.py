@@ -184,8 +184,8 @@ def fix_cdm(cdm_dict: dict) -> tuple[dict, list[str]]:
 class CDMGenerator:
     """自然语言 → CDM JSON"""
 
-    def __init__(self):
-        self.ai = AIGateway()
+    def __init__(self, ai_gateway: Optional[AIGateway] = None):
+        self.ai = ai_gateway or AIGateway()
 
     def generate(
         self,

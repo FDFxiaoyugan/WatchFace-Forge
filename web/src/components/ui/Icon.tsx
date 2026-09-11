@@ -1,7 +1,7 @@
 type IconName =
   | "home" | "spark" | "palette" | "code" | "layers" | "check"
   | "download" | "arrow" | "upload" | "preview" | "undo" | "redo"
-  | "zoomIn" | "zoomOut" | "menu" | "close" | "api" | "watch";
+  | "zoomIn" | "zoomOut" | "menu" | "close" | "api" | "watch" | "settings";
 
 const paths: Record<IconName, React.ReactNode> = {
   home: <path d="M3 10.8 12 3l9 7.8V21h-6v-6H9v6H3V10.8Z" />,
@@ -22,6 +22,7 @@ const paths: Record<IconName, React.ReactNode> = {
   close: <path d="m6 6 12 12M18 6 6 18" />,
   api: <path d="M7 7h10v10H7V7Zm-4 3h4m10 0h4M3 14h4m10 0h4M10 3v4m4-4v4m-4 10v4m4-4v4" />,
   watch: <><rect x="6" y="5" width="12" height="14" rx="4"/><path d="m9 5 1-3h4l1 3m-6 14 1 3h4l1-3M12 9v3l2 1"/></>,
+  settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3.08 14H3v-4h.08A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8.97 4.6 1.7 1.7 0 0 0 10 3.08V3h4v.08a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9 1.7 1.7 0 0 0 20.92 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z"/></>,
 };
 
 export default function Icon({ name, size = 20, className = "" }: { name: IconName; size?: number; className?: string }) {

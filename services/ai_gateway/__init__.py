@@ -2,8 +2,8 @@
 AI Gateway — 统一封装 LLM 调用
 
 支持两种后端:
-  1. z-ai SDK (默认, 无需 API key)
-  2. OpenAI API (可选, 需 OPENAI_API_KEY)
+  1. z-ai CLI (服务端默认)
+  2. OpenAI 兼容 API（服务端环境变量或用户临时 BYOK）
 
 功能:
   - 调用 LLM 生成文本 (system + user prompt)
@@ -17,6 +17,44 @@ import time
 import subprocess
 import os
 from typing import Optional
+from urllib.parse import urlparse
+
+DEFAULT_OPENAI_MODEL = "gpt-4o"
+MAX_API_KEY_LENGTH = 512
+MAX_BASE_URL_LENGTH = 512
+MAX_MODEL_LENGTH = 128
+
+
+class AIConfigError(ValueError):
+    """用户 AI 配置无效；错误消息不得包含密钥内容。"""
+
+
+def normalize_user_ai_config(value: object) -> Optional[dict[str, str]]:
+    """校验浏览器提交的临时 OpenAI 兼容配置，不持久化任何字段。"""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise AIConfigError("ai_config 必须是对象")
+
+    api_key = str(value.get("api_key", "")).strip()
+    base_url = str(value.get("base_url", "")).strip()
+    model = str(value.get("model", "")).strip() or DEFAULT_OPENAI_MODEL
+    if not api_key:
+        return None
+    if len(api_key) > MAX_API_KEY_LENGTH:
+        raise AIConfigError("AI API Key 长度超出限制")
+    if len(base_url) > MAX_BASE_URL_LENGTH or len(model) > MAX_MODEL_LENGTH:
+        raise AIConfigError("AI 服务地址或模型名称长度超出限制")
+    if any(ord(char) < 32 for char in api_key + base_url + model):
+        raise AIConfigError("AI 配置包含非法控制字符")
+    if base_url:
+        parsed = urlparse(base_url)
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+            raise AIConfigError("自定义 Base URL 必须是无内嵌凭据的 HTTPS 地址")
+        if parsed.query or parsed.fragment:
+            raise AIConfigError("自定义 Base URL 不能包含查询参数或片段")
+
+    return {"api_key": api_key, "base_url": base_url, "model": model}
 
 # ─── 限流 ──────────────────────────────────────────────
 
@@ -47,17 +85,30 @@ def record_request(user_id: str = "default"):
 class AIGateway:
     """统一 AI 网关"""
 
-    def __init__(self, backend: str = "auto"):
+    def __init__(
+        self,
+        backend: str = "auto",
+        *,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+    ):
         """
         backend: "z-ai" | "openai" | "auto"
         auto = 优先 z-ai, 不可用则 openai
         """
         self.backend = backend
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        self.base_url = base_url or os.environ.get("OPENAI_BASE_URL")
+        self.model = model or os.environ.get("OPENAI_MODEL") or DEFAULT_OPENAI_MODEL
         self._openai_client = None
 
     def _get_backend(self) -> str:
         if self.backend != "auto":
             return self.backend
+        # 用户显式提供的 OpenAI 兼容密钥优先于服务端 z-ai。
+        if self.api_key:
+            return "openai"
         # z-ai CLI 可用?
         try:
             r = subprocess.run(["z-ai", "--help"], capture_output=True, timeout=5)
@@ -66,8 +117,6 @@ class AIGateway:
         except Exception:
             pass
         # OpenAI key 可用?
-        if os.environ.get("OPENAI_API_KEY"):
-            return "openai"
         raise RuntimeError("No AI backend available (z-ai CLI not found, no OPENAI_API_KEY)")
 
     def generate(
@@ -77,7 +126,16 @@ class AIGateway:
         max_retries: int = 3,
     ) -> dict:
         """调用 LLM 生成文本, 返回 {success, content, backend, attempts}"""
-        backend = self._get_backend()
+        try:
+            backend = self._get_backend()
+        except Exception as exc:
+            return {
+                "success": False,
+                "content": None,
+                "backend": self.backend,
+                "attempts": 0,
+                "error": self._safe_error(exc),
+            }
         last_error = None
 
         for attempt in range(1, max_retries + 1):
@@ -95,7 +153,7 @@ class AIGateway:
                         "attempts": attempt,
                     }
             except Exception as e:
-                last_error = str(e)
+                last_error = self._safe_error(e)
                 if attempt < max_retries:
                     time.sleep(2 * attempt)  # 指数退避
 
@@ -106,6 +164,13 @@ class AIGateway:
             "attempts": max_retries,
             "error": last_error,
         }
+
+    def _safe_error(self, error: Exception) -> str:
+        """返回适合客户端展示的错误，避免上游异常意外回显密钥。"""
+        message = str(error)
+        if self.api_key:
+            message = message.replace(self.api_key, "[REDACTED]")
+        return message[:500]
 
     def generate_json(
         self,
@@ -163,10 +228,15 @@ class AIGateway:
         """通过 OpenAI SDK 调用"""
         if self._openai_client is None:
             from openai import OpenAI
-            self._openai_client = OpenAI()
+            if not self.api_key:
+                raise RuntimeError("OpenAI backend requires an API key")
+            client_options = {"api_key": self.api_key}
+            if self.base_url:
+                client_options["base_url"] = self.base_url
+            self._openai_client = OpenAI(**client_options)
 
         r = self._openai_client.chat.completions.create(
-            model="gpt-4o",
+            model=self.model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
