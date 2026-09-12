@@ -1,8 +1,11 @@
-# WFF Direct API Contract v1.0
+# WFF Direct API Contract v1.1
 
 Base path: `/api/v1/wff`. Requests use `multipart/form-data` and authenticate with
 `X-API-Key`. Server keys are configured through the comma-separated `WFF_API_KEYS`
-environment variable; keys are never stored in source code.
+environment variable; keys are never stored in source code. **Keys are
+deployment-specific** (e.g. set in the server's `.env`): the `dev-key` shown in
+examples below is a placeholder only and will return 401 against a real
+deployment unless that exact key happens to be configured.
 
 ## Common errors
 
@@ -13,11 +16,20 @@ environment variable; keys are never stored in source code.
 | HTTP | code | Meaning |
 |---|---|---|
 | 401 | `INVALID_API_KEY` | Missing or unknown key |
-| 422 | `VALIDATION_FAILED` | XML/resources failed validation |
+| 200 | — | Validation **result**: body carries `valid:false` + `errors[]` (see below) |
+| 422 | `VALIDATION_FAILED` | The **request** is malformed: missing required fields, oversized files |
 | 422 | `INVALID_PREVIEW_OPTIONS` | Unsupported shape or size |
 | 429 | `RATE_LIMITED` | Per-key token bucket exhausted |
 | 500 | `BUILD_FAILED` | APK packaging or signing failed |
 | 503 | `API_KEYS_NOT_CONFIGURED` | Server has no `WFF_API_KEYS` |
+
+> Validation outcome semantics (v1.1, aligned with the implementation after the
+> 2026-09-12 cross-team integration test): a syntactically valid request whose
+> XML fails validation returns **200** with `valid:false` and structured
+> `errors[]` — the same shape as a passing response. This keeps client-side
+> handling uniform (lint-API convention). `422 VALIDATION_FAILED` is reserved
+> for request-level problems such as a missing `xml` field or an oversized
+> upload, which are rejected by request validation before any WFF checking.
 
 Quotas per API key are validate 60/hour, preview 20/hour, and build 10/hour.
 The current limiter is process-local and intentionally conservative; a shared
@@ -41,8 +53,12 @@ validation layer uses the Apache-2.0 Google WFF v1 XSD vendored at a pinned
 upstream commit and runs through the MIT `xmlschema` XSD 1.1 engine with local-only
 resource access. Every issue
 has `source` (`xsd`, `official_validator`, or `lint`), `rule`, `severity`,
-`element`, `line`, `message`, and `hint`. Until the official Google evaluator is
-integrated, `stats.memory_source` is `estimate`.
+`element`, `line`, `message`, and `hint`. `validate` reports quick
+`stats.memory_source: "estimate"` figures only; the official Google
+`memory-footprint.jar` numbers appear in the `build` response (v1.1: the
+official evaluator is integrated and returns `source: "official"` whenever
+Java 17 + the pinned jar are available, as verified in the 2026-09-12
+integration test: 2,371,712 bytes for the BT-08 sample).
 
 ## POST `/preview`
 
@@ -99,3 +115,8 @@ Successful builds also include `memory` from Google's pinned
 `max_ambient_bytes`). If Java 17 or the tool is unavailable, `source` is
 `unavailable` and the reason is repeated in `warnings`; estimated validation
 statistics are never labeled as official.
+
+> Open question (from the 2026-09-12 integration test): for the BT-08 sample
+> the tool reported `max_ambient_bytes` (6,363,424) larger than `total_bytes`
+> (2,371,712). Field semantics need confirmation against the upstream tool
+> docs before clients rely on `max_ambient_bytes` for ambient budgets.
