@@ -89,16 +89,24 @@ def score_static(card_id, project_dir):
     checks, score, max_score = [], 0, 0
 
     for c in spec.get("static_checks", []):
-        matches = re.findall(c["pattern"], xml, re.DOTALL)
+        # 先剥 XML 注释: 注释里的示例文字不应参与评分 (与 wff_builder 同口径, 防误报)
+        scanned = re.sub(r"<!--.*?-->", "", xml, flags=re.S)
+        matches = re.findall(c["pattern"], scanned, re.DOTALL)
         min_count = c.get("min_count", 1)
-        passed = len(matches) >= min_count
+        if c.get("negative"):
+            # 负向检查: pattern 必须零命中才 PASS (幽灵写法/非法属性探测)
+            passed = len(matches) == 0
+        else:
+            passed = len(matches) >= min_count
         weight = c["weight"]
         max_score += weight
         if passed:
             score += weight
         checks.append({
             "id": c["id"], "desc": c["desc"], "passed": passed,
-            "matched": len(matches), "required": min_count, "weight": weight,
+            "matched": len(matches),
+            "required": 0 if c.get("negative") else min_count,
+            "weight": weight,
         })
 
     return {"checks": checks, "score": score, "max": max_score, "error": None}

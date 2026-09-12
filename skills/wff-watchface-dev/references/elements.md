@@ -111,8 +111,8 @@ Group 用于组织部件并应用变体。典型模式：一个 ACTIVE Group + �
 
 | 子元素 | 说明 |
 |--------|------|
-| `<Image>` | 图片引用 |
-| `<ImageFilter>` | 滤镜 |
+| `<Image>` | 图片引用（仅 `resource` 属性） |
+| `<ImageFilters>` | 滤镜容器（内含 `<HsbFilter>`） |
 | `<Variant>` | 变体 |
 | `<Gyro>` | 陀螺仪 |
 | `<Transform>` | 动态变换 |
@@ -245,6 +245,10 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
 > ⚠️ **format 只接受小写 h/m/s**（XSD `timeFormatType` pattern：`h{1,2}:m{1,2}(:s{1,2})?` 等
 > 小写组合）。`HH:mm` 过不了官方校验（真机可能宽容，但规范非法）。12/24 小时制由
 > `hourFormat`（`12`/`24`/`SYNC_TO_DEVICE`）控制，与 format 无关。
+>
+> ⚠️ **TimeText 的 Font 是精简内联版**（XSD 局部定义，纯属性）——**不能内嵌任何子元素**
+> （Outline/Shadow/Transform 等都不行），描边等装饰只有 `PartText > Font`（全局版，
+> 支持 TextComponentGroup 装饰子元素）才有。TimeText 要描边就叠一层 PartDraw 圈线视觉替代。
 
 ---
 
@@ -295,13 +299,27 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
 | `<Compare expression="引用名">` | **必填** ≥1 个；expression 必须引用 Expressions 里定义的 name |
 | `<Default>` | 可选；所有 Compare 都不命中时渲染 |
 
-### `<Transform>` — 动态变换
+### `<Transform>` — 属性驱动变换
+
+> ⚠️ **没有 `rotate()`/`translate()`/`scale()` 这类变换函数**（旧知识层虚构）。
+> Transform 的机制是：`target` 指定要修改的**宿主属性名**，`value` 给出该属性的新值（算术表达式）。
 
 ```xml
-<Transform value="rotate([SECOND] / 60 * 360)"/>
+<!-- 官方 samples 实例：把 Arc 的 endAngle 变成动态值 -->
+<Transform target="endAngle"
+           value="-150 + (clamp([COMPLICATION.GOAL_PROGRESS_VALUE], 0,
+                 [COMPLICATION.GOAL_PROGRESS_TARGET_VALUE])
+                 / [COMPLICATION.GOAL_PROGRESS_TARGET_VALUE]) * 300"/>
 ```
 
-支持 `rotate()` `translate()` `scale()` 等变换函数，参数为表达式
+| 属性 | 必填 | 说明 |
+|------|------|------|
+| `target` | ✅ | 宿主属性名（如 `angle` `x` `y` `alpha` `endAngle` `startAngle` `scaleX`） |
+| `value` | ✅ | 算术表达式，结果写入 target 属性 |
+| `mode` | | `TO`（默认，设为该值）/ `BY`（在原值上累加） |
+
+- 挂载点：形状（Arc/Ellipse/Rectangle/RoundRectangle/Line）、Stroke、渐变、Part、Group、TextCircular 内部
+- **动画**：内嵌一个 `<Animation>` 子元素（见下方动画章节），`value` 里用 `[ANIMATION_VALUE]` 引用动画进度值
 
 ### `<Gyro>` — 陀螺仪响应
 
@@ -310,7 +328,12 @@ Hand 属性：`resource`（必填）`x y width height`（必填）`pivotX pivotY
      y="(5/90) * clamp([ACCELEROMETER_ANGLE_Y], -90, 90)"/>
 ```
 
-支持 `x y scaleX scaleY angle alpha` 六轴响应
+支持 `x y scaleX scaleY angle alpha` 六个响应属性（全部为表达式类型）。
+
+- 挂载点：**Group 或 Part 内部**（直接子元素），调整的是**父 Group/Part** 的对应属性
+- 数据源：`[ACCELEROMETER_ANGLE_X]` `[ACCELEROMETER_ANGLE_Y]`（XSD sensorSourceType 白名单）
+- 表达式建议用 `clamp()` 限幅，复杂式可用 CDATA 包裹（官方注释建议）
+- 腕部倾斜 ±90° → 表达式输出控制父元素位移/旋转/透明度 → 视差效果
 
 ---
 
@@ -519,23 +542,146 @@ AnalogClock / DigitalClock。渲染版可挂在 HourHand/MinuteHand/SecondHand �
 
 ---
 
-## 图片/动画
+## 图片 / 动画
 
-### `<AnimatedImage>`
+### 图片滤镜 `<ImageFilters>`
+
+挂 `PartImage` 内（不是独立元素；旧知识层的 `<ImageFilter>` + `NONE/GRAYSCALE/DIMMED/TINTED` 枚举是虚构的）：
 
 ```xml
-<AnimatedImage file="anim.gif" playback="LOOP">
-    <Variant mode="AMBIENT" target="alpha" value="0"/>
-</AnimatedImage>
+<PartImage x="0" y="0" width="450" height="450">
+    <Image resource="background"/>
+    <ImageFilters>
+        <HsbFilter saturate="1.5" brightness="0.8"/>
+    </ImageFilters>
+</PartImage>
 ```
 
-`playback`: `ONE_SHOT` `LOOP`
+`<HsbFilter>`：`hueRotate`（角度）`saturate` `brightness`（归一化值，默认 1）。
 
-`frameOption`: `DO_NOTHING` `FIRST_FRAME` `THUMBNAIL` `HIDE`（ambient 时的处理）
+### 动画总览
 
-### `<ImageFilter>`
+WFF 动画分三类（**v1 / Wear OS 4 起全部可用**，无版本障碍）：
 
-滤镜类型：`NONE` `GRAYSCALE` `DIMMED` `TINTED`
+| 类别 | 元素组合 | 效果 |
+|------|---------|------|
+| 帧序列动画 | `PartAnimatedImage > AnimationController + SequenceImages > Image×N` | 多张 PNG 逐帧播放 |
+| 动图 | `PartAnimatedImage > AnimationController + AnimatedImage` | AGIF / 动态 WEBP 单文件播放 |
+| 属性动画 | `Part/Group/形状 > Transform(target,value) > Animation` | 矢量属性随时间插值变化 |
+| 陀螺仪响应 | `Group/Part > Gyro` | 属性随腕部倾斜实时变化 |
+
+### `<PartAnimatedImage>` — 动画 Part 容器
+
+与 `PartImage`/`PartDraw` 平级（Group 内直接引用）。**三件套缺一不可**：
+
+```xml
+<PartAnimatedImage x="90" y="330" width="90" height="90" name="seq">
+    <AnimationController play="ON_VISIBLE" repeat="TRUE"/>
+    <SequenceImages>
+        <Image resource="seq_0"/>
+        <Image resource="seq_1"/>
+        <Image resource="seq_2"/>
+        <Image resource="seq_3"/>
+    </SequenceImages>
+</PartAnimatedImage>
+```
+
+| 子元素 | 必填 | 说明 |
+|--------|------|------|
+| `<AnimationController>` | ✅ 1 个 | 播放控制器（见下） |
+| `<SequenceImages>` 或 `<AnimatedImage>` 或 `<AnimatedImages>` | ✅ 1 个 | 动画内容 |
+| `<Thumbnail>` | | 静态占位图资源名 |
+
+### `<AnimationController>` — 播放控制
+
+| 属性 | 必填 | 类型/默认 | 说明 |
+|------|------|----------|------|
+| `play` | ✅ | 事件列表 | 触发播放的事件（见下表） |
+| `delayPlay` | | float, 0 | 触发后延迟秒数 |
+| `delayRepeat` | | float, 0 | 重复之间的延迟秒数 |
+| `repeat` | | bool, FALSE | **TRUE = 无限循环**（不是 loopCount=-1！） |
+| `loopCount` | | int ≥0, 1 | 播放轮数（v5 不允许负数；无限循环用 repeat） |
+| `resumePlayBack` | | bool, FALSE | 中断后恢复播放（而非重头） |
+| `beforePlaying` | | DO_NOTHING(默认) | 播放前显示：`DO_NOTHING` `FIRST_FRAME` `THUMBNAIL` `HIDE` |
+| `afterPlaying` | | DO_NOTHING(默认) | 播放结束后显示：同上四个值 |
+
+`play` 事件值域（eventTriggerType，空格分隔可多值）：
+
+| 值 | 触发时机 |
+|---|---------|
+| `ON_VISIBLE` | 元素变为可见（表盘进入视野，最常用） |
+| `TAP` | 用户点击元素 |
+| `ON_NEXT_SECOND` | 下一秒 |
+| `ON_NEXT_MINUTE` | 下一分钟 |
+| `ON_NEXT_HOUR` | 下一小时 |
+
+### `<SequenceImages>` — 帧序列
+
+| 属性 | 类型/默认 | 说明 |
+|------|----------|------|
+| `loopCount` | int ≥1, 1 | 播放轮数（v5 为 positiveInteger） |
+| `thumbnail` | string | 静态占位图资源名 |
+| `frameRate` | 1-60, 15 | ⚠️ **WFF 2+ 才支持**，v1 表盘禁用 |
+
+子元素：多个 `<Image>`（**只有 `resource` 属性**，没有 width/height——尺寸由外层 PartAnimatedImage 决定）。
+
+### `<AnimatedImage>` — 动图
+
+| 属性 | 必填 | 说明 |
+|------|------|------|
+| `resource` | ✅ | drawable 资源名（AGIF/WEBP 文件） |
+| `format` | ✅ | `AGIF`（动图 GIF）或 `WEBP`（动图 WebP）；`IMAGE` 为静态图 |
+| `thumbnail` | | 静态占位图资源名 |
+
+> ⚠️ 没有 `file`/`playback` 属性（旧知识层虚构）；播放控制全部在 AnimationController。
+> 播放控制（循环/触发/结束行为）写在 `<AnimationController>`，不写在 AnimatedImage 上。
+
+### `<AnimatedImages>` — 多内容切换
+
+动画内容多态容器（点击等事件切换子项）：
+
+```xml
+<PartAnimatedImage x="0" y="0" width="90" height="90">
+    <AnimationController play="ON_VISIBLE"/>
+    <AnimatedImages change="TAP">
+        <AnimatedImage resource="state_a" format="AGIF"/>
+        <AnimatedImage resource="state_b" format="AGIF"/>
+    </AnimatedImages>
+</PartAnimatedImage>
+```
+
+| 属性 | 默认 | 说明 |
+|------|------|------|
+| `change` | TAP | 切换到下一子项的事件（eventTriggerType） |
+| `changeDirection` | FORWARD | `FORWARD`/`BACKWARD`/`RANDOM`（⚠️ WFF 2+） |
+
+### `<Animation>` — 属性动画（Transform 内嵌）
+
+挂在 `<Transform>` 内，让 `value` 表达式中的 `[ANIMATION_VALUE]` 随时间插值（0→1）：
+
+```xml
+<PartDraw x="165" y="165" width="120" height="120">
+    <Transform target="alpha" value="[ANIMATION_VALUE] * 0.7">
+        <Animation duration="2.0" repeat="-1" interpolation="EASE_IN_OUT"/>
+    </Transform>
+    <Ellipse x="0" y="0" width="120" height="120">
+        <Stroke color="#ff2ec4b6" thickness="2"/>
+    </Ellipse>
+</PartDraw>
+```
+
+| 属性 | 必填 | 类型/默认 | 说明 |
+|------|------|----------|------|
+| `duration` | ✅ | float ≥0 | 时长（秒） |
+| `repeat` | | int ≥-1, 0 | **0=不重复，-1=无限循环**（注意与 AnimationController.repeat 的 bool 语义不同！） |
+| `interpolation` | | LINEAR | `LINEAR` `EASE_IN` `EASE_OUT` `EASE_IN_OUT` `OVERSHOOT` `CUBIC_BEZIER` |
+| `controls` | | "0.5 0.5 0.5 0.5" | CUBIC_BEZIER 控制点（4 个浮点空格分隔） |
+| `angleDirection` | | NONE | `NONE` `CLOCKWISE` `COUNTER_CLOCKWISE`（角度插值方向） |
+| `fps` | | int, 15 | 帧率 |
+
+### `<ImageFilter>` — 滤镜（速查）
+
+实际结构是 `<ImageFilters>` 容器 + `<HsbFilter>`（见图片滤镜节）。
 
 ---
 
@@ -549,16 +695,17 @@ AnalogClock / DigitalClock。渲染版可挂在 HourHand/MinuteHand/SecondHand �
 | 分组 | Group, Part |
 | 时钟 | AnalogClock, DigitalClock, HourHand, MinuteHand, SecondHand, TimeText |
 | 文本 | PartText, Text, Text.DECIMAL, Text.CURRENT_DATE, Template, Parameter, Font |
-| 图片 | PartImage, Image, AnimatedImage, ImageFilter |
+| 图片 | PartImage, Image, ImageFilters, HsbFilter |
+| **动画** | PartAnimatedImage, AnimationController, AnimatedImage, AnimatedImages, SequenceImages, Animation |
 | 绘制 | PartDraw, Stroke, Fill, Arc, Ellipse, Line, Rectangle, RoundRectangle(cornerRadiusX/Y) |
 | 渐变 | LinearGradient, RadialGradient, SweepGradient |
 | 变体 | Variant |
 | 条件 | Condition, Compare, Default |
-| 变换 | Transform |
+| 变换 | Transform(target/value/mode) |
 | 陀螺仪 | Gyro |
 | Complication | ComplicationSlot, Complication, DefaultProviderPolicy |
 | 用户配置 | UserConfigurations, UserConfiguration, ListOption, BooleanOption, ColorOption, PhotosOption, FlavorsOption |
 | 位图字体 | BitmapFonts, BitmapFont, Character, Word |
-| 其他 | ScreenReader, Reference, WeightedElements |
+| 其他 | ScreenReader, Reference, WeightedElements, Thumbnail, OutGlow, Outline, Shadow, Underline, StrikeThrough |
 
 > 完整属性列表（含文档、类型、枚举）见 `data/wff_inventory_v5.md`

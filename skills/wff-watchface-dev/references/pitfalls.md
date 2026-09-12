@@ -476,6 +476,86 @@ provider 无数据时整个 `<Complication type="...">` 不渲染（R26），但
 
 ---
 
+## 🎬 动画包（v0.6.0 前置知识，2026-09-12 XSD 精读 + validator 实证）
+
+> 来源：XSD v1/v5 逐文件精读 + 正解 XML 过 wff-validator（v1/v5 双过）+ builder 全链路。
+> 官方 samples（wear-os-samples）**零动画实例**——只有 Transform 静态用法（Complications 弧），
+> 动画知识全部以 XSD 为权威，正解 XML 是唯一实证来源。
+
+### R41: 帧动画是三件套 `PartAnimatedImage > AnimationController + 内容`，缺一不可
+
+XSD `xs:all`：AnimationController（1 个，必填）+ AnimatableImageElement（SequenceImages /
+AnimatedImage / AnimatedImages 三选一，必填）。裸 `<SequenceImages>` 直接挂 Group 里
+= validator 报错。AnimationController 不写 = 报错。
+
+### R42: 无限循环用 `AnimationController repeat="TRUE"`，不是 loopCount="-1"
+
+v5 XSD：`loopCount` 是 nonNegativeInteger（SequenceImages 更是 positiveInteger），
+**写 -1 直接被 validator 拒**（v1 XSD 宽容 xs:int，但别赌真机）。无限循环语义在
+`repeat` 布尔属性上。注意两套 repeat 语义完全不同：
+- `AnimationController repeat` = **bool**（TRUE = 无限循环）
+- `Animation repeat` = **int**（0 = 不重复，**-1 = 无限循环**）
+写反必炸。
+
+### R43: SequenceImages 的帧 `<Image>` 只有 resource 属性
+
+帧尺寸由外层 `PartAnimatedImage` 的 width/height 决定；给帧 Image 写
+width/height = validator 拒（cvc-complex-type.3.2.2）。跟 PartImage>Image（有
+resource/tintColor/资源引用语义）同名不同形，别混。
+
+### R44: `frameRate`（SequenceImages）和 `changeDirection`（AnimatedImages）是 WFF 2+ 属性
+
+v1 表盘（minSdk 33 / Wear OS 4）禁用。默认帧率 15fps 已够用；真机可能限帧
+（XSD 注释：设备限 15fps 时 frameRate=30 会跳帧播放保速度）。
+
+### R45: `Transform` 没有 rotate()/translate() 变换函数（旧知识层虚构）
+
+正解是 `target`（宿主属性名字符串，必填）+ `value`（算术表达式，必填）+ `mode`
+（TO/BY）。把"旋转 30 度"写成 `<Transform target="angle" value="30"/>`；
+不是 `value="rotate(30)"`。官方 samples 全部是 target="endAngle"/"angle" 模式。
+
+### R46: 属性动画 = `Transform > Animation`，value 里用 `[ANIMATION_VALUE]`
+
+`[ANIMATION_VALUE]` 是 0→1 的插值进度，只在与 `<Animation>` 同一 Transform 的
+value 表达式里可用。duration（秒）必填。呼吸效果样板：
+`<Transform target="alpha" value="[ANIMATION_VALUE] * 0.7"><Animation duration="2.0" repeat="-1" interpolation="EASE_IN_OUT"/></Transform>`
+注意 repeat=-1（Animation 是 int 语义，见 R42）。
+
+### R47: `AnimatedImage` 没有 file/playback 属性（旧知识层虚构）
+
+正解：`resource`（drawable 名）+ `format`（AGIF/WEBP/IMAGE）+ 可选 thumbnail。
+播放控制（循环/触发/结束行为）全在 `<AnimationController>` 上，包括"ambient 时
+显示什么"——用 `afterPlaying`/`beforePlaying`（DO_NOTHING/FIRST_FRAME/THUMBNAIL/HIDE）
+或干脆用 `<Variant mode="AMBIENT">` 挂在 PartAnimatedImage 上。
+
+### R48: 图片滤镜是 `PartImage > ImageFilters > HsbFilter`（旧知识层 `<ImageFilter>` 枚举虚构）
+
+没有独立 ImageFilter 元素，没有 NONE/GRAYSCALE/DIMMED/TINTED 枚举。滤镜是
+HsbFilter 数值参数（hueRotate/saturate/brightness，默认 1）。
+
+### R49: Gyro 调整的是父 Group/Part 的属性（非独立变换节点）
+
+`<Gyro>` 挂 Group/Part 内部，表达式算出的值直接改**父元素**的 x/y/angle/alpha/
+scaleX/scaleY。想做"背景层视差"就把 Gyro 挂在背景 Group 里（内容物不动，Group
+整体微移）。数据源 `[ACCELEROMETER_ANGLE_X]`/`[ACCELEROMETER_ANGLE_Y]`（XSD
+sensorSourceType 白名单），官方示例模式：`(8/90) * clamp([ACCELEROMETER_ANGLE_X], -90, 90)`。
+
+### R50: TimeText 的 Font 是精简内联版，无任何子元素
+
+`DigitalClock > TimeText > Font` 是 XSD 局部定义（family/size/color/slant/width/
+weight 纯属性），**不支持 Outline/Shadow/Transform 等子元素**——validator 报
+"No child element is expected"。装饰只有 `PartText > Font`（全局版）才有。
+另外 `Font > Outline` 的宽度属性叫 **width**（Stroke 的才叫 thickness）。
+
+### R51: v5 XSD 对 Group 强制 name + 全套几何属性
+
+validator 5 模式下 `Group` 必须写 `name` + `x y width height`（v1 宽容但不代表
+真机宽容）。xsd unique 约束：同名兄弟 Group 不合法。clipShape 属性在 WFF v1
+真机不支持（builder R06 拒），validator 宽容——**builder 规则比 validator 严，
+以 builder 为准**。
+
+---
+
 
 ## 🔧 构建约束（APK 打包层面）
 

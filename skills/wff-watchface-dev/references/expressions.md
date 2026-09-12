@@ -231,7 +231,7 @@
 
 表达式可用于以下属性（类型为 `arithmeticExpressionType` 的属性）：
 
-- `Transform/@value` — 动态变换（位置/旋转/缩放/透明度）
+- `Transform/@value` — 动态变换（target 指定宿主属性：angle/x/y/alpha/endAngle 等）
 - `Condition/Expressions/Expression` — 条件渲染（算式在 Expression 文本，Compare 按 name 引用）
 - `Compare/@expression` — 条件分支
 - `Parameter/@expression` — 模板参数
@@ -239,6 +239,43 @@
 - `Gyro/@x` `@y` `@scaleX` `@scaleY` `@angle` `@alpha` — 陀螺仪响应
 - `ScreenReader/@expression` — 无障碍描述
 - `Reference/@defaultValue` — 引用默认值
+
+---
+
+## 动画专属表达式
+
+### `[ANIMATION_VALUE]` — 动画进度值（0→1）
+
+**只在** `<Transform value="...">` 且该 Transform 内嵌 `<Animation>` 时可用——
+返回当前插值进度（LINEAR/EASE_* 插值后），0 → 1 循环：
+
+```xml
+<Transform target="alpha" value="[ANIMATION_VALUE] * 0.7">
+    <Animation duration="2.0" repeat="-1" interpolation="EASE_IN_OUT"/>
+</Transform>
+<!-- alpha 在 0 ~ 0.7 间呼吸，周期 2 秒，无限循环 -->
+```
+
+在别处引用（无 Animation 兄弟）= 无效数据源。搭配 `repeat="-1"`（Animation 的
+int 语义：-1 = 无限循环）做持续动效。
+
+### eventTriggerType — 事件触发值域
+
+用于 `AnimationController/@play`、`AnimatedImages/@change`（可空格分隔多值）：
+
+| 值 | 触发时机 |
+|---|---------|
+| `ON_VISIBLE` | 元素可见（表盘亮屏进入视野——默认推荐） |
+| `TAP` | 点击元素 |
+| `ON_NEXT_SECOND` | 下一秒（秒级动画） |
+| `ON_NEXT_MINUTE` | 下一分钟 |
+| `ON_NEXT_HOUR` | 下一小时 |
+
+### 陀螺仪数据源
+
+`[ACCELEROMETER_ANGLE_X]` `[ACCELEROMETER_ANGLE_Y]`（腕部倾斜角，±90°）。
+标准模式：`(偏移像素/90) * clamp([ACCELEROMETER_ANGLE_X], -90, 90)` ——
+clamp 限幅防越界，系数控制最大偏移幅度。
 
 ---
 

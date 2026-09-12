@@ -3,7 +3,7 @@
 > Agent Skill: 教任意 AI agent 开发 Wear OS Watch Face Format (WFF) 表盘。
 > 从一行需求到可安装 APK，全流程 agent 自主完成。
 
-**版本 v0.5.0**（2026-09-11）— 组件包（可定制配置全链路）。版本史：
+**版本 v0.5.1-pre**（2026-09-12）— 动画包知识层预审就绪（v0.6.0 前置，BT-09 卡片已建）。版本史：
 - v0.1.0（2026-08-24）首版端到端验证
 - v0.2.0（2026-08-27）Round 1 回灌：知识层大修 11 处（嵌套方向/HH:mm/Complication 属性集）
 - v0.2.2（2026-08-31）真机三轮复盘：R26-R30 + 规则 20 条
@@ -16,6 +16,10 @@
   （R38）+ PartText>Text>Font 三层（R39）+ Condition null 分支（R40）+ 配方 §4 +
   Windows 宿主适配 + R34 嵌套误报修复 + BoundingOval x/y 修正；五轮盲测全 PASS
   （BT-08 真机四项自定义全正常）、规则 27 条
+- v0.5.1-pre（2026-09-12）动画包预审：修复 4 处虚构结构（AnimatedImage file/playback、
+  Transform rotate() 函数、ImageFilter 枚举、TimeText>Font 子元素）+ 新增动画六元素
+  权威结构 + R41-R51 + 配方 §5 + BT-09 卡片（正解 v1/v5 双过 validator + 签名 APK）；
+  官方 samples 零动画实例，XSD 为唯一权威
 
 ---
 
@@ -74,8 +78,8 @@ python client/wff_api.py build projects/my_watch
 |------|------|--------|
 | [elements.md](./references/elements.md) | WFF v5 全量元素树 + 属性 | 需要查"某个元素叫什么/有什么属性"时 |
 | [expressions.md](./references/expressions.md) | 数据源 + 运算符 + 函数 | 需要写动态表达式时 |
-| [pitfalls.md](./references/pitfalls.md) | 40 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
-| [recipes.md](./references/recipes.md) | 3 种典型表盘完整模板 | 开始一个新表盘时 |
+| [pitfalls.md](./references/pitfalls.md) | 51 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
+| [recipes.md](./references/recipes.md) | 5 种典型表盘完整模板（数字/指针/混合/可定制/动效） | 开始一个新表盘时 |
 
 ## WFF XML Skeleton
 

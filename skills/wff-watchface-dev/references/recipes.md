@@ -213,6 +213,86 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
 
 ---
 
+## 配方 5：动效表盘（animation-pack，v0.6.0）
+
+三件动效组合（全部 WFF v1 可用）：帧序列动画 + 属性动画（呼吸）+ 陀螺仪视差。
+正解已过 wff-validator v1/v5 + builder 27 规则 + 真机链路构建。
+
+```xml
+<WatchFace width="450" height="450">
+  <Scene>
+    <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
+    <Metadata key="PREVIEW_TIME" value="10:08:32"/>
+    <Group x="0" y="0" width="450" height="450" name="root">
+      <!-- ① 背景 -->
+      <PartDraw x="0" y="0" width="450" height="450" name="bg">
+        <Ellipse x="0" y="0" width="450" height="450">
+          <Fill color="#ff101418"/>
+        </Ellipse>
+      </PartDraw>
+
+      <!-- ② Gyro 视差：装饰环随腕部倾斜微移（Gyro 调整父 Group 属性，R49） -->
+      <Group x="0" y="0" width="450" height="450" name="parallax">
+        <Gyro x="(8/90) * clamp([ACCELEROMETER_ANGLE_X], -90, 90)"
+              y="(8/90) * clamp([ACCELEROMETER_ANGLE_Y], -90, 90)"/>
+        <PartDraw x="135" y="135" width="180" height="180" name="ring">
+          <Ellipse x="0" y="0" width="180" height="180">
+            <Stroke color="#ff2ec4b6" thickness="2"/>
+          </Ellipse>
+        </PartDraw>
+      </Group>
+
+      <!-- ③ 属性动画：呼吸光圈（Transform+Animation，[ANIMATION_VALUE] 0→1，R46） -->
+      <PartDraw x="165" y="165" width="120" height="120" name="pulse">
+        <Transform target="alpha" value="[ANIMATION_VALUE] * 0.7">
+          <Animation duration="2.0" repeat="-1" interpolation="EASE_IN_OUT"/>
+        </Transform>
+        <Ellipse x="0" y="0" width="120" height="120">
+          <Stroke color="#ff2ec4b6" thickness="2"/>
+        </Ellipse>
+      </PartDraw>
+
+      <!-- ④ 帧序列动画：旋转弧（三件套缺一不可，R41；无限循环 repeat=TRUE，R42） -->
+      <PartAnimatedImage x="90" y="330" width="90" height="90" name="seq">
+        <AnimationController play="ON_VISIBLE" repeat="TRUE"/>
+        <SequenceImages>
+          <Image resource="seq_0"/>
+          <Image resource="seq_1"/>
+          <Image resource="seq_2"/>
+          <Image resource="seq_3"/>
+        </SequenceImages>
+      </PartAnimatedImage>
+
+      <!-- ⑤ 时间（TimeText>Font 纯属性版，无子元素，R50） -->
+      <DigitalClock x="0" y="0" width="450" height="450">
+        <TimeText x="0" y="0" width="450" height="450" format="hh:mm">
+          <Font family="SYNC_TO_DEVICE" size="56" color="#ffffffff"/>
+        </TimeText>
+      </DigitalClock>
+    </Group>
+  </Scene>
+</WatchFace>
+```
+
+**帧素材生成（PIL，无需外部素材）**——4 帧旋转弧存 `res/drawable/seq_0..3.png`：
+
+```python
+from PIL import Image, ImageDraw
+for i in range(4):
+    im = Image.new('RGBA', (180, 180), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    start = i * 90
+    d.arc([10, 10, 170, 170], start=start, end=start + 270,
+          fill=(46, 196, 182, 255), width=8)
+    im.save(f'res/drawable/seq_{i}.png')
+```
+
+要点：
+- 帧数 4-8 平衡流畅度与 APK 体积；帧尺寸 = PartAnimatedImage 尺寸（可放大画再等比缩）
+- ambient 省电：给 PartAnimatedImage 加 `<Variant mode="AMBIENT" target="alpha" value="0"/>`
+- **AGIF 路线**（单文件动图）：`<AnimatedImage resource="anim" format="AGIF"/>` 换掉 SequenceImages，其余同构；PIL 可存 GIF（`im.save('anim.gif', save_all=True, append_images=[...], duration=200, loop=0)`），文件名进 drawable
+- 幽灵属性排查清单：无 `file`/`playback`（R47）、无 `rotate()` 函数（R45）、帧 Image 无 width/height（R43）、`frameRate`/`changeDirection` 是 WFF2+ 别用（R44）
+
 ## 配方变体速查
 
 ### 添加 AOD（息屏）模式
