@@ -17,6 +17,22 @@ if test -f "$PROJECT_DIR/.env"; then
   set +a
 fi
 
+# DevSpace recreates its system disk, while /workspace is persistent. Prefer
+# toolchains installed there so official WFF validation and APK signing survive
+# a container restart without relying on /opt or system packages.
+PERSISTENT_TOOLS_DIR="${WFF_PERSISTENT_TOOLS_DIR:-/workspace/.tools}"
+PERSISTENT_JAVA_HOME="$PERSISTENT_TOOLS_DIR/temurin-17"
+PERSISTENT_ANDROID_HOME="$PERSISTENT_TOOLS_DIR/android-sdk"
+if test -x "$PERSISTENT_JAVA_HOME/bin/java"; then
+  export JAVA_HOME="${JAVA_HOME:-$PERSISTENT_JAVA_HOME}"
+  export WFF_JAVA="${WFF_JAVA:-$PERSISTENT_JAVA_HOME/bin/java}"
+  export PATH="$PERSISTENT_JAVA_HOME/bin:$PATH"
+fi
+if test -x "$PERSISTENT_ANDROID_HOME/build-tools/34.0.0/apksigner"; then
+  export ANDROID_HOME="${ANDROID_HOME:-$PERSISTENT_ANDROID_HOME}"
+  export APKSIGNER="${APKSIGNER:-$PERSISTENT_ANDROID_HOME/build-tools/34.0.0/apksigner}"
+fi
+
 is_running() {
   local name="$1"
   local pid_file="$PID_DIR/$name.pid"

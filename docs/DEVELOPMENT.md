@@ -124,3 +124,19 @@ docker run --rm -v $(pwd)/template:/out wff-template cp -r /template /out
 | 验证 | 异步图像管线端到端 SUCCESS; /editor 页面 200 |
 
 DevSpace 特有的连接方法（dbus/keyring/PTY 隧道）见仓库外的工作区 TOOLS.md，与项目代码无关。
+
+### DevSpace 持久工具链
+
+DevSpace 的系统盘可能随容器重建而恢复，但 `/workspace` 数据盘会保留。当前 ARM64
+开发环境把 Temurin JRE 17 和 Android Build Tools 34 的 Java 版 `apksigner`
+分别安装在：
+
+```text
+/workspace/.tools/temurin-17
+/workspace/.tools/android-sdk/build-tools/34.0.0
+```
+
+`scripts/dev-services.sh` 会自动设置 `JAVA_HOME`、`WFF_JAVA`、`ANDROID_HOME`、
+`APKSIGNER` 和 `PATH`。不要在 ARM64 节点调用 Build Tools 压缩包里的 x86_64
+`aapt2`；构建器会因为持久 SDK 中没有 `android.jar` 而使用仓库内已验证的 ARM
+预编译资源模板，但 APK 签名、官方 validator 和内存评估均使用持久 Java 环境。

@@ -19,6 +19,8 @@ deployment unless that exact key happens to be configured.
 | 200 | — | Validation **result**: body carries `valid:false` + `errors[]` (see below) |
 | 422 | `VALIDATION_FAILED` | The **request** is malformed: missing required fields, oversized files |
 | 422 | `INVALID_PREVIEW_OPTIONS` | Unsupported shape or size |
+| 422 | `INVALID_TIME` | A preview time is not in `HH:MM:SS` format |
+| 422 | `INVALID_MODE` | A preview mode is not `active` or `ambient` |
 | 429 | `RATE_LIMITED` | Per-key token bucket exhausted |
 | 500 | `BUILD_FAILED` | APK packaging or signing failed |
 | 503 | `API_KEYS_NOT_CONFIGURED` | Server has no `WFF_API_KEYS` |
@@ -64,7 +66,9 @@ integration test: 2,371,712 bytes for the BT-08 sample).
 
 Fields: `xml`, optional repeated `assets`, JSON-array strings `times` and `modes`,
 plus `shape=round|square` and `size=128..1024`. At most six times and two modes
-are rendered per request.
+are rendered per request. `times` entries use `HH:MM:SS`. Malformed/empty JSON
+arrays or arrays over those limits return `422 INVALID_PREVIEW_OPTIONS`; invalid
+entries return `INVALID_TIME` or `INVALID_MODE` rather than silently falling back.
 
 ```bash
 curl -H 'X-API-Key: dev-key' -F 'xml=@watchface.xml' \
@@ -116,7 +120,11 @@ Successful builds also include `memory` from Google's pinned
 `unavailable` and the reason is repeated in `warnings`; estimated validation
 statistics are never labeled as official.
 
-> Open question (from the 2026-09-12 integration test): for the BT-08 sample
-> the tool reported `max_ambient_bytes` (6,363,424) larger than `total_bytes`
-> (2,371,712). Field semantics need confirmation against the upstream tool
-> docs before clients rely on `max_ambient_bytes` for ambient budgets.
+Field semantics were confirmed against the pinned upstream source at commit
+`44b1855`: `total_bytes` is the total footprint of referenced assets;
+`max_active_bytes` and `max_ambient_bytes` are the maximum simultaneously active
+footprints in their respective modes. The ambient calculator also accounts for
+the 450x450 render buffer, so `max_ambient_bytes` can legitimately exceed
+`total_bytes` (as in the BT-08 result). Clients must compare the active and
+ambient figures with their respective platform budgets and must not clamp either
+one to `total_bytes`.
