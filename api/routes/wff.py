@@ -157,20 +157,18 @@ async def build_endpoint(
         asset_map = {filename: data for filename, data in asset_list}
         preview = render_wff_frame(xml_text, asset_map, datetime(2026, 8, 24, 10, 8, 32), "active", "round", 384)
         (project_dir / "preview.png").write_bytes(preview)
-        referenced_images = [item for item in asset_list if Path(item[0]).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}]
-        if referenced_images:
-            filename, data = referenced_images[0]
+        # 2026-09-13: qemu-user + aapt2 + JDK17 全工具链就绪, 切换多资源标准打包
+        # (替代旧 "ARM 预编译模板" 仅打包首个图片当 background 的降级实现)。
+        drawable_dir = project_dir / "res" / "drawable"
+        for filename, data in asset_list:
+            if Path(filename).suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
+                continue
             if len(data) > MAX_ASSET_BYTES:
                 raise WFFAPIError(422, "ASSET_TOO_LARGE", f"资源 {filename} 超过 10MB")
-            resource_name = Path(filename).stem
-            xml_text = re.sub(
-                r'((?:resource|source)=")drawable/' + re.escape(resource_name) + r'("\s*)',
-                r'\1drawable/background\2',
-                xml_text,
-            )
-            (project_dir / "background.png").write_bytes(data)
-            if len(referenced_images) > 1:
-                warnings.append("ARM 预编译模板当前仅打包首个图片资源；其余资源需在完整 aapt2 环境构建")
+            if Path(filename).stem == "preview":
+                continue  # preview 由上方单独渲染, 不进 APK
+            drawable_dir.mkdir(parents=True, exist_ok=True)
+            (drawable_dir / Path(filename).name).write_bytes(data)
         (project_dir / "watchface.xml").write_text(xml_text, encoding="utf-8")
         safe_name = name.replace("\n", " ").replace("\r", " ")[:80]
         (project_dir / "project.yaml").write_text(
