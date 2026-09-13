@@ -18,8 +18,13 @@
   （BT-08 真机四项自定义全正常）、规则 27 条
 - v0.5.1-pre（2026-09-12）动画包预审：修复 4 处虚构结构（AnimatedImage file/playback、
   Transform rotate() 函数、ImageFilter 枚举、TimeText>Font 子元素）+ 新增动画六元素
-  权威结构 + R41-R52 + 配方 §5 + BT-09 卡片（正解 v1/v5 双过 validator + 签名 APK）；
+  权威结构 + R41-R51 + 配方 §5 + BT-09 卡片（正解 v1/v5 双过 validator + 签名 APK）；
   官方 samples 零动画实例，XSD 为唯一权威
+- v0.5.2（2026-09-13）真机动画实证：BT-09 双 agent 真机测试发现 WOS6 渲染器只执行
+  **帧序列动画**——R53 Transform+Animation 不渲染（红点探针实证）、R54 Gyro 不渲染
+  （官方表达式实证）、R55 呼吸改帧序列 alpha 烘帧（实证方案）；另修 R52 Metadata
+  层级（平台 CI 抓获）+ 配方 §5 重写（慢动效帧序列化、speed×frames≡0 mod 360
+  循环接缝、`<Draw>` 幽灵元素澄清）；规则 55 条
 
 ---
 
@@ -78,7 +83,7 @@ python client/wff_api.py build projects/my_watch
 |------|------|--------|
 | [elements.md](./references/elements.md) | WFF v5 全量元素树 + 属性 | 需要查"某个元素叫什么/有什么属性"时 |
 | [expressions.md](./references/expressions.md) | 数据源 + 运算符 + 函数 | 需要写动态表达式时 |
-| [pitfalls.md](./references/pitfalls.md) | 52 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
+| [pitfalls.md](./references/pitfalls.md) | 55 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
 | [recipes.md](./references/recipes.md) | 5 种典型表盘完整模板（数字/指针/混合/可定制/动效） | 开始一个新表盘时 |
 
 ## WFF XML Skeleton

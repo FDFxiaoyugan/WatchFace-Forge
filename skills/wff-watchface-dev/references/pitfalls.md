@@ -547,6 +547,30 @@ weight 纯属性），**不支持 Outline/Shadow/Transform 等子元素**——v
 "No child element is expected"。装饰只有 `PartText > Font`（全局版）才有。
 另外 `Font > Outline` 的宽度属性叫 **width**（Stroke 的才叫 thickness）。
 
+### R53: One UI 8 Watch (WOS6) 渲染器不执行 Transform+Animation 属性动画（真机实证 2026-09-13）
+
+XSD 合法、wff-validator v1/v5 双 PASS 的 `<Transform target=...>+<Animation
+duration/repeat/interpolation/fps>` 在 One UI 8 Watch (WOS6/Android 16) 真机上
+**完全不被执行**。红点探针实验（Transform target="x" 几何平移，最简表达式+
+fps=30+EASE_IN_OUT）静止不动——与 target 类型（alpha/几何）、表达式复杂度、
+fps 缺省全部无关，是渲染器整体缺口。**帧序列（PartAnimatedImage）是唯一可用
+动画通道**；呼吸等慢动效必须把变化烘进帧像素（R55）。
+
+### R54: One UI 8 Watch (WOS6) 渲染器不渲染 Gyro 视差（真机实证 2026-09-13）
+
+官方 gyroElements.xsd 文档**原样示例表达式**（双向 clamp 分段式）挂 Group/Part
+在 WOS6 真机无任何反应（背景刻度不随转腕轻移）。与挂载层级、clamp 写法无关。
+WFF 规范定义了 Gyro 但 One UI 8 Watch 未实现渲染——视差需求在 WOS6 上无法交付，
+需求卡里把"陀螺仪视差"列为可选加分项而非必选项。
+
+### R55: 慢动效（呼吸）用帧序列 alpha 烘帧实现（WOS6 实证方案）
+
+呼吸动画 = 把 alpha 曲线烘进 N 帧 PNG（PartAnimatedImage + repeat=TRUE 循环）。
+要点：① alpha 曲线首尾同值（三角波/整周期贝塞尔）保证循环无缝；② 柔光素材
+可缩至 160px 省体积（30 帧×160²≈460KB）；③ AnimationController 记得
+beforePlaying/afterPlaying="FIRST_FRAME"；④ 官方 memory-footprint.jar 会验
+总解码内存，30+45 帧双序列实测 PASS。
+
 ### R52: Metadata 只能挂 WatchFace 级, 不能放 Scene 里（平台 CI 实证 2026-09-13）
 
 `<Metadata>` 是 `<WatchFace>` 的直接子元素（在 `<Scene>` **之前**）；Scene 的
