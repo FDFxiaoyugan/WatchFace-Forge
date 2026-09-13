@@ -547,6 +547,24 @@ weight 纯属性），**不支持 Outline/Shadow/Transform 等子元素**——v
 "No child element is expected"。装饰只有 `PartText > Font`（全局版）才有。
 另外 `Font > Outline` 的宽度属性叫 **width**（Stroke 的才叫 thickness）。
 
+### R56: Text 没有 letterSpacing 属性（validator 实证 2026-09-13）
+
+Text 元素合法属性仅 ellipsis/maxLines。字距效果用空格分隔文本（"F L O W"）
+实现；styles 文档早期版本的 letterSpacing=1.2px 是虚构写法。
+
+### R57: Parameter 是 Template 的子元素, 不是同级（validator 实证 2026-09-13）
+
+正确结构: `<Font><Template><![CDATA[%s]]><Parameter expression="[X]"/></Template></Font>`
+——Parameter 包在 Template **内部**。写成同级（Font 下 Template+Parameter 并列）
+报 "content of Template is not complete"。
+
+### R58: 电池数据源是 [BATTERY_PERCENT], 日期三源 [DAY_OF_WEEK_S]+[MONTH]+[MONTH_DAY]（真机实证 2026-09-13）
+
+BATTERY_PERCENTAGE 不存在（S1 首版右下组件只渲染出 "%%" 字面量）。
+统一日期格式 "周日 9.13": Template 三参数 %s %s.%s。圆屏矩形元素四角须验算
+落在内接圆内（450 盘: 角点距心 <215px）, 上下 1/3 区域宽度按 √(225²-dy²)
+收窄——S1 首版底部胶囊被圆边切割实证。
+
 ### R53: One UI 8 Watch (WOS6) 渲染器不执行 Transform+Animation 属性动画（真机实证 2026-09-13）
 
 XSD 合法、wff-validator v1/v5 双 PASS 的 `<Transform target=...>+<Animation
