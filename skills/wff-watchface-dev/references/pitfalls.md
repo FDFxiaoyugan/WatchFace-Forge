@@ -547,6 +547,14 @@ weight 纯属性），**不支持 Outline/Shadow/Transform 等子元素**——v
 "No child element is expected"。装饰只有 `PartText > Font`（全局版）才有。
 另外 `Font > Outline` 的宽度属性叫 **width**（Stroke 的才叫 thickness）。
 
+### R52: Metadata 只能挂 WatchFace 级, 不能放 Scene 里（平台 CI 实证 2026-09-13）
+
+`<Metadata>` 是 `<WatchFace>` 的直接子元素（在 `<Scene>` **之前**）；Scene 的
+xs:all 不含 Metadata。放错位置官方 wff-validator 直接拒（v1/v5 同拒）。配方 §5
+曾中招——本地 builder 只查"Metadata 存在性"不查层级, 修 XML 后必须**回归官方
+validator**（教训: 正解 XML 每次修改后全链路重验, 不能只跑 builder）。平台 CI
+的 lxml XSD 校验层抓到过这个 bug——三级校验有真实拦截价值。
+
 ### R51: v5 XSD 对 Group 强制 name + 全套几何属性
 
 validator 5 模式下 `Group` 必须写 `name` + `x y width height`（v1 宽容但不代表

@@ -220,9 +220,9 @@ pivot 画在针的旋转中心）。`resource` 指向 res/drawable 下的图片�
 
 ```xml
 <WatchFace width="450" height="450">
+  <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
+  <Metadata key="PREVIEW_TIME" value="10:08:32"/>
   <Scene>
-    <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
-    <Metadata key="PREVIEW_TIME" value="10:08:32"/>
     <Group x="0" y="0" width="450" height="450" name="root">
       <!-- ① 背景 -->
       <PartDraw x="0" y="0" width="450" height="450" name="bg">
