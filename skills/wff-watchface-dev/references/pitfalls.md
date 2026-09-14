@@ -547,6 +547,24 @@ weight 纯属性），**不支持 Outline/Shadow/Transform 等子元素**——v
 "No child element is expected"。装饰只有 `PartText > Font`（全局版）才有。
 另外 `Font > Outline` 的宽度属性叫 **width**（Stroke 的才叫 thickness）。
 
+### R59: 位图字体的正确用法是 Text 内 BitmapFont 元素（真机实证 2026-09-14）
+
+`<Font family="位图族名"/>` 引用 BitmapFonts 无效——渲染器不认 Font 引用位图族,
+静默回退系统默认字体（真机表现"字体没变"）。正确用法（官方 Weather sample）:
+`<Text><BitmapFont family="materialDigits" size="72"><Template>...</Template></BitmapFont></Text>`
+—— **BitmapFont 是独立元素**, 不是 Font 的属性引用。BitmapFonts 声明挂 WatchFace
+直接子级, Character name/resource/width/height 必填。字模 PNG 颜色固定 → 多主题
+配"深胶囊+白字模"最稳。
+
+### R60: 日期源的浮点陷阱与中式日期组装（真机实证 2026-09-14）
+
+[MONTH_DAY]/[MONTH] 是浮点数（含当天时刻进度小数, 真机显示"9.433"）——
+**Template 参数必须 floor() 包裹**: `floor([MONTH_DAY])`。中式日期
+"9月14日 周一": `<Template><![CDATA[%s月%s日 %s]]>` + floor([MONTH]) +
+floor([MONTH_DAY]) + [DAY_OF_WEEK_S]（星期源随系统语言本地化, 中文系统
+输出"周一"）。官方 Weather sample 还用 `<Localization calendar="GREGORIAN"
+timeZone="SYNC_TO_DEVICE"/>` 控制日历/时区语义。
+
 ### R56: Text 没有 letterSpacing 属性（validator 实证 2026-09-13）
 
 Text 元素合法属性仅 ellipsis/maxLines。字距效果用空格分隔文本（"F L O W"）

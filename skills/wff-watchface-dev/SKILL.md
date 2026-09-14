@@ -83,7 +83,7 @@ python client/wff_api.py build projects/my_watch
 |------|------|--------|
 | [elements.md](./references/elements.md) | WFF v5 全量元素树 + 属性 | 需要查"某个元素叫什么/有什么属性"时 |
 | [expressions.md](./references/expressions.md) | 数据源 + 运算符 + 函数 | 需要写动态表达式时 |
-| [pitfalls.md](./references/pitfalls.md) | 58 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
+| [pitfalls.md](./references/pitfalls.md) | 60 条规则 + 踩坑 + 构建约束 | 写 WFF XML 前必读 |
 | [recipes.md](./references/recipes.md) | 5 种典型表盘完整模板（数字/指针/混合/可定制/动效） | 开始一个新表盘时 |
 | [styles.md](./references/styles.md) | 5 种美学风格设计规范（Material You/极简/暗色能量/拟物/数据盘）——配色 token/布局网格/位图字体/图标素材 | 表盘要"好看"时必读 |
 
