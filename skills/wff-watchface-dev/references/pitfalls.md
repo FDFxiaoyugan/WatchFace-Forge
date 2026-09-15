@@ -547,6 +547,16 @@ weight 纯属性），**不支持 Outline/Shadow/Transform 等子元素**——v
 "No child element is expected"。装饰只有 `PartText > Font`（全局版）才有。
 另外 `Font > Outline` 的宽度属性叫 **width**（Stroke 的才叫 thickness）。
 
+### R61: TimeText 内放 BitmapFont 会导致时间整体消失（真机实证 2026-09-15）
+
+v3 教训: DigitalClock>TimeText>BitmapFont 结构 wff-validator 双版本全过, 但真机
+渲染器不执行 → **时间完全不显示**。XSD 允许 ≠ 渲染器支持（TimeText 只认 Font
+子元素）。位图时间正解 = PartText>Text>BitmapFont+Template 拼接:
+`floor([HOUR_1_12_Z])` + `floor([MINUTE_Z])`（_Z 后缀=补零字符串源, 时间源
+全浮点必须 floor; 12/24h 切换需 [IS_24_HOUR_MODE]+Condition, 简单场景固定制式）。
+表达式驱动刷新已实证可行（BT-04 [SECOND] 变色）。AMBIENT 层保留
+DigitalClock>TimeText>Font 系统字（省电+稳定双保险）。
+
 ### R59: 位图字体的正确用法是 Text 内 BitmapFont 元素（真机实证 2026-09-14）
 
 `<Font family="位图族名"/>` 引用 BitmapFonts 无效——渲染器不认 Font 引用位图族,
