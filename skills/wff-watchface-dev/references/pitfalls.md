@@ -557,6 +557,23 @@ v3 教训: DigitalClock>TimeText>BitmapFont 结构 wff-validator 双版本全过
 表达式驱动刷新已实证可行（BT-04 [SECOND] 变色）。AMBIENT 层保留
 DigitalClock>TimeText>Font 系统字（省电+稳定双保险）。
 
+**矩阵终判 (2026-09-15 真机 A/B/C/D 四方案并存实测)**: A=TimeText+Font ✓
+B=PartText+Font+Template floor ✓ **C=PartText+BitmapFont+字符串源 ✗
+D=PartText+BitmapFont+floor 数值源 ✗**——BitmapFont 在 WOS6 渲染链路
+**全面不可用**（TimeText 通道 R61 前证, PartText 通道本次证）。自定义时间
+字体正解 = B 通道: `<Font family="SYNC_TO_DEVICE" size weight="BOLD">` +
+`floor([HOUR_1_12])`/`floor([MINUTE])`。位图字模方案在 WOS6 上废弃。
+
+### R62: builder 资源同步"存在即跳过"——项目资源更新永远不进包（真机实证 2026-09-15）
+
+wff_builder.py 旧逻辑 `if not dst.exists(): copy2(...)` 导致 _build/res/drawable
+里 09-13 的旧图标快照永远占位, 后续 v2-v5 四轮图标替换全部静默失效（真机
+"图标没变"的真正根因, 而非渲染问题）。修复 (2026-09-15): 始终覆盖复制 +
+清理 stale 文件。**教训**: ① 交付含图片资源的 APK 必须字节级核验包内资源
+（unzip 提取 + 尺寸/IoU 对比）, "构建成功"不代表"资源更新"; ② 用户反馈
+"没有变化"时优先怀疑构建缓存/增量同步, 而不是先怀疑渲染器; ③ One UI 表盘
+渲染有缓存, 复测需切走再切回表盘。
+
 ### R59: 位图字体的正确用法是 Text 内 BitmapFont 元素（真机实证 2026-09-14）
 
 `<Font family="位图族名"/>` 引用 BitmapFonts 无效——渲染器不认 Font 引用位图族,

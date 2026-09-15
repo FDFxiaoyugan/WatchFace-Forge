@@ -937,9 +937,18 @@ class WFFBuilder:
         if project_drawables.is_dir():
             for src in sorted(project_drawables.glob("*.png")):
                 dst = self.build_dir / "res" / "drawable" / src.name
-                if not dst.exists():
-                    shutil.copy2(src, dst)
-                    self.log(f"  Auto-packed: res/drawable/{src.name}")
+                # 始终覆盖（2026-09-15 真机踩坑：旧逻辑"目标存在就跳过"导致
+                # 项目资源更新后不进包，图标连续 4 轮未生效）
+                shutil.copy2(src, dst)
+                self.log(f"  Auto-packed: res/drawable/{src.name}")
+
+            # 清理项目已删除的 stale 资源（builder 自产文件除外）
+            keep = {p.name for p in project_drawables.glob("*.png")}
+            keep.update({"background.png", "preview.png"})
+            for old in (self.build_dir / "res" / "drawable").glob("*.png"):
+                if old.name not in keep:
+                    old.unlink()
+                    self.log(f"  Removed stale: res/drawable/{old.name}")
 
         # Copy extra fonts
         for font in self.config.get("extra_fonts", []):
