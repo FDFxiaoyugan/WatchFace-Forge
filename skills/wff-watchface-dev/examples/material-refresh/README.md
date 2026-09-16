@@ -19,7 +19,8 @@ Material You 风格: 大圆角主胶囊 + B 通道时间 + 中式日期 + 双数
 - `watchface.xml` — WFF v1, 双级验证 PASS (wff-validator 1 & 5)
 - `res/drawable/` — ic_steps(鞋 87x66) / ic_batt(闪电)
 - `preview.png` — 450x450 画布口径预览
-- `s1refresh-watchface.apk` — 真机验收产物 (minSdk 33, 已签名)
+- 验收 APK 为构建产物, 按仓库惯例 (`*.apk` gitignore) 不入库; 本地留档:
+  `deliverables/style-demos/S1-Refresh-v6.apk` (workspace)
 
 复刻: 把本目录(不含 apk)作为 wff_builder 项目目录直接 `build`。
 注意 res/drawable 更新依赖 builder R62 修复版(始终覆盖同步)。
