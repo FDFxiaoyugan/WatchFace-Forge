@@ -54,6 +54,10 @@ def normalize_user_ai_config(value: object) -> Optional[dict[str, str]]:
             raise AIConfigError("自定义 Base URL 必须是无内嵌凭据的 HTTPS 地址")
         if parsed.query or parsed.fragment:
             raise AIConfigError("自定义 Base URL 不能包含查询参数或片段")
+        # 审计 S3: SSRF 硬检查（私网/回环/保留段 + 全量 A/AAAA 解析 +
+        # 可选 WF_AI_ALLOWED_HOSTS 白名单）
+        from .ssrf_guard import assert_safe_base_url
+        assert_safe_base_url(base_url)
 
     return {"api_key": api_key, "base_url": base_url, "model": model}
 
@@ -259,12 +263,18 @@ class AIGateway:
     ) -> str:
         """通过 OpenAI SDK 调用"""
         if self._openai_client is None:
+            import httpx
             from openai import OpenAI
             if not self.api_key:
                 raise RuntimeError("OpenAI backend requires an API key")
             client_options = {"api_key": self.api_key}
             if self.base_url:
                 client_options["base_url"] = self.base_url
+            # 审计 S3: openai SDK 默认跟随重定向（实测 follow_redirects=True），
+            # 校验后的目标可经 3xx 跳到内部地址。显式关闭重定向跟随。
+            client_options["http_client"] = httpx.Client(
+                follow_redirects=False, timeout=30.0,
+            )
             self._openai_client = OpenAI(**client_options, timeout=30.0, max_retries=0)
 
         request_options = dict(

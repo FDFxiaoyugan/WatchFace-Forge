@@ -108,7 +108,14 @@ class TestAIGateway:
         gw = AIGateway()
         assert gw is not None
 
-    def test_user_key_selects_openai_and_keeps_custom_endpoint(self):
+    def test_user_key_selects_openai_and_keeps_custom_endpoint(self, monkeypatch):
+        # S3: normalize 现在做 SSRF 出站校验, 假域名须 mock 为公网地址解析
+        import ipaddress
+        from services.ai_gateway import ssrf_guard
+        monkeypatch.setattr(
+            ssrf_guard, "_resolve_all_ips",
+            lambda host: [ipaddress.ip_address("93.184.216.34")],
+        )
         config = normalize_user_ai_config({
             "api_key": "sk-user-secret",
             "base_url": "https://ai.example.com/v1",

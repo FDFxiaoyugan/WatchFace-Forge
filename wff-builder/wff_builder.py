@@ -32,6 +32,7 @@ import hashlib
 import re
 import math
 from pathlib import Path
+from typing import Optional
 from xml.etree import ElementTree as ET
 
 # ─── 配置 ──────────────────────────────────────────────
@@ -43,11 +44,30 @@ ANDROID_JAR = Path(ANDROID_HOME) / "platforms" / "android-34" / "android.jar"
 AAPT2 = Path(os.environ.get("AAPT2", str(BUILD_TOOLS / "aapt2")))
 APKSIGNER = Path(os.environ.get("APKSIGNER", str(BUILD_TOOLS / "apksigner")))
 
-KEYSTORE = Path(os.environ.get("WFF_KEYSTORE", str(BUILDER_ROOT / "keystore" / "test.keystore")))
+# ─── 签名配置（审计 S1 修复）──────────────────────────────
+# 模式: WF_ENV=development（默认）| production
+#   development — 使用仓库内公开开发证书（密码/alias 亦公开），显式配置
+#                 WFF_KEYSTORE(+ALIAS/PASSWORD) 可覆盖为自定义密钥库。
+#   production  — 必须显式提供外部签名，任一缺失即构建失败（fail-closed）：
+#                 WFF_KEYSTORE / WFF_KEYSTORE_ALIAS
+#                 WFF_KEYSTORE_PASSWORD 或 WFF_KEYSTORE_PASSWORD_FILE
+#                 （可选 WFF_KEY_KEY_PASSWORD / _FILE，缺省同 store 密码）
+#                 且证书 SHA-256 不得等于下方公开开发证书指纹——即使把
+#                 test.keystore 换文件名也拒绝。
+# 密码传递: apksigner/keytool 使用 env:/file: 引用形式, 不出现在 argv 明文。
+
+WF_ENV = os.environ.get("WF_ENV", "development").strip().lower()
+IS_PRODUCTION = WF_ENV == "production"
+
+DEFAULT_DEV_KEYSTORE = BUILDER_ROOT / "keystore" / "test.keystore"
+# SHA-256 of the PUBLIC dev certificate (CN=WFF Test, OU=Dev, O=WatchFace).
+DEV_CERT_SHA256_COLONS = "61:24:82:4D:E0:7E:41:1E:E7:DB:86:51:71:22:89:3F:AD:0F:2C:EF:8F:FD:F7:BE:42:95:93:44:87:0C:8F:1B"
+
+DEV_KEYSTORE_ALIAS = "wfftest"
+DEV_KEYSTORE_PASS = "wfftest123"
+
+KEYSTORE = Path(os.environ.get("WFF_KEYSTORE", str(DEFAULT_DEV_KEYSTORE)))
 PRECOMPILED_DIR = BUILDER_ROOT / "projects" / "demo" / "_build" / "compiled"
-KEYSTORE_PASS = "wfftest123"
-KEY_ALIAS = "wfftest"
-KEY_PASS = "wfftest123"
 
 # WFF 版本与 minSdk 映射
 WFF_VERSION_MIN_SDK = {
@@ -58,6 +78,154 @@ WFF_VERSION_MIN_SDK = {
 }
 
 ALIGNMENT = 4  # resources.arsc 对齐字节
+
+
+# ─── 签名配置解析（审计 S1）──────────────────────────────
+
+def _read_secret_from_env_or_file(name: str, file_name: str):
+    """优先 env 变量；否则读文件内容（剥离首尾空白）。都不存在返回 None。"""
+    val = os.environ.get(name)
+    if val is not None and val != "":
+        return val, "env"
+    file_path = os.environ.get(file_name)
+    if file_path:
+        return Path(file_path).read_text(encoding="utf-8").strip(), "file"
+    return None, None
+
+
+def _find_keytool() -> Optional[Path]:
+    """定位 keytool: WFF_JAVA 同目录 > JAVA_HOME/bin > PATH。"""
+    candidates = []
+    wff_java = os.environ.get("WFF_JAVA")
+    if wff_java:
+        candidates.append(Path(wff_java).parent / "keytool")
+    java_home = os.environ.get("JAVA_HOME")
+    if java_home:
+        candidates.append(Path(java_home) / "bin" / "keytool")
+    which = shutil.which("keytool")
+    if which:
+        candidates.append(Path(which))
+    for c in candidates:
+        if c.is_file():
+            return c
+    return None
+
+
+def _keystore_sha256(keystore: Path, pass_env_name: str, pass_file_var: str) -> str:
+    """读取 keystore 第一个 key 的证书 SHA-256（冒号分隔大写十六进制）。
+
+    密码经 keytool 的 -storepass:env / -storepass:file 引用传入，不落 argv 明文。
+    """
+    keytool = _find_keytool()
+    if keytool is None:
+        raise RuntimeError(
+            "signing: keytool not found (set WFF_JAVA or JAVA_HOME); "
+            "production builds require certificate fingerprint verification"
+        )
+    val, src = _read_secret_from_env_or_file(pass_env_name, pass_file_var)
+    if src == "env":
+        storepass_args = ["-storepass:env", pass_env_name]
+    elif src == "file":
+        storepass_args = ["-storepass:file", os.environ[pass_file_var]]
+    else:
+        storepass_args = ["-storepass:env", pass_env_name]  # 由调用方保证已存在
+    r = subprocess.run(
+        [str(keytool), "-list", "-v", "-keystore", str(keystore), *storepass_args],
+        capture_output=True, text=True,
+    )
+    if r.returncode != 0:
+        raise RuntimeError("signing: keystore unreadable (wrong password or format)")
+    m = re.search(r"SHA256:\s*([0-9A-F:]+)", r.stdout)
+    if not m:
+        raise RuntimeError("signing: no certificate SHA256 found in keystore")
+    return m.group(1).strip().upper()
+
+
+class SigningConfig:
+    """一次签名所需的全部参数（含 apksigner 密码引用形式）。"""
+
+    def __init__(self, keystore: Path, alias: str, ks_pass_ref: str, key_pass_ref: str):
+        self.keystore = keystore
+        self.alias = alias
+        self.ks_pass_ref = ks_pass_ref
+        self.key_pass_ref = key_pass_ref
+
+
+def _pass_ref(var_name: str, file_var_name: str, fallback_plain: str) -> str:
+    """生成 apksigner --ks-pass/--key-pass 的引用参数（env:/file:/pass:）。"""
+    val, src = _read_secret_from_env_or_file(var_name, file_var_name)
+    if src == "env":
+        return f"env:{var_name}"
+    if src == "file":
+        return f"file:{os.environ[file_var_name]}"
+    return f"pass:{fallback_plain}"
+
+
+def resolve_signing_config() -> SigningConfig:
+    """按 WF_ENV 解析签名配置。每次构建调用（密码轮换无需重启）。
+
+    development + 未显式配置 → 公开开发证书（pass: 引用，密码本就公开）。
+    development + 显式 WFF_KEYSTORE → 自定义密钥库需配齐 alias/密码。
+    production → 三件套强制 + 证书指纹不得等于公开开发证书。
+    """
+    keystore = Path(os.environ.get("WFF_KEYSTORE", str(DEFAULT_DEV_KEYSTORE)))
+    alias = os.environ.get("WFF_KEYSTORE_ALIAS")
+    store_val, store_src = _read_secret_from_env_or_file(
+        "WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE")
+    explicit_ks = os.environ.get("WFF_KEYSTORE") is not None
+    # 动态读取（模块加载后 env 变化也生效；测试可 monkeypatch）
+    is_production = os.environ.get("WF_ENV", "development").strip().lower() == "production"
+
+    if is_production:
+        if not explicit_ks:
+            raise RuntimeError(
+                "signing: WF_ENV=production requires WFF_KEYSTORE "
+                "(external keystore; the public dev keystore is not allowed)"
+            )
+        if not alias:
+            raise RuntimeError("signing: WF_ENV=production requires WFF_KEYSTORE_ALIAS")
+        if not store_val:
+            raise RuntimeError(
+                "signing: WF_ENV=production requires WFF_KEYSTORE_PASSWORD "
+                "or WFF_KEYSTORE_PASSWORD_FILE"
+            )
+        # 证书级拒绝：换文件名也绕不过（指纹比对）
+        fingerprint = _keystore_sha256(
+            keystore, "WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE")
+        if fingerprint == DEV_CERT_SHA256_COLONS:
+            raise RuntimeError(
+                "signing: production build must not use the PUBLIC dev "
+                "certificate (SHA256 match) — configure a private keystore"
+            )
+        return SigningConfig(
+            keystore, alias,
+            _pass_ref("WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE", ""),
+            _pass_ref("WFF_KEY_KEY_PASSWORD", "WFF_KEY_KEY_PASSWORD_FILE", store_val),
+        )
+
+    # development
+    if explicit_ks and str(keystore.resolve()) != str(DEFAULT_DEV_KEYSTORE.resolve()):
+        if not alias or not store_val:
+            raise RuntimeError(
+                "signing: custom WFF_KEYSTORE requires WFF_KEYSTORE_ALIAS and "
+                "WFF_KEYSTORE_PASSWORD(_FILE)"
+            )
+        return SigningConfig(
+            keystore, alias,
+            _pass_ref("WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE", ""),
+            _pass_ref("WFF_KEY_KEY_PASSWORD", "WFF_KEY_KEY_PASSWORD_FILE", store_val),
+        )
+    # 开发默认: 公开证书（密码/alias 公开, 无泄露面）
+    return SigningConfig(
+        DEFAULT_DEV_KEYSTORE, DEV_KEYSTORE_ALIAS,
+        f"pass:{DEV_KEYSTORE_PASS}", f"pass:{DEV_KEYSTORE_PASS}",
+    )
+
+
+def _scrub_apksigner_error(stderr: str) -> str:
+    """apksigner 失败输出脱敏：去密码痕迹（防回显），保留可操作信息。"""
+    cleaned = re.sub(r"(pass:)[^\s\"]+", r"\1***", stderr)
+    return cleaned[:400]
 
 
 # ─── 模板 ──────────────────────────────────────────────
@@ -1040,6 +1208,8 @@ class WFFBuilder:
             )
         if not KEYSTORE.is_file():
             raise RuntimeError(f"keystore not found at {KEYSTORE}")
+        # Resolve signing config (dev default vs production fail-closed, S1)
+        sign_cfg = resolve_signing_config()
         # Determine which compiled files go into the final APK
         # Rules:
         #   - AndroidManifest.xml → always (binary AXML, DEFLATE)
@@ -1096,16 +1266,16 @@ class WFFBuilder:
         signed_apk = self.project_dir / f"{self.config['package_name'].split('.')[-1]}-watchface.apk"
         cmd = [
             str(APKSIGNER), "sign",
-            "--ks", str(KEYSTORE),
-            "--ks-key-alias", KEY_ALIAS,
-            "--ks-pass", f"pass:{KEYSTORE_PASS}",
-            "--key-pass", f"pass:{KEY_PASS}",
+            "--ks", str(sign_cfg.keystore),
+            "--ks-key-alias", sign_cfg.alias,
+            "--ks-pass", sign_cfg.ks_pass_ref,   # env:/file:/pass: 引用形式
+            "--key-pass", sign_cfg.key_pass_ref,
             "--out", str(signed_apk),
             str(unsigned_apk),
         ]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0:
-            raise RuntimeError(f"apksigner failed:\n{r.stderr}")
+            raise RuntimeError("apksigner failed:\n" + _scrub_apksigner_error(r.stderr))
         self.log(f"  Signed: {signed_apk.name} ({signed_apk.stat().st_size} bytes)")
 
         # Verify signature

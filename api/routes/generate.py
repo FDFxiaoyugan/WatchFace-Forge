@@ -14,12 +14,14 @@ import sys
 import json
 import asyncio
 from pathlib import Path
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Header, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
 from api.models import BuildResponse
 from api.services.artifact_paths import final_apk_path, new_task_id, task_id_dir
 from api.services.error_sanitize import safe_client_error
+from api.services.quota import authorize_ai_endpoint, consume_ai_quota
+from api.services.wff_access import WFFAPIError
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -55,8 +57,13 @@ import shutil
 
 
 @router.post("/ai/test")
-async def test_ai_connection(req: dict):
-    """验证用户临时 OpenAI 兼容配置；不保存或回显密钥。"""
+async def test_ai_connection(req: dict, x_api_key: str = Header(default=None, alias="X-API-Key")):
+    """验证用户临时 OpenAI 兼容配置；不保存或回显密钥。
+
+    审计 S4: 需通过 API key 鉴权并计入配额（客户端 user_id 不再是配额身份）。
+    """
+    identity = authorize_ai_endpoint(x_api_key, "ai_test")
+    consume_ai_quota(identity, "ai_test")
     try:
         ai_config = normalize_user_ai_config(req.get("ai_config"))
     except AIConfigError as exc:
@@ -92,8 +99,11 @@ async def test_ai_connection(req: dict):
 
 
 @router.post("/generate")
-async def generate_watchface(req: dict):
+async def generate_watchface(req: dict, x_api_key: str = Header(default=None, alias="X-API-Key")):
     """自然语言 → CDM → APK 全流程"""
+    # 审计 S4: AI 消耗端点鉴权 + 服务端配额（调用前原子扣减）
+    identity = authorize_ai_endpoint(x_api_key, "generate")
+    consume_ai_quota(identity, "generate")
     prompt = req.get("prompt", "").strip()
     user_id = req.get("user_id", "default")
 
