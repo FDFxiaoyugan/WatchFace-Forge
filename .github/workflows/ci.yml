@@ -47,9 +47,10 @@ jobs:
           rm -rf /tmp/bt.zip /tmp/bt /tmp/platform.zip /tmp/platform
           sudo chmod -R a+rX ${ANDROID_HOME}
 
+      - name: Expose Android build-tools on PATH
+        run: echo "/opt/android-sdk/build-tools/34.0.0" >> $GITHUB_PATH
+
       - name: Run full test suite
-        env:
-          PATH: /opt/android-sdk/build-tools/34.0.0:${PATH}
         run: |
           python -m pytest tests/ -v --tb=short
 
