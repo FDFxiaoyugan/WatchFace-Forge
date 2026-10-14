@@ -161,12 +161,12 @@ def build_apk_task(self, cdm_dict: dict, task_id: Optional[str] = None) -> dict:
                 "no_retry": True,
             }
 
-        import tempfile
         import yaml
 
-        from api.routes.build import APK_OUTPUT_DIR
+        from api.services.artifact_paths import final_apk_path, task_id_dir
 
-        project_dir = APK_OUTPUT_DIR / task_id
+        # S5: project dir / 产物文件名均只由服务端 task_id 决定
+        project_dir = task_id_dir(task_id)
         project_dir.mkdir(exist_ok=True)
         (project_dir / "watchface.xml").write_text(wff_xml, encoding="utf-8")
 
@@ -183,8 +183,8 @@ def build_apk_task(self, cdm_dict: dict, task_id: Optional[str] = None) -> dict:
         builder = WFFBuilder(str(project_dir), verbose=False)
         apk_path = builder.build()
 
-        safe_name = cdm.metadata.name.replace(" ", "_").lower()
-        final_apk = APK_OUTPUT_DIR / f"{safe_name}-{task_id}.apk"
+        # S5: 文件名仅来自服务端 task_id; 表盘名仅作展示字段
+        final_apk = final_apk_path(task_id)
         shutil.copy2(apk_path, final_apk)
         shutil.rmtree(project_dir, ignore_errors=True)
 

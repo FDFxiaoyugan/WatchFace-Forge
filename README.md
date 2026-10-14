@@ -2,7 +2,8 @@
 
 AI 驱动的 Wear OS 表盘生成与分发平台：用户一句话描述 → AI 生成 CDM → 可视化编辑 → 编译签名 APK → 扫码安装到手表。
 
-> **状态：** Phase 1-3 一期工程已完成并端到端验证（2026-08-20）。
+> **状态：** 一期（Phase 1-3）2026-08-20 完成；二期 skill + Agent CI 平台已交付
+> （v0.5.0→v0.5.2，盲测 BT-01~08 全 PASS + 动画真机实证）；2026-10 安全审计修复落地中。
 > 规划文档见 `docs/PROJECT_GOALS.md`，实际架构见 `docs/ARCHITECTURE.md`（含规划与实现的偏差说明）。
 
 ## 核心链路
@@ -50,7 +51,7 @@ watchface-forge/
 │       └── stores/          #   editorStore.ts (Zustand, 撤销/重做 50 步)
 ├── wff-builder/             # WFF APK 构建引擎 (16 条校验规则, 独立可用)
 │   └── SKILL.md             #   构建引擎使用指南
-├── tests/                   # 36 个测试 (core + api + phase2)
+├── tests/                   # 58 个测试 (core + api + phase2 + wff_api + 安全回归)
 └── AGENTS.md                # AI Agent 开发指引 ⭐ agent 必读
 ```
 
@@ -60,8 +61,8 @@ watchface-forge/
 - [x] **Phase 2 — AI 接入**：AI Gateway + 提示词工程 + CDM 自动修复 + WebSocket 进度推送。端到端验证 ("霓虹蓝赛博朋克" → 37KB APK)
 - [x] **Phase 3 — 完整体验**：Fabric.js v6 可视化编辑器 + Pillow 图像管线 + Celery 双队列 + CDM 实时校验。异步链路端到端 SUCCESS (2026-08-20)
 - [x] **Phase 4A — WFF Agent CI 基础设施**：直通 validate/preview/build API、API Key 限流、Google 官方 XSD/validator/内存评估（2026-08-25）
-- [ ] Phase 4C — Agent CI 工作台与自修复反馈（Skill 开发按当前计划跳过）
-- [ ] Phase 5 — 微信小程序（二期）
+- [x] **Phase 4C — Agent CI 工作台与 skill 知识层**：`/ci` 工作台 + wff-watchface-dev skill（62 条真机实证规则）+ 盲测 BT-01~08 全 PASS + 动画真机实证（v0.5.2，2026-09-13）
+- [ ] Phase 5 — 分发渠道（二期，方向见 ROADMAP 部署架构节）
 
 访问 `/ci` 使用 Agent CI 工作台：可直接提交 WFF XML/素材，查看 XSD、
 Google validator 与 lint 三层日志，生成多时刻预览，并下载带 SHA-256 和
@@ -79,7 +80,7 @@ Google validator 与 lint 三层日志，生成多时刻预览，并下载带 SH
 | POST | `/api/build` | 1 | CDM → 签名 APK 全流程 |
 | GET | `/api/download/{filename}` | 1 | 下载 APK |
 | GET | `/api/qrcode/{filename}` | 1 | APK 下载二维码 |
-| POST | `/api/generate` | 2 | 提示词 → CDM（AI 生成，异步） |
+| POST | `/api/generate` | 2 | 提示词 → CDM → APK（AI 生成，**同步**返回；进度经 WS 事件流） |
 | WS | `/api/ws/{task_id}` | 2 | 生成进度推送 |
 | POST | `/api/editor/image/process` | 3 | 图片异步处理（抠图/裁剪，Celery） |
 | POST | `/api/editor/image/upload` | 3 | 图片同步处理（multipart 上传） |
@@ -116,7 +117,7 @@ cd web && npm install && npx next dev -p 3000
 ### 测试
 
 ```bash
-python3 -m pytest tests/ -v   # 42 个测试
+python3 -m pytest tests/ -v   # 58 个测试
 ```
 
 ### WFF Builder 独立使用
@@ -133,7 +134,7 @@ python wff_builder.py build projects/my_watch
 | 层 | 技术 | 许可证 |
 |---|---|---|
 | 后端 | FastAPI + Pydantic + Celery | MIT / BSD |
-| 前端 | Next.js 15 + Tailwind CSS 4 + Fabric.js 6 + Zustand | MIT |
+| 前端 | Next.js 15 + Tailwind CSS 3.4 + Fabric.js 6 + Zustand | MIT |
 | 图像处理 | Pillow（flood-fill 抠图，替代 rembg） | MIT-CMU |
 | APK 构建 | 纯 Python zipfile + pyzipalign + apksigner | Apache 2.0 |
 | AI | z-ai SDK（默认）/ OpenAI（可选） | — |

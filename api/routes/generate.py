@@ -11,7 +11,6 @@ WebSocket /api/ws/{task_id}
 """
 
 import sys
-import uuid
 import json
 import asyncio
 from pathlib import Path
@@ -19,6 +18,8 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
 from api.models import BuildResponse
+from api.services.artifact_paths import final_apk_path, new_task_id, task_id_dir
+from api.services.error_sanitize import safe_client_error
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -51,7 +52,6 @@ class ProgressTracker:
 
 import tempfile
 import shutil
-from api.routes.build import APK_OUTPUT_DIR
 
 
 @router.post("/ai/test")
@@ -113,7 +113,7 @@ async def generate_watchface(req: dict):
             "message": str(exc),
         })
 
-    task_id = str(uuid.uuid4())[:8]
+    task_id = new_task_id(8)
     tracker = ProgressTracker(task_id)
 
     # 1. LLM 生成 CDM
@@ -169,7 +169,8 @@ async def generate_watchface(req: dict):
     try:
         from api.services.preview_renderer import render_preview
 
-        project_dir = APK_OUTPUT_DIR / task_id
+        # S5: project dir 只由服务端 task_id 决定
+        project_dir = task_id_dir(task_id)
         project_dir.mkdir(exist_ok=True)
 
         (project_dir / "watchface.xml").write_text(wff_xml, encoding="utf-8")
@@ -189,8 +190,8 @@ async def generate_watchface(req: dict):
         builder = WFFBuilder(str(project_dir), verbose=False)
         apk_path = builder.build()
 
-        safe_name = cdm.metadata.name.replace(" ", "_").lower()
-        final_apk = APK_OUTPUT_DIR / f"{safe_name}-{task_id}.apk"
+        # S5: 文件名仅来自服务端 task_id; 表盘名仅作展示字段
+        final_apk = final_apk_path(task_id)
         shutil.copy2(apk_path, final_apk)
         shutil.rmtree(project_dir, ignore_errors=True)
 
@@ -208,12 +209,22 @@ async def generate_watchface(req: dict):
             "download_url": f"/api/download/{final_apk.name}",
         }
 
-    except Exception as e:
-        tracker.emit("failed", 100, f"APK 构建失败: {str(e)[:100]}")
+    except ValueError as e:
+        tracker.emit("failed", 100, f"构建失败: 无效输入 {str(e)[:80]}")
         return {
             "task_id": task_id,
             "status": "failed",
-            "error": str(e),
+            "error": f"Invalid input: {e}",
+            "cdm": cdm_dict,
+        }
+    except Exception as e:
+        # 脱敏: 客户端只收稳定文案 + request_id, 堆栈进服务端日志
+        client_msg, request_id = safe_client_error(e, context=f"generate:{task_id}")
+        tracker.emit("failed", 100, "构建失败(内部错误), 详见响应")
+        return {
+            "task_id": task_id,
+            "status": "failed",
+            "error": client_msg,
             "cdm": cdm_dict,
         }
 

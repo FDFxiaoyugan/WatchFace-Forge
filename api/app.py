@@ -31,11 +31,17 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS
+# CORS — 审计补充修复: "*" + credentials 组合会回显任意 Origin, 放大凭据泄露面。
+# 规则: WF_CORS_ORIGINS 配置具体来源列表时启用 credentials; 否则 "*" 但禁用 credentials。
+import os as _os
+
+_cors_env = _os.getenv("WF_CORS_ORIGINS", "").strip()
+_cors_origins = [o.strip() for o in _cors_env.split(",") if o.strip()] if _cors_env else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=bool(_cors_env),  # 仅显式配置来源列表时启用; "*" 模式必须为 False
     allow_methods=["*"],
     allow_headers=["*"],
 )

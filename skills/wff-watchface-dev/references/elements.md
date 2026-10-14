@@ -11,7 +11,7 @@
 <WatchFace>                    根元素
 ├── <Metadata>×N               表盘元信息（CLOCK_TYPE, PREVIEW_TIME, ...）
 ├── <UserConfigurations>       用户自定义配置（可选）
-├── <BitmapFonts>              位图字体定义（可选）
+├── <BitmapFonts>              位图字体定义（可选；WOS6 不渲染，见 R61）
 └── <Scene>                    场景树（所有可见内容）
     ├── <Group>×N              分组（active/ambient 变体）
     │   └── <Part>×N          部件
@@ -510,7 +510,12 @@ AnalogClock / DigitalClock。渲染版可挂在 HourHand/MinuteHand/SecondHand �
 
 ---
 
-## 位图字体
+## 位图字体（WOS6 全通道废弃 — R61）
+
+> ⚠️ **不要使用**：BitmapFont 在 WOS6 渲染链路全面不可用（TimeText 与
+> PartText 通道均不渲染，R61 矩阵测试真机实证）。以下语法仅作规范参考，
+> 用于阅读官方 sample。个性化字体改用系统字 SYNC_TO_DEVICE
+> weight/width 变体（12 weight × 9 width）。
 
 ```xml
 <BitmapFonts>
@@ -522,7 +527,7 @@ AnalogClock / DigitalClock。渲染版可挂在 HourHand/MinuteHand/SecondHand �
 </BitmapFonts>
 ```
 
-用 `family="custom_digits"` 引用
+用 `family="custom_digits"` 引用（仅规范语义；WOS6 真机不渲染）
 
 ---
 

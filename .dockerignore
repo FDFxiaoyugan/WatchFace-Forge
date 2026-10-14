@@ -1,0 +1,48 @@
+# Root build context (api image: docker-compose service "api", context ".")
+# Goal: keep secrets, ops backups, history and dev-only payloads out of images (audit S6).
+# NOTE: wff-builder/keystore/test.keystore is the PUBLIC dev certificate — it stays in the
+# dev image because the builder needs a keystore. Production signing must use WFF_KEYSTORE
+# (see wff-builder/wff_builder.py signing mode).
+
+# --- secrets & ops payloads (never into any image layer) ---
+.env
+.env.*
+!.env.example
+.tools-backup-*
+credentials/
+*.pem
+*.key
+!wff-builder/keystore/test.keystore
+*.jks
+*.keystore
+!wff-builder/keystore/test.keystore
+
+# --- git & CI metadata ---
+.git
+.gitignore
+.github/
+
+# --- logs & caches ---
+*.log
+logs/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.audit-venv/
+.venv/
+node_modules/
+*.md
+!README.md
+
+# --- runtime outputs (rebuild artifacts never belong in image) ---
+tmp/
+*.apk
+
+# --- dev-only payloads: built separately or not needed by the API ---
+web/
+docs/
+experiments/
+tests/
+skills/
+scripts/
+projects/

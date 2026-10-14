@@ -1,0 +1,16 @@
+# Web build context (docker-compose service "web", context "./web")
+# Secrets and generated outputs must never enter image layers (audit S6).
+
+# --- secrets ---
+.env
+.env.*
+
+# --- deps & build outputs (reinstalled inside the image) ---
+node_modules/
+.next/
+out/
+
+# --- misc dev files ---
+*.log
+.DS_Store
+npm-debug.log*

@@ -14,13 +14,18 @@ services:
 
   web:
     build:
-      context: .
-      dockerfile: web/Dockerfile
+      # 审计修复: context 指向 ./web, Dockerfile 内 COPY package.json 才能命中
+      # (原 context "." 会把仓库根当构建上下文, web/Dockerfile 第一步 COPY 即失败)
+      context: ./web
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     volumes:
       - ./web:/app
       - /app/node_modules
+    environment:
+      # next.config.mjs rewrites 的 API 代理目标 → compose 服务名
+      - API_PROXY_TARGET=http://api:8000
     depends_on:
       - api
     restart: unless-stopped

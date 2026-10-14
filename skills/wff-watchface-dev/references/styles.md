@@ -22,10 +22,11 @@
 - 8 位 ARGB 格式 `#ffRRGGBB`（R13 之前的老坑）
 
 **字体层级**：SYNC_TO_DEVICE 家族；weight 阶梯只用 NORMAL/MEDIUM/BOLD 三档；
-同屏字号档位 ≤ 3 个；**个性化字体用 BitmapFonts**（PIL 字模 PNG，Character
-name=字符 resource=图 width/height 必填，挂在 WatchFace 直接子级；字模色固定
-→ 多主题配深胶囊+白字模最稳）；字距用空格分隔（letterSpacing 是虚构属性，
-Text 只有 ellipsis/maxLines）。
+同屏字号档位 ≤ 3 个；**个性化字体 = 系统字 weight/width 变体**
+（SYNC_TO_DEVICE 12 weight × 9 width，见 R61）；字距用空格分隔
+（letterSpacing 是虚构属性，Text 只有 ellipsis/maxLines）。
+**BitmapFonts 位图字模在 WOS6 全通道废弃（R61 真机实证，TimeText 与
+PartText 通道均不渲染）——不要再用位图字体做任何表盘**。
 
 ---
 
@@ -39,7 +40,7 @@ Text 只有 ellipsis/maxLines）。
 |---|---|
 | 底色 | `#ff0E1512`（seed 青绿系的 surface-900） |
 | 时间胶囊底 | `#ff2E6B5C`（secondary 深色块——位图字模白色协调所有主题） |
-| 时间字 | 位图字体白字模（materialDigits, PIL Carlito-Bold 生成） |
+| 时间字 | 系统字 SYNC_TO_DEVICE weight=BOLD 白色（R61：位图字体已废弃） |
 | 副信息 | `#ffA3C9BD`（surface 变体，on-surface-variant） |
 | 数据胶囊 | secondary 色圆角块 + 白图标 + 亮色数值 |
 
@@ -145,7 +146,7 @@ PartImage 预渲染进度弧帧或 Arc 静态+数值 PartText。
 
 | 风格 | 基础配方 | 追加模块 |
 |---|---|---|
-| S1 Material You | §1 数字 | ColorConfiguration 6 色（§3 颜色包）+ BitmapFonts 位图字 |
+| S1 Material You | §1 数字 | ColorConfiguration 6 色（§3 颜色包）+ Font weight=BOLD（位图字已废弃，R61） |
 | S2 极简 Mono | §1 数字 | 纯排版调优 + AMBIENT 双层 + 纯黑底 |
 | S3 暗色能量 | §5 动效 | 辉光弧素材配方 + 呼吸帧序列 |
 | S4 拟物表冠 | §2 三针 | 刻度环/指针素材配方 |

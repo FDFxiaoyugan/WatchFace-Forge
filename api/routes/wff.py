@@ -14,6 +14,8 @@ from fastapi import APIRouter, File, Form, Header, UploadFile
 from fastapi.responses import FileResponse
 
 from api.services.wff_access import WFFAPIError, authorize
+from api.services.artifact_paths import APK_OUTPUT_DIR as OUTPUT_DIR, resolve_download_filename
+from api.services.error_sanitize import safe_client_error
 from api.services.wff_preview import frame_data_url, render_wff_frame
 from api.services.wff_official import evaluate_memory
 from api.services.wff_validation import MAX_ASSET_BYTES, MAX_XML_BYTES, validate_wff
@@ -23,7 +25,6 @@ sys.path.insert(0, str(PROJECT_ROOT / "wff-builder"))
 from wff_builder import WFFBuilder  # noqa: E402
 
 router = APIRouter()
-OUTPUT_DIR = Path("/tmp/watchface-forge-apks")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -182,7 +183,9 @@ async def build_endpoint(
     except WFFAPIError:
         raise
     except Exception as exc:
-        raise WFFAPIError(500, "BUILD_FAILED", str(exc))
+        # 脱敏: 客户端只收稳定错误码 + request_id, 完整堆栈进服务端日志
+        client_msg, request_id = safe_client_error(exc, context=f"wff-build:{build_id}")
+        raise WFFAPIError(500, "BUILD_FAILED", f"{client_msg} [request_id={request_id}]")
     finally:
         shutil.rmtree(project_dir, ignore_errors=True)
 
@@ -201,9 +204,11 @@ async def build_endpoint(
 
 @router.get("/builds/{filename}")
 async def download_build(filename: str):
-    if not re.fullmatch(r"[A-Za-z0-9_.-]+\.apk", filename):
+    # S5: 与 /api/download 共享白名单 + resolve 兜底
+    try:
+        path = resolve_download_filename(filename)
+    except ValueError:
         raise WFFAPIError(404, "BUILD_NOT_FOUND", "构建产物不存在")
-    path = OUTPUT_DIR / filename
     if not path.is_file():
         raise WFFAPIError(404, "BUILD_NOT_FOUND", "构建产物不存在")
     return FileResponse(str(path), media_type="application/vnd.android.package-archive", filename=filename)

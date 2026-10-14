@@ -574,7 +574,12 @@ wff_builder.py 旧逻辑 `if not dst.exists(): copy2(...)` 导致 _build/res/dra
 "没有变化"时优先怀疑构建缓存/增量同步, 而不是先怀疑渲染器; ③ One UI 表盘
 渲染有缓存, 复测需切走再切回表盘。
 
-### R59: 位图字体的正确用法是 Text 内 BitmapFont 元素（真机实证 2026-09-14）
+### R59: [已被 R61 推翻] 位图字体 Text 内用法曾验证可行（真机实证 2026-09-14）
+
+> ⚠️ 本条结论已被 R61 推翻（2026-09-15 矩阵测试）：BitmapFont 在 WOS6 渲染
+> 链路**全面不可用**（TimeText 与 PartText 通道均不渲染）。保留本条仅作历史
+> 演变记录。当前结论：**位图字体整体废弃**，个性化字体用系统字
+> SYNC_TO_DEVICE weight/width 变体（12 weight × 9 width）。
 
 `<Font family="位图族名"/>` 引用 BitmapFonts 无效——渲染器不认 Font 引用位图族,
 静默回退系统默认字体（真机表现"字体没变"）。正确用法（官方 Weather sample）:

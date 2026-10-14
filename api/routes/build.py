@@ -1,7 +1,5 @@
 """构建路由 — CDM → WFF XML → APK"""
 import sys
-import uuid
-import tempfile
 import shutil
 import base64
 import io
@@ -10,6 +8,14 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from api.models import BuildRequest, BuildResponse
+from api.services.artifact_paths import (
+    APK_OUTPUT_DIR,  # noqa: F401 — kept for historical imports in this repo
+    final_apk_path,
+    new_task_id,
+    resolve_download_filename,
+    task_id_dir,
+)
+from api.services.error_sanitize import safe_client_error
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -20,10 +26,6 @@ from compiler.wff.compiler import WFFCompiler
 from wff_builder import WFFBuilder, validate_watchface_xml
 
 router = APIRouter()
-
-# APK 输出目录
-APK_OUTPUT_DIR = Path(tempfile.gettempdir()) / "watchface-forge-apks"
-APK_OUTPUT_DIR.mkdir(exist_ok=True)
 
 
 def _write_background_asset(project_dir: Path, background) -> None:
@@ -65,7 +67,8 @@ def _write_background_asset(project_dir: Path, background) -> None:
 @router.post("/build", response_model=BuildResponse)
 async def build_apk(req: BuildRequest):
     """CDM → WFF XML → APK 全流程构建"""
-    task_id = str(uuid.uuid4())[:8]
+    # S5: server-generated id only; never derived from user input.
+    task_id = new_task_id(8)
 
     try:
         # 1. 编译 CDM → WFF XML
@@ -82,8 +85,8 @@ async def build_apk(req: BuildRequest):
                 error=f"Validation failed: {errors[0]['detail']}",
             )
 
-        # 3. 创建临时项目目录
-        project_dir = APK_OUTPUT_DIR / task_id
+        # 3. 创建临时项目目录 (task_id 白名单校验, S5)
+        project_dir = task_id_dir(task_id)
         project_dir.mkdir(exist_ok=True)
 
         # 4. 写入项目文件
@@ -111,9 +114,8 @@ async def build_apk(req: BuildRequest):
         builder = WFFBuilder(str(project_dir), verbose=False)
         apk_path = builder.build()
 
-        # 8. 复制到输出目录 (文件名用表盘名, 友好可读)
-        safe_name = req.cdm.metadata.name.replace(" ", "_").lower()
-        final_apk = APK_OUTPUT_DIR / f"{safe_name}-{task_id}.apk"
+        # 8. 复制到输出目录 (S5: 文件名仅来自服务端 task_id; 表盘名仅作展示字段)
+        final_apk = final_apk_path(task_id)
         shutil.copy2(apk_path, final_apk)
 
         # 9. 清理临时目录
@@ -127,18 +129,31 @@ async def build_apk(req: BuildRequest):
             download_url=f"/api/download/{final_apk.name}",
         )
 
-    except Exception as e:
+    except ValueError as e:
+        # 用户输入域错误 (图片解码/尺寸等), 消息来自受控校验代码, 无服务器细节
         return BuildResponse(
             task_id=task_id,
             status="failed",
-            error=str(e),
+            error=f"Invalid input: {e}",
+        )
+    except Exception as e:
+        # 未分类异常: 客户端只收稳定错误码 + request_id, 完整堆栈进服务端日志
+        client_msg, request_id = safe_client_error(e, context=f"build:{task_id}")
+        return BuildResponse(
+            task_id=task_id,
+            status="failed",
+            error=client_msg,
         )
 
 
 @router.get("/download/{filename}")
 async def download_apk(filename: str):
     """下载 APK 文件"""
-    apk_path = APK_OUTPUT_DIR / filename
+    # S5: 白名单校验 + resolve 兜底, 拒绝 ../、绝对路径、盘符、URL 编码变体
+    try:
+        apk_path = resolve_download_filename(filename)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="APK not found")
     if not apk_path.exists():
         raise HTTPException(status_code=404, detail="APK not found")
 

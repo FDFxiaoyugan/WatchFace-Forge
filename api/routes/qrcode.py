@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pathlib import Path
 
-from api.routes.build import APK_OUTPUT_DIR
+from api.services.artifact_paths import resolve_download_filename
 
 router = APIRouter()
 
@@ -18,7 +18,11 @@ async def get_qrcode(filename: str, base_url: str = "http://localhost:8000"):
     用法: GET /api/qrcode/xxx.apk?base_url=http://192.168.1.100:8000
     扫码后浏览器直接下载 APK
     """
-    apk_path = APK_OUTPUT_DIR / filename
+    # S5: 白名单校验 + resolve 兜底, 与 /api/download 一致
+    try:
+        apk_path = resolve_download_filename(filename)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="APK not found")
     if not apk_path.exists():
         raise HTTPException(status_code=404, detail="APK not found")
 

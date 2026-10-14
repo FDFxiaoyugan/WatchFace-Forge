@@ -160,7 +160,11 @@ async def get_task_result(task_id: str):
         if state == "SUCCESS":
             response["result"] = result.result
         elif state == "FAILURE":
-            response["error"] = str(result.result)[:500]
+            # 脱敏: 异常细节只进日志, 客户端收稳定文案 + request_id
+            from api.services.error_sanitize import safe_client_error
+            client_msg, request_id = safe_client_error(result.result, context=f"editor-task:{task_id}")
+            response["error"] = client_msg
+            response["request_id"] = request_id
         return response
 
     raise HTTPException(404, "task not found")
