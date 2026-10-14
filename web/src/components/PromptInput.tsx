@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
-import { loadAIConfig, toAIRequestConfig, UserAIConfig, EMPTY_AI_CONFIG } from "@/lib/aiConfig";
+import { loadAIConfig, serverApiKeyHeaders, toAIRequestConfig, UserAIConfig, EMPTY_AI_CONFIG } from "@/lib/aiConfig";
 
 interface GenerateResult {
   task_id: string;
@@ -29,7 +29,7 @@ export default function PromptInput({ onResult }: { onResult?: (r: GenerateResul
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<{ stage: string; progress: number; message: string } | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [aiConfig, setAIConfig] = useState<UserAIConfig>(EMPTY_AI_CONFIG);
 
@@ -39,39 +39,37 @@ export default function PromptInput({ onResult }: { onResult?: (r: GenerateResul
     if (!prompt.trim() || loading) return;
     setLoading(true);
     setResult(null);
-    setProgress({ stage: "starting", progress: 10, message: "正在启动..." });
+    setElapsed(0);
 
-    // 模拟进度 (WebSocket 在 dev 模式下可能不稳定)
-    const stages = [
-      { stage: "llm_generating", progress: 20, message: "正在调用 AI 生成表盘设计..." },
-      { stage: "compiling", progress: 70, message: "正在编译 WFF XML..." },
-      { stage: "building_apk", progress: 85, message: "正在构建 APK..." },
-    ];
-
-    let stageIdx = 0;
-    const progressTimer = setInterval(() => {
-      if (stageIdx < stages.length) {
-        setProgress(stages[stageIdx]);
-        stageIdx++;
-      }
-    }, 3000);
+    // 真实等待状态: 同步请求 + 已等待秒数（/api/generate 为同步长请求,
+    // 服务端 task_id 在响应中返回, 期间无法预连 WS 取真实进度）
+    const elapsedTimer = setInterval(() => setElapsed((s) => s + 1), 1000);
 
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...serverApiKeyHeaders() },
         body: JSON.stringify({ prompt, ai_config: toAIRequestConfig(aiConfig) }),
       });
       const data = await res.json();
-      clearInterval(progressTimer);
-      setProgress({ stage: "done", progress: 100, message: data.status === "success" ? "完成!" : "失败" });
+      if (res.status === 401) {
+        setResult({ task_id: "", status: "failed", error: "平台访问密钥无效或缺失，请在「设置」页配置 X-API-Key" });
+        return;
+      }
+      if (res.status === 429) {
+        setResult({ task_id: "", status: "failed", error: data?.error?.message || "生成配额已用尽，请稍后再试" });
+        return;
+      }
+      if (res.status === 503) {
+        setResult({ task_id: "", status: "failed", error: data?.error?.message || "服务暂不可用（密钥/配额后端未配置）" });
+        return;
+      }
       setResult(data);
       onResult?.(data);
     } catch (err) {
-      clearInterval(progressTimer);
-      setProgress({ stage: "failed", progress: 100, message: String(err) });
       setResult({ task_id: "", status: "failed", error: err instanceof Error ? err.message : String(err) });
     } finally {
+      clearInterval(elapsedTimer);
       setLoading(false);
     }
   }
@@ -124,18 +122,15 @@ export default function PromptInput({ onResult }: { onResult?: (r: GenerateResul
         </div>
       )}
 
-      {/* Progress */}
-      {progress && (
+      {/* 等待状态（真实: 已等待时长, 非确定性假进度） */}
+      {loading && (
         <div className="mt-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm text-forge-muted">{progress.message}</span>
-            <span className="text-sm text-forge-accent">{progress.progress}%</span>
+            <span className="text-sm text-forge-muted">AI 生成中…（完整链路通常 10–60 秒）</span>
+            <span className="text-sm text-forge-accent">已等待 {elapsed}s</span>
           </div>
-          <div className="md-progress">
-            <div
-              className="h-full bg-forge-accent transition-all duration-500"
-              style={{ width: `${progress.progress}%` }}
-            />
+          <div className="md-progress overflow-hidden">
+            <div className="h-full w-1/3 bg-forge-accent animate-pulse" />
           </div>
         </div>
       )}

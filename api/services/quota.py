@@ -51,6 +51,10 @@ def reset_for_tests() -> None:
     limiter.reset()
 
 
+# 公共别名：cdm_store 等服务复用同一 Redis 客户端（不可用时返回 None）
+get_redis = _get_redis
+
+
 def _consume_redis(key: str, limit: int) -> Optional[int]:
     """原子扣减一次配额；返回剩余次数；Redis 不可用返回 None。"""
     client = _get_redis()

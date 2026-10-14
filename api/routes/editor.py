@@ -184,7 +184,14 @@ async def queue_info():
 
 @router.get("/cdm/{task_id}")
 async def get_cdm(task_id: str):
-    """获取生成任务的 CDM (编辑器导入用)"""
+    """获取生成任务的 CDM (编辑器导入用)
+
+    优先从 cdm_store（Redis TTL 1h, 生成即存）读取；退化为内存进度事件。
+    """
+    from api.services.cdm_store import load_cdm
+    cdm = load_cdm(task_id)
+    if cdm:
+        return {"success": True, "task_id": task_id, "cdm": cdm}
     events = _progress_store.get(task_id, [])
     for event in reversed(events):
         cdm = event.get("data", {}).get("cdm") if isinstance(event.get("data"), dict) else None

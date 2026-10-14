@@ -63,3 +63,32 @@ export function toAIRequestConfig(config: UserAIConfig): UserAIRequestConfig | u
     model: config.model.trim() || DEFAULT_AI_MODEL,
   };
 }
+
+// ─── 平台访问密钥（X-API-Key，服务端签发，区别于 BYOK）──────────────
+// 部署者通过 scripts/create-api-key.sh 生成并分发给用户；generate/ai-test
+// 在公网（WF_ENV=production + WFF_API_KEYS）模式下必须携带。
+const SERVER_API_KEY_STORAGE = "wff_server_api_key";
+
+export function loadServerApiKey(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(SERVER_API_KEY_STORAGE) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveServerApiKey(key: string): void {
+  if (typeof window === "undefined") return;
+  const trimmed = key.trim();
+  if (!trimmed) {
+    window.localStorage.removeItem(SERVER_API_KEY_STORAGE);
+    return;
+  }
+  window.localStorage.setItem(SERVER_API_KEY_STORAGE, trimmed);
+}
+
+export function serverApiKeyHeaders(): Record<string, string> {
+  const key = loadServerApiKey();
+  return key ? { "X-API-Key": key } : {};
+}

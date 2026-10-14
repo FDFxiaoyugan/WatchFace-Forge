@@ -61,15 +61,20 @@
 
 ## 3. 关键数据流
 
-### 3.1 AI 生成（Phase 2）
+### 3.1 AI 生成（Phase 2，2026-10 审计修正后语义）
 
 ```
-POST /api/generate {prompt}
-  → ai_gateway: 限流检查(10/h) → z-ai chat (提示词模板在 services/cdm_generator/)
+POST /api/generate {prompt, ai_config?}   ← 同步长请求（10–60s），非异步任务
+  → 鉴权+配额: X-API-Key（WFF_API_KEYS 配置时强制；production 未配置=503）
+    Redis 原子固定窗口 per-key 10/h（WF_QUOTA_GENERATE_PER_HOUR 可覆盖；
+    Redis 不可用: production fail-closed / development 进程内降级）
+  → ai_gateway: z-ai chat 或用户 BYOK（SSRF 硬检查 + 可选域名白名单）
   → LLM 输出 JSON → pydantic 校验 → 失败则自动修复层修正 (最多 3 轮)
-  → 合法 CDM 存 redis (task_id 键, TTL 1h)
-  → 全程通过 /api/ws/{task_id} 推送阶段事件
-  → 前端拿到 CDM 后可: 预览渲染 / 跳转 /editor 继续编辑 / 直接 /api/build
+  → 合法 CDM 存 Redis (wff:cdm:{task_id}, TTL 1h; 不可用退进程内存)
+    → GET /api/editor/cdm/{task_id} 编辑器导入（构建失败 CDM 仍可取回）
+  → 进度事件写入内存 _progress_store（供 /api/ws/{task_id} 事后回放；
+    同步请求下前端无法预知 task_id, 当前 UI 为真实等待时长而非事件流）
+  → 响应含 CDM + APK download_url；前端可: 跳转 /editor 或直接下载
 ```
 
 ### 3.2 异步图像处理（Phase 3）

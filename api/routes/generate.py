@@ -150,6 +150,14 @@ async def generate_watchface(req: dict, x_api_key: str = Header(default=None, al
     cdm_dict = gen_result["cdm"]
     tracker.emit("cdm_generated", 50, f"CDM 生成完成 (backend: {gen_result['backend']}, {gen_result['attempts']} 次尝试)")
 
+    # CDM 校验通过即持久化（Redis TTL 1h）：APK 构建失败也可进编辑器调整
+    from api.services.cdm_store import store_cdm
+    try:
+        store_cdm(task_id, cdm_dict)
+    except ValueError:
+        pass  # task_id 由服务端生成, 此分支仅为防御
+    tracker.emit("cdm_stored", 55, "CDM 已存档, 可随时带入编辑器")
+
     if gen_result["fixes"]:
         tracker.emit("auto_fixed", 60, f"自动修复 {len(gen_result['fixes'])} 处问题")
 

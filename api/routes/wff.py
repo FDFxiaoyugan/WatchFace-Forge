@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import sys
@@ -148,6 +149,13 @@ async def build_endpoint(
     validation = validate_wff(xml_bytes, asset_list)
     if not validation["valid"]:
         raise WFFAPIError(422, "VALIDATION_FAILED", "WFF XML 未通过校验，构建已拒绝")
+    # 审计: 生产模式必要校验器缺失时显式拒绝, 不降级放行
+    if validation.get("degraded") and os.environ.get("WF_ENV", "development").strip().lower() == "production":
+        unavailable = [k for k, v in validation.get("layers", {}).items() if v == "unavailable"]
+        raise WFFAPIError(
+            503, "VALIDATION_LAYER_UNAVAILABLE",
+            f"校验器不可用（{', '.join(unavailable)}）：生产模式拒绝构建，请修复工具链后重试",
+        )
 
     build_id = uuid.uuid4().hex[:12]
     project_dir = OUTPUT_DIR / ("wff-" + build_id)

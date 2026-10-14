@@ -3,16 +3,32 @@
 import { FormEvent, useEffect, useState } from "react";
 import AppShell from "@/components/ui/AppShell";
 import Icon from "@/components/ui/Icon";
-import { clearAIConfig, EMPTY_AI_CONFIG, loadAIConfig, saveAIConfig, toAIRequestConfig, UserAIConfig } from "@/lib/aiConfig";
+import { clearAIConfig, EMPTY_AI_CONFIG, loadAIConfig, loadServerApiKey, saveAIConfig, saveServerApiKey, serverApiKeyHeaders, toAIRequestConfig, UserAIConfig } from "@/lib/aiConfig";
 
 export default function SettingsPage() {
   const [config, setConfig] = useState<UserAIConfig>(EMPTY_AI_CONFIG);
+  const [platformKey, setPlatformKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"neutral" | "success" | "error">("neutral");
   const [testing, setTesting] = useState(false);
 
-  useEffect(() => setConfig(loadAIConfig()), []);
+  useEffect(() => {
+    setConfig(loadAIConfig());
+    setPlatformKey(loadServerApiKey());
+  }, []);
+
+  function savePlatformKey(value: string) {
+    setPlatformKey(value);
+    saveServerApiKey(value);
+    if (value.trim()) {
+      setMessage("平台访问密钥已保存到本浏览器（localStorage）");
+      setMessageTone("success");
+    } else {
+      setMessage("平台访问密钥已清除");
+      setMessageTone("neutral");
+    }
+  }
 
   function update(field: keyof UserAIConfig, value: string) {
     setConfig((current) => ({ ...current, [field]: value }));
@@ -59,11 +75,13 @@ export default function SettingsPage() {
     try {
       const response = await fetch("/api/ai/test", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...serverApiKeyHeaders() },
         body: JSON.stringify({ ai_config: aiConfig }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.message || `HTTP ${response.status}`);
+      if (response.status === 401) throw new Error("平台访问密钥无效或缺失（在下方「平台访问密钥」中配置）");
+      if (response.status === 429) throw new Error(payload?.error?.message || "测试配额已用尽，请稍后再试");
+      if (!response.ok) throw new Error(payload.message || payload?.error?.message || `HTTP ${response.status}`);
       setMessage(`连接成功 · ${payload.model} · ${payload.latency_ms} ms`);
       setMessageTone("success");
     } catch (error) {
@@ -106,6 +124,24 @@ export default function SettingsPage() {
         <input id="ai-model" value={config.model} onChange={(event) => update("model", event.target.value)} placeholder="gpt-4o" className="md-field mt-2 font-mono text-sm" />
 
         {message && <div role="status" className={`mt-5 rounded-xl border px-4 py-3 text-sm ${messageTone === "success" ? "border-emerald-800 bg-emerald-950/20 text-emerald-300" : messageTone === "error" ? "border-red-900 bg-red-950/20 text-red-200" : "border-forge-border bg-[#101318] text-forge-muted"}`}>{message}</div>}
+
+        <div className="mt-8 border-t border-forge-border pt-6">
+          <label className="md-label" htmlFor="platform-key">平台访问密钥（X-API-Key）</label>
+          <input
+            id="platform-key"
+            type={showKey ? "text" : "password"}
+            autoComplete="off"
+            value={platformKey}
+            onChange={(event) => savePlatformKey(event.target.value)}
+            placeholder="wff_…（由部署者通过 scripts/create-api-key.sh 签发）"
+            className="md-field mt-2 w-full font-mono text-sm"
+          />
+          <p className="mt-2 text-xs leading-5 text-forge-muted">
+            公网部署（WF_ENV=production）下生成与连接测试必须携带；本机开发可不填。
+            保存在浏览器 localStorage，随每次生成请求发送，不进入日志。
+          </p>
+        </div>
+
         <div className="mt-6 flex flex-wrap gap-3">
           <button type="submit" className="md-button md-button--filled"><Icon name="check" size={17}/>保存会话配置</button>
           <button type="button" className="md-button md-button--tonal" onClick={testConnection} disabled={testing}>{testing ? "测试中…" : "测试连接"}</button>

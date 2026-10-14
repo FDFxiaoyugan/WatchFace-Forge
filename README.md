@@ -143,7 +143,8 @@ python wff_builder.py build projects/my_watch
 
 ## 已知约束
 
-- 签名密钥 `wff-builder/keystore/test.keystore` 为开发用（pass: wfftest123），上线前必须更换
-- AI 生成限流 10 次/小时（内存令牌桶，重启失效）
+- 开发签名密钥 `wff-builder/keystore/test.keystore` 为**公开**开发证书（密码亦公开）。生产部署设 `WF_ENV=production`：外部 keystore 三件套（`WFF_KEYSTORE`/`ALIAS`/`PASSWORD`）强制，且证书指纹等于公开开发证书时直接拒绝
+- AI 生成配额按 API key 计（Redis 原子窗口 10 次/小时，`WF_QUOTA_GENERATE_PER_HOUR` 可覆盖）；`WF_ENV=production` 且未配 `WFF_API_KEYS` 或 Redis 不可用时 fail-closed
+- BYOK 自定义 Base URL 经 SSRF 硬检查（拒绝私网/回环/保留地址，关闭重定向跟随）；部署者可用 `WF_AI_ALLOWED_HOSTS` 进一步收紧域名白名单
 - 抠图为阈值 flood-fill，适合纯色背景素材；复杂照片背景效果有限
 - APK 构建的 aapt2 预编译模板在 Docker 构建时生成（x86_64），运行时纯 Python 跨平台

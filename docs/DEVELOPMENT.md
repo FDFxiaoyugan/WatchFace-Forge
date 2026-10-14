@@ -38,14 +38,49 @@ npx next build && npx next start -p 3000   # 生产
 
 ## 环境变量
 
+### 运行模式与安全（2026-10 审计修复新增）
+
 | 变量 | 说明 | 默认 |
 |------|------|------|
-| `REDIS_URL` | Celery broker/result | `redis://127.0.0.1:6379/0` |
+| `WF_ENV` | `development` \| `production`；production 强制外部签名、强制 API key、配额 fail-closed | `development` |
+| `WFF_API_KEYS` | 逗号分隔 API Key；**generate/ai-test/v1 全部消费**；production 未配置 → 503 | 无 |
+| `WF_CORS_ORIGINS` | 逗号分隔来源；配置后启用 credentials，默认 `*`（禁 credentials） | `*` |
+| `WF_QUOTA_GENERATE_PER_HOUR` | generate 每 key 每小时配额 | `10` |
+| `WF_QUOTA_AI_TEST_PER_HOUR` | ai/test 每 key 每小时配额 | `20` |
+| `WF_AI_ALLOWED_HOSTS` | BYOK base_url 域名白名单（逗号分隔，支持 `*.suffix`）；空=放行任意通过 SSRF 硬检查的公网地址 | 无 |
+
+### AI 后端
+
+| 变量 | 说明 | 默认 |
+|------|------|------|
 | `AI_PROVIDER` | `zai` \| `openai` | `zai` |
 | `ZAI_API_KEY` / `OPENAI_API_KEY` | AI 密钥 | 无（缺失时 AI 端点返回 503） |
 | `OPENAI_BASE_URL` | OpenAI 兼容端点 | 官方 |
 | `OPENAI_MODEL` | 服务端默认 OpenAI 模型 | `gpt-4o` |
-| `WFF_API_KEYS` | `/api/v1/wff/*` 接受的逗号分隔 API Key | 无（未配置时返回 503） |
+
+### Celery / Redis
+
+| 变量 | 说明 | 默认 |
+|------|------|------|
+| `CELERY_BROKER_URL` | Celery broker（CDM 存档与配额共用该 Redis） | `redis://127.0.0.1:6379/0` |
+| `CELERY_RESULT_BACKEND` | 任务结果后端 | 同 broker |
+
+> ⚠️ 历史版本的 `REDIS_URL` 从未被代码读取（审计确认的文档偏差），实际读取
+> `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND`。
+
+### APK 签名（生产必读）
+
+| 变量 | 说明 | 默认 |
+|------|------|------|
+| `WFF_KEYSTORE` | keystore 路径 | 仓库公开开发证书 `wff-builder/keystore/test.keystore` |
+| `WFF_KEYSTORE_ALIAS` | key alias | dev: `wfftest`；production: 必填 |
+| `WFF_KEYSTORE_PASSWORD` 或 `WFF_KEYSTORE_PASSWORD_FILE` | store 密码（env 或文件引用） | dev: `wfftest123`；production: 必填 |
+| `WFF_KEY_KEY_PASSWORD` 或 `WFF_KEY_KEY_PASSWORD_FILE` | key 密码（缺省同 store 密码） | 同上 |
+
+production 模式下三件套缺一即构建失败，且**证书 SHA-256 指纹等于公开开发证书
+时直接拒绝**（把 test.keystore 换文件名也无效）。密码通过 `env:`/`file:` 引用
+传给 apksigner/keytool，不出现在进程命令行。开发模式显式设置 `WFF_KEYSTORE`
+时同样需要配齐 alias/密码。
 
 首次使用 WFF 直通 API 时执行 `./scripts/create-api-key.sh`，它会生成随机
 key 并写入被 Git 忽略的 `.env`。`scripts/dev-services.sh` 启动/重启时会自动
@@ -104,15 +139,22 @@ python wff_builder.py build projects/my_watch     # → projects/my_watch/dist/*
 
 ## 重新构建 APK 模板（很少需要）
 
-预编译模板（二进制 AndroidManifest.xml + resources.arsc）已提交在仓库里，正常开发不需要重建。
-只有修改 Manifest（如包名、SDK 版本）时才需要：
+预编译模板（二进制 AndroidManifest.xml + resources.arsc）已提交在
+`wff-builder/projects/demo/_build/compiled/`，正常开发不需要重建。
+只有修改 Manifest（如包名、SDK 版本）时才需要在 **x86_64** 环境（本机
+Docker 或 x86 服务器）执行 `aapt2 compile + link` 重算模板，产物覆盖回上述
+目录。ARM64 节点（如 DevSpace）不要直接调用 x86_64 的 `aapt2`——构建器在
+aapt2 不可用时自动使用仓库内已验证的 ARM 预编译模板。
 
-```bash
-# 需要 x86_64 + Docker (aapt2 不支持 ARM)
-cd wff-builder
-docker build -t wff-template -f Dockerfile.template .
-docker run --rm -v $(pwd)/template:/out wff-template cp -r /template /out
-```
+## Docker Compose（基础栈）
+
+`docker-compose.yml` 提供 api + web 两个服务（开发形态：源码 bind mount +
+`next dev`）。redis 与 celery worker 按上文「服务启动顺序」在同一网络内
+宿主机上运行；若全部容器化，把 `CELERY_BROKER_URL` 指向 compose 网络的
+redis 服务并补充 worker 服务定义（当前文件未包含，属后续工作）。web 服务
+通过 `API_PROXY_TARGET=http://api:8000` 让 next rewrites 代理命中容器网络
+的 API。镜像构建排除项见根目录与 `web/.dockerignore`（审计 S6：`.env*`、
+运维备份、日志、Git 元数据不进镜像层；公开开发证书显式保留）。
 
 ## 部署环境参考（华为云 DevSpace 实测）
 

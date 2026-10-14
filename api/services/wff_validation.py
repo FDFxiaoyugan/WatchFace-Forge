@@ -105,6 +105,40 @@ def _official_schema():
     return xmlschema.XMLSchema11(str(OFFICIAL_XSD), allow="local")
 
 
+def _layer_statuses(issues: List[dict]) -> dict:
+    """推导各校验层状态（审计: 工具缺失时 valid=true 不可分辨）。
+
+    syntax — XML 语法/根元素/大小/编码（stdlib 检查, 恒可用）
+    xsd    — Google 官方 XSD 1.1（缺 vendor 文件/运行库 = unavailable）
+    official_validator — 官方 wff-validator.jar（缺 Java/Java 版本 = unavailable）
+    lint   — 仓库 16 条规则 + 资源一致性（恒可用）
+    """
+    statuses = {
+        "syntax": "passed",
+        "xsd": "passed",
+        "official_validator": "passed",
+        "lint": "passed",
+    }
+    syntax_rules = {"XML_SIZE", "XML_ENCODING", "XML_WELL_FORMED", "ROOT_ELEMENT"}
+    for item in issues:
+        source, rule, severity = item.get("source"), item.get("rule"), item.get("severity")
+        if rule in syntax_rules:
+            layer = "syntax"
+        elif source == "xsd":
+            layer = "xsd"
+        elif source == "official_validator":
+            layer = "official_validator"
+        else:
+            layer = "lint"
+        if severity == "error":
+            statuses[layer] = "failed"
+        elif rule in ("XSD_UNAVAILABLE", "TOOL_UNAVAILABLE") and rule not in syntax_rules:
+            # 工具缺失 → unavailable（failed 已在上面优先处理）
+            if statuses[layer] != "failed":
+                statuses[layer] = "unavailable"
+    return statuses
+
+
 def _result(issues: List[dict], root: Optional[ET.Element], assets: Iterable[Tuple[str, bytes]]) -> dict:
     asset_list = list(assets)
     elements = list(root.iter()) if root is not None else []
@@ -113,8 +147,12 @@ def _result(issues: List[dict], root: Optional[ET.Element], assets: Iterable[Tup
     asset_bytes = sum(len(data) for _, data in asset_list)
     # Conservative platform estimate until the official evaluator is vendored.
     estimated_memory = asset_bytes + image_count * 64 * 1024 + font_count * 16 * 1024
+    layers = _layer_statuses(issues)
     return {
         "valid": not any(item["severity"] == "error" for item in issues),
+        # 审计修复: 显式区分"全绿"与"部分校验器未运行"
+        "degraded": any(status == "unavailable" for status in layers.values()),
+        "layers": layers,
         "errors": issues,
         "stats": {
             "element_count": len(elements),
