@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend tests (Python 3.12 + Android build-tools)
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /opt/android-sdk
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt httpx
+
+      - name: Cache Android build-tools
+        id: bt-cache
+        uses: actions/cache@v4
+        with:
+          path: /opt/android-sdk
+          key: android-buildtools-34.0.0
+
+      - name: Install Android build-tools 34 + platform
+        if: steps.bt-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo mkdir -p ${ANDROID_HOME}/build-tools/34.0.0 ${ANDROID_HOME}/platforms/android-34
+          wget -q https://dl.google.com/android/repository/build-tools_r34-linux.zip -O /tmp/bt.zip
+          unzip -q /tmp/bt.zip -d /tmp/bt
+          sudo mv /tmp/bt/android-14/* ${ANDROID_HOME}/build-tools/34.0.0/
+          wget -q https://dl.google.com/android/repository/platform-34-ext7_r02.zip -O /tmp/platform.zip
+          unzip -q /tmp/platform.zip -d /tmp/platform
+          sudo mv /tmp/platform/android-14/* ${ANDROID_HOME}/platforms/android-34/
+          rm -rf /tmp/bt.zip /tmp/bt /tmp/platform.zip /tmp/platform
+          sudo chmod -R a+rX ${ANDROID_HOME}
+
+      - name: Run full test suite
+        env:
+          PATH: /opt/android-sdk/build-tools/34.0.0:${PATH}
+        run: |
+          python -m pytest tests/ -v --tb=short
+
+  frontend:
+    name: Frontend type check (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: node_modules/.bin/tsc --noEmit
+
+      - name: Production build
+        run: npx next build

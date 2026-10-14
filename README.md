@@ -51,7 +51,7 @@ watchface-forge/
 │       └── stores/          #   editorStore.ts (Zustand, 撤销/重做 50 步)
 ├── wff-builder/             # WFF APK 构建引擎 (16 条校验规则, 独立可用)
 │   └── SKILL.md             #   构建引擎使用指南
-├── tests/                   # 58 个测试 (core + api + phase2 + wff_api + 安全回归)
+├── tests/                   # 119 个测试 (core + api + phase2 + wff_api + 安全回归)
 └── AGENTS.md                # AI Agent 开发指引 ⭐ agent 必读
 ```
 
@@ -117,7 +117,7 @@ cd web && npm install && npx next dev -p 3000
 ### 测试
 
 ```bash
-python3 -m pytest tests/ -v   # 58 个测试
+python3 -m pytest tests/ -v   # 119 个测试
 ```
 
 ### WFF Builder 独立使用
