@@ -41,7 +41,9 @@ jobs:
           sudo mv /tmp/bt/android-14/* ${ANDROID_HOME}/build-tools/34.0.0/
           wget -q https://dl.google.com/android/repository/platform-34-ext7_r02.zip -O /tmp/platform.zip
           unzip -q /tmp/platform.zip -d /tmp/platform
-          sudo mv /tmp/platform/android-14/* ${ANDROID_HOME}/platforms/android-34/
+          # 解压目录名随版本变化, 动态查找实际目录（曾假设 android-14 导致 CI 失败）
+          PLAT_DIR=$(find /tmp/platform -mindepth 1 -maxdepth 1 -type d | head -1)
+          sudo mv "${PLAT_DIR}"/* ${ANDROID_HOME}/platforms/android-34/
           rm -rf /tmp/bt.zip /tmp/bt /tmp/platform.zip /tmp/platform
           sudo chmod -R a+rX ${ANDROID_HOME}
 
