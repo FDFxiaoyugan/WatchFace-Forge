@@ -61,29 +61,11 @@ def normalize_user_ai_config(value: object) -> Optional[dict[str, str]]:
 
     return {"api_key": api_key, "base_url": base_url, "model": model}
 
-# ─── 限流 ──────────────────────────────────────────────
-
-_rate_limit_store: dict[str, list[float]] = {}
-RATE_LIMIT_WINDOW = 3600  # 1 hour
-RATE_LIMIT_MAX = 10       # 10 requests per hour per user
-
-
-def check_rate_limit(user_id: str = "default") -> bool:
-    """检查用户是否超过限流"""
-    now = time.time()
-    history = _rate_limit_store.get(user_id, [])
-    # 清理过期记录
-    history = [t for t in history if now - t < RATE_LIMIT_WINDOW]
-    _rate_limit_store[user_id] = history
-    return len(history) < RATE_LIMIT_MAX
-
-
-def record_request(user_id: str = "default"):
-    """记录一次请求"""
-    if user_id not in _rate_limit_store:
-        _rate_limit_store[user_id] = []
-    _rate_limit_store[user_id].append(time.time())
-
+# ─── 限流（复查 R4: 已移除）────────────────────────────
+# 旧内存令牌桶（check_rate_limit/record_request, user_id 维度 10/h）与
+# 路由层 Redis 配额（api/services/quota.py: X-API-Key 维度、429/503 语义、
+# 生产 fail-closed）冲突且语义弱，已整体删除。HTTP 链路限流唯一入口
+# = api/routes/generate.py 的 authorize_ai_endpoint()。
 
 # ─── LLM 调用 ──────────────────────────────────────────
 

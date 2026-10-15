@@ -28,6 +28,7 @@ import zlib
 import binascii
 import json
 import shutil
+import base64
 import hashlib
 import re
 import math
@@ -111,9 +112,12 @@ def _find_keytool() -> Optional[Path]:
     return None
 
 
-def _keystore_sha256(keystore: Path, pass_env_name: str, pass_file_var: str) -> str:
-    """读取 keystore 第一个 key 的证书 SHA-256（冒号分隔大写十六进制）。
+def _keystore_sha256(keystore: Path, alias: str, pass_env_name: str, pass_file_var: str) -> str:
+    """导出指定 alias 的证书（PEM）→ DER → SHA-256（冒号分隔大写十六进制）。
 
+    绑定实际签名 alias：多证书库中 keytool -list -v 的首个 SHA256 未必是
+    配置 alias 对应的证书（复查 R2）。按字节解析 PEM，不依赖 keytool 本地化
+    文本输出（Windows GBK 环境下文本解码不可靠）。
     密码经 keytool 的 -storepass:env / -storepass:file 引用传入，不落 argv 明文。
     """
     keytool = _find_keytool()
@@ -130,35 +134,58 @@ def _keystore_sha256(keystore: Path, pass_env_name: str, pass_file_var: str) -> 
     else:
         storepass_args = ["-storepass:env", pass_env_name]  # 由调用方保证已存在
     r = subprocess.run(
-        [str(keytool), "-list", "-v", "-keystore", str(keystore), *storepass_args],
-        capture_output=True, text=True,
+        [str(keytool), "-exportcert", "-rfc", "-alias", alias,
+         "-keystore", str(keystore), *storepass_args],
+        capture_output=True,  # 二进制安全（PEM），不做 text 解码
     )
     if r.returncode != 0:
-        raise RuntimeError("signing: keystore unreadable (wrong password or format)")
-    m = re.search(r"SHA256:\s*([0-9A-F:]+)", r.stdout)
+        raise RuntimeError(
+            "signing: keystore unreadable (wrong password, unknown alias, or format)"
+        )
+    m = re.search(
+        rb"-----BEGIN CERTIFICATE-----\s*(.*?)\s*-----END CERTIFICATE-----",
+        r.stdout, re.S,
+    )
     if not m:
-        raise RuntimeError("signing: no certificate SHA256 found in keystore")
-    return m.group(1).strip().upper()
+        raise RuntimeError(f"signing: no certificate exported for alias '{alias}'")
+    der = base64.b64decode(m.group(1))
+    digest = hashlib.sha256(der).hexdigest().upper()
+    return ":".join(digest[i:i + 2] for i in range(0, len(digest), 2))
 
 
 class SigningConfig:
-    """一次签名所需的全部参数（含 apksigner 密码引用形式）。"""
+    """一次签名所需的全部参数（含 apksigner 密码引用形式与证书指纹）。"""
 
-    def __init__(self, keystore: Path, alias: str, ks_pass_ref: str, key_pass_ref: str):
+    def __init__(self, keystore: Path, alias: str, ks_pass_ref: str, key_pass_ref: str,
+                 fingerprint: Optional[str] = None):
         self.keystore = keystore
         self.alias = alias
         self.ks_pass_ref = ks_pass_ref
         self.key_pass_ref = key_pass_ref
+        self.fingerprint = fingerprint
 
 
-def _pass_ref(var_name: str, file_var_name: str, fallback_plain: str) -> str:
-    """生成 apksigner --ks-pass/--key-pass 的引用参数（env:/file:/pass:）。"""
-    val, src = _read_secret_from_env_or_file(var_name, file_var_name)
-    if src == "env":
-        return f"env:{var_name}"
-    if src == "file":
-        return f"file:{os.environ[file_var_name]}"
-    return f"pass:{fallback_plain}"
+def _resolve_pass_refs(store_env: str, store_file_var: str,
+                       key_env: str, key_file_var: str) -> tuple:
+    """生成 (--ks-pass, --key-pass) 引用参数（env:/file:）。
+
+    key 密码省略时复用 store 的引用形式（复查 R1：不读取 store 密码值拼
+    pass: 明文 —— apksigner 允许 --key-pass 引用与 --ks-pass 相同的
+    变量/文件）。返回 (ks_ref, key_ref)；调用方保证 store 至少有一处配置。
+    """
+    _, ks_src = _read_secret_from_env_or_file(store_env, store_file_var)
+    _, key_src = _read_secret_from_env_or_file(key_env, key_file_var)
+    if ks_src == "env":
+        ks_ref = f"env:{store_env}"
+    else:
+        ks_ref = f"file:{os.environ[store_file_var]}"
+    if key_src == "env":
+        key_ref = f"env:{key_env}"
+    elif key_src == "file":
+        key_ref = f"file:{os.environ[key_file_var]}"
+    else:
+        key_ref = ks_ref  # 继承 store 引用，不读值
+    return ks_ref, key_ref
 
 
 def resolve_signing_config() -> SigningConfig:
@@ -166,7 +193,7 @@ def resolve_signing_config() -> SigningConfig:
 
     development + 未显式配置 → 公开开发证书（pass: 引用，密码本就公开）。
     development + 显式 WFF_KEYSTORE → 自定义密钥库需配齐 alias/密码。
-    production → 三件套强制 + 证书指纹不得等于公开开发证书。
+    production → 三件套强制 + 按 alias 计算指纹，不得等于公开开发证书。
     """
     keystore = Path(os.environ.get("WFF_KEYSTORE", str(DEFAULT_DEV_KEYSTORE)))
     alias = os.environ.get("WFF_KEYSTORE_ALIAS")
@@ -189,19 +216,18 @@ def resolve_signing_config() -> SigningConfig:
                 "signing: WF_ENV=production requires WFF_KEYSTORE_PASSWORD "
                 "or WFF_KEYSTORE_PASSWORD_FILE"
             )
-        # 证书级拒绝：换文件名也绕不过（指纹比对）
+        # 证书级拒绝：换文件名也绕不过（指纹比对，绑定实际签名 alias）
         fingerprint = _keystore_sha256(
-            keystore, "WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE")
+            keystore, alias, "WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE")
         if fingerprint == DEV_CERT_SHA256_COLONS:
             raise RuntimeError(
                 "signing: production build must not use the PUBLIC dev "
                 "certificate (SHA256 match) — configure a private keystore"
             )
-        return SigningConfig(
-            keystore, alias,
-            _pass_ref("WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE", ""),
-            _pass_ref("WFF_KEY_KEY_PASSWORD", "WFF_KEY_KEY_PASSWORD_FILE", store_val),
-        )
+        ks_ref, key_ref = _resolve_pass_refs(
+            "WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE",
+            "WFF_KEY_KEY_PASSWORD", "WFF_KEY_KEY_PASSWORD_FILE")
+        return SigningConfig(keystore, alias, ks_ref, key_ref, fingerprint)
 
     # development
     if explicit_ks and str(keystore.resolve()) != str(DEFAULT_DEV_KEYSTORE.resolve()):
@@ -210,11 +236,11 @@ def resolve_signing_config() -> SigningConfig:
                 "signing: custom WFF_KEYSTORE requires WFF_KEYSTORE_ALIAS and "
                 "WFF_KEYSTORE_PASSWORD(_FILE)"
             )
-        return SigningConfig(
-            keystore, alias,
-            _pass_ref("WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE", ""),
-            _pass_ref("WFF_KEY_KEY_PASSWORD", "WFF_KEY_KEY_PASSWORD_FILE", store_val),
-        )
+        ks_ref, key_ref = _resolve_pass_refs(
+            "WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE",
+            "WFF_KEY_KEY_PASSWORD", "WFF_KEY_KEY_PASSWORD_FILE")
+        return SigningConfig(keystore, alias, ks_ref, key_ref, None)
+
     # 开发默认: 公开证书（密码/alias 公开, 无泄露面）
     return SigningConfig(
         DEFAULT_DEV_KEYSTORE, DEV_KEYSTORE_ALIAS,
@@ -977,7 +1003,7 @@ class WFFBuilder:
 
         import re
         config = {}
-        text = config_path.read_text()
+        text = config_path.read_text(encoding="utf-8")
         # 列表支持（真机盲测 Round 2 反馈 2026-09-06）：extra_drawables 等列表项
         # 此前被逐行 key:value 正则静默忽略 → drawable 不进包
         current_list_key = None
@@ -1150,7 +1176,7 @@ class WFFBuilder:
             if background.is_file():
                 # 预编译 resources.arsc 只注册了 drawable/preview。ARM 回退时
                 # 将背景映射到该已注册槽位，避免 APK 内有文件但资源无法解析。
-                watchface = (self.build_dir / "res" / "raw" / "watchface.xml").read_text()
+                watchface = (self.build_dir / "res" / "raw" / "watchface.xml").read_text(encoding="utf-8")
                 watchface = watchface.replace('resource="drawable/background"', 'resource="drawable/preview"')
                 (self.compiled_dir / "res_raw_watchface.xml").write_text(watchface)
                 shutil.copy2(background, self.compiled_dir / "res_drawable_preview.png")
@@ -1164,7 +1190,8 @@ class WFFBuilder:
 
         compiled_res = self.build_dir / "compiled_res.zip"
         cmd = [str(AAPT2), "compile", "--dir", str(self.build_dir / "res"), "-o", str(compiled_res)]
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                           errors="replace")
         if r.returncode != 0:
             raise RuntimeError(f"aapt2 compile failed:\n{r.stderr}")
         self.log("  aapt2 compile: OK")
@@ -1178,7 +1205,8 @@ class WFFBuilder:
             "--no-static-lib-packages",
             str(compiled_res),
         ]
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                           errors="replace")
         if r.returncode != 0:
             raise RuntimeError(f"aapt2 link failed:\n{r.stderr}")
         self.log(f"  aapt2 link: OK ({template_apk.stat().st_size} bytes)")
@@ -1273,17 +1301,24 @@ class WFFBuilder:
             "--out", str(signed_apk),
             str(unsigned_apk),
         ]
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                           errors="replace")
         if r.returncode != 0:
             raise RuntimeError("apksigner failed:\n" + _scrub_apksigner_error(r.stderr))
         self.log(f"  Signed: {signed_apk.name} ({signed_apk.stat().st_size} bytes)")
 
         # Verify signature
         cmd = [str(APKSIGNER), "verify", "--verbose", str(signed_apk)]
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                           errors="replace")
         if r.returncode != 0:
             raise RuntimeError(f"Signature verification failed:\n{r.stderr}")
         self.log("  Verified: PASS (v1+v2+v3)")
+
+        # 复查 R2：生产模式复核实际签名证书指纹 == keystore 配置 alias 的指纹
+        # （防止 keystore 配置与签名结果错位；非生产跳过，避免每构建 +1 次 Java 启动）
+        if sign_cfg.fingerprint is not None:
+            self._verify_signed_fingerprint(signed_apk, sign_cfg.fingerprint)
 
         # Final contents
         self.log("\n  Final APK contents:")
@@ -1295,6 +1330,27 @@ class WFFBuilder:
                 self.log(f"    {info.filename:50s} {info.file_size:>8d}B  {method:8s}  @{data_offset} ({aligned})")
 
         return signed_apk
+
+    def _verify_signed_fingerprint(self, signed_apk: Path, expected: str) -> None:
+        """apksigner verify --print-certs 提取签名证书指纹与 keystore 指纹比对。"""
+        cmd = [str(APKSIGNER), "verify", "--print-certs", str(signed_apk)]
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                           errors="replace")
+        if r.returncode != 0:
+            raise RuntimeError("signed-certificate check failed:\n"
+                               + _scrub_apksigner_error(r.stderr))
+        m = re.search(
+            r"SHA-256 digest:\s*([0-9a-fA-F:]+)", r.stdout)
+        if not m:
+            raise RuntimeError("signed-certificate check: no SHA-256 digest in output")
+        actual = m.group(1).strip().upper().replace(":", "")
+        expected_norm = expected.upper().replace(":", "")
+        if actual != expected_norm:
+            raise RuntimeError(
+                "signing: APK signer certificate fingerprint mismatch — "
+                "keystore config does not match the certificate that signed this APK"
+            )
+        self.log(f"  Signed-cert fingerprint check: PASS ({actual[:23]}…)")
 
     def _write_aligned_zip(self, path: Path, entries: list):
         """Write a ZIP with all entries aligned to 4-byte boundaries.
@@ -1424,7 +1480,7 @@ class WFFBuilder:
         self.log(f"  Version: {self.config['version_code']} ({self.config['version_name']})")
 
         self.log("\n[2/5] Validate watchface.xml")
-        wf_text = (self.project_dir / "watchface.xml").read_text()
+        wf_text = (self.project_dir / "watchface.xml").read_text(encoding="utf-8")
         failures = validate_watchface_xml(wf_text, verbose=self.verbose)
         errors = [f for f in failures if f["severity"] == "error"]
         warnings = [f for f in failures if f["severity"] == "warn"]
@@ -1516,7 +1572,7 @@ def main():
         if not wf_path.exists():
             print(f"Error: {wf_path} not found")
             sys.exit(1)
-        wf_text = wf_path.read_text()
+        wf_text = wf_path.read_text(encoding="utf-8")
         print(f"Validating {wf_path.name}...")
         failures = validate_watchface_xml(wf_text, verbose=True)
         # R33 项目级检查 (watch_face_info.xml 独立于 watchface.xml)

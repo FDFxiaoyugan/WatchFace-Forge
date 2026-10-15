@@ -105,7 +105,6 @@ async def generate_watchface(req: dict, x_api_key: str = Header(default=None, al
     identity = authorize_ai_endpoint(x_api_key, "generate")
     consume_ai_quota(identity, "generate")
     prompt = req.get("prompt", "").strip()
-    user_id = req.get("user_id", "default")
 
     if not prompt:
         return JSONResponse(status_code=400, content={
@@ -136,7 +135,7 @@ async def generate_watchface(req: dict, x_api_key: str = Header(default=None, al
         model=ai_config["model"],
     ) if ai_config else AIGateway()
     generator = CDMGenerator(gateway)
-    gen_result = generator.generate(prompt, user_id=user_id)
+    gen_result = generator.generate(prompt)
 
     if not gen_result["success"]:
         tracker.emit("failed", 100, f"生成失败: {gen_result.get('error', '')[:100]}")
@@ -156,6 +155,15 @@ async def generate_watchface(req: dict, x_api_key: str = Header(default=None, al
         store_cdm(task_id, cdm_dict)
     except ValueError:
         pass  # task_id 由服务端生成, 此分支仅为防御
+    except RuntimeError as exc:
+        # 复查 R6: 生产模式存档失败 → 整体失败响应（拒绝"已存档"但取不回）
+        tracker.emit("failed", 100, str(exc)[:120])
+        return {
+            "task_id": task_id,
+            "status": "failed",
+            "error_type": "cdm_store_unavailable",
+            "message": str(exc)[:300],
+        }
     tracker.emit("cdm_stored", 55, "CDM 已存档, 可随时带入编辑器")
 
     if gen_result["fixes"]:

@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from schema.cdm.models import WatchFaceCDM, ClockType, FontWeight, DataSource
-from services.ai_gateway import AIGateway, check_rate_limit, record_request
+from services.ai_gateway import AIGateway
 
 # ─── 提示词工程 ────────────────────────────────────────
 
@@ -190,10 +190,9 @@ class CDMGenerator:
     def generate(
         self,
         prompt: str,
-        user_id: str = "default",
         max_retries: int = 3,
     ) -> dict:
-        """生成 CDM JSON
+        """生成 CDM JSON（限流由路由层负责，见 R4 说明）
 
         返回:
         {
@@ -205,18 +204,10 @@ class CDMGenerator:
             "backend": str,
         }
         """
-        # 1. 限流检查
-        if not check_rate_limit(user_id):
-            return {
-                "success": False,
-                "cdm": None,
-                "fixes": [],
-                "attempts": 0,
-                "error": "Rate limit exceeded (10 requests/hour)",
-                "backend": "none",
-            }
-
-        # 2. 调用 LLM
+        # 复查 R4: 路由层 Redis 配额（quota.py, 429/503 语义）是唯一限流防线。
+        # 此处旧内存令牌桶与路由配额冲突（共享 user_id 桶、错误码为普通
+        # failed 而非 429），已移除——CDMGenerator 不再做任何限流。
+        # 1. 调用 LLM
         user_prompt = USER_PROMPT_TEMPLATE.format(prompt=prompt)
         result = self.ai.generate_json(SYSTEM_PROMPT, user_prompt, max_retries)
 
@@ -258,8 +249,7 @@ class CDMGenerator:
                 "backend": result.get("backend", "unknown"),
             }
 
-        # 5. 记录请求
-        record_request(user_id)
+        # 4. 记录请求（复查 R4: 旧内存限流已移除, 成功计数由路由层 Redis 配额承担）
 
         return {
             "success": True,

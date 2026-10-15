@@ -327,7 +327,7 @@ class TestDockerignore:
 
     @staticmethod
     def _is_excluded(rel_path: str, ignore_file: Path) -> bool:
-        lines = [l.strip() for l in ignore_file.read_text().splitlines()
+        lines = [l.strip() for l in ignore_file.read_text(encoding="utf-8").splitlines()
                  if l.strip() and not l.startswith("#")]
         patterns, negations = [], []
         for line in lines:
@@ -401,3 +401,221 @@ class TestValidationLayers:
         if result["degraded"]:
             assert "official_validator" in result["layers"]
             assert result["layers"]["official_validator"] == "unavailable"
+
+    def test_syntax_failure_marks_remaining_layers_not_run(self):
+        """复查 R5: XML 语法失败提前返回 → 未执行的层标 not_run 而非 passed。"""
+        from api.services.wff_validation import validate_wff
+        bad = b"<?xml version='1.0'?><WatchFace><Unclosed"
+        result = validate_wff(bad, [])
+        assert result["valid"] is False
+        assert result["layers"]["syntax"] == "failed"
+        for layer in ("xsd", "official_validator", "lint"):
+            assert result["layers"][layer] == "not_run", layer
+        # 未执行层同样计入 degraded（结论不完整）
+        assert result["degraded"] is True
+
+    def test_valid_xml_runs_all_layers(self):
+        from api.services.wff_validation import validate_wff
+        xml = b"""<?xml version="1.0"?>
+<WatchFace platform="WATCH" width="450" height="450">
+  <Metadata key="CLOCK_TYPE"><String value="DIGITAL"/></Metadata>
+</WatchFace>"""
+        result = validate_wff(xml, [])
+        for layer in ("syntax", "xsd", "official_validator", "lint"):
+            status = result["layers"][layer]
+            assert status in ("passed", "unavailable", "failed"), (layer, status)
+
+
+# ─── 复查 R1: key 密码继承不落明文 ────────────────────────
+
+class TestKeyPassInheritance:
+    _PROD = {"WF_ENV": "production", "WFF_KEYSTORE": "/tmp/audit-fake.ks",
+             "WFF_KEYSTORE_ALIAS": "release", "WFF_KEYSTORE_PASSWORD": "store-secret"}
+
+    @staticmethod
+    def _resolve(monkeypatch, cfg):
+        import wff_builder as wb
+        for k, v in cfg.items():
+            monkeypatch.setenv(k, v)
+        # 指纹检查绕开（本测试只验密码引用形式; 指纹绑定由 R2 测试覆盖）
+        monkeypatch.setattr(wb, "_keystore_sha256", lambda *a, **k: "AA:BB:CC")
+        return wb.resolve_signing_config()
+
+    def test_key_pass_inherits_store_env_ref(self, monkeypatch):
+        """key 密码省略 → 复用 store 的 env: 引用（非 pass: 明文）。"""
+        cfg = dict(self._PROD)
+        monkeypatch.delenv("WFF_KEY_KEY_PASSWORD", raising=False)
+        monkeypatch.delenv("WFF_KEY_KEY_PASSWORD_FILE", raising=False)
+        sc = self._resolve(monkeypatch, cfg)
+        assert sc.ks_pass_ref == "env:WFF_KEYSTORE_PASSWORD"
+        assert sc.key_pass_ref == "env:WFF_KEYSTORE_PASSWORD"
+        assert not sc.key_pass_ref.startswith("pass:")
+
+    def test_key_pass_inherits_store_file_ref(self, monkeypatch, tmp_path):
+        cfg = dict(self._PROD)
+        del cfg["WFF_KEYSTORE_PASSWORD"]
+        secret = tmp_path / "ks-pass"
+        secret.write_text("store-secret", encoding="utf-8")
+        monkeypatch.setenv("WFF_KEYSTORE_PASSWORD_FILE", str(secret))
+        monkeypatch.delenv("WFF_KEY_KEY_PASSWORD", raising=False)
+        monkeypatch.delenv("WFF_KEY_KEY_PASSWORD_FILE", raising=False)
+        sc = self._resolve(monkeypatch, cfg)
+        assert sc.ks_pass_ref == f"file:{secret}"
+        assert sc.key_pass_ref == f"file:{secret}"
+
+    def test_key_pass_explicit_env_wins(self, monkeypatch):
+        monkeypatch.setenv("WFF_KEY_KEY_PASSWORD", "key-secret")
+        monkeypatch.delenv("WFF_KEY_KEY_PASSWORD_FILE", raising=False)
+        sc = self._resolve(monkeypatch, dict(self._PROD))
+        assert sc.ks_pass_ref == "env:WFF_KEYSTORE_PASSWORD"
+        assert sc.key_pass_ref == "env:WFF_KEY_KEY_PASSWORD"
+
+    def test_key_pass_explicit_file_wins(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("WFF_KEY_KEY_PASSWORD", raising=False)
+        key_secret = tmp_path / "key-pass"
+        key_secret.write_text("key-secret", encoding="utf-8")
+        monkeypatch.setenv("WFF_KEY_KEY_PASSWORD_FILE", str(key_secret))
+        sc = self._resolve(monkeypatch, dict(self._PROD))
+        assert sc.key_pass_ref == f"file:{key_secret}"
+
+
+# ─── 复查 R2: 指纹绑定 alias（需 keytool, 无则 skip）──────
+
+class TestFingerprintAliasBinding:
+    def _make_keystore(self, tmp_path):
+        """两个 alias: fresh(新密钥对) + devcert(导入公开开发证书, 无私钥)。"""
+        import subprocess as sp
+        keytool = sp.run(["which", "keytool"], capture_output=True, text=True).stdout.strip()
+        if not keytool:
+            pytest.skip("keytool not available (JDK required)")
+        ks = tmp_path / "multi.ks"
+        sp.run([keytool, "-genkeypair", "-alias", "fresh", "-keyalg", "RSA",
+                "-keysize", "2048", "-validity", "1", "-storepass", "tmpstore",
+                "-keypass", "tmpstore", "-dname", "CN=fresh", "-keystore", str(ks)],
+               capture_output=True, check=True)
+        # 导入公开开发证书（导出到临时 PEM 再 import）
+        dev_ks = PROJECT_ROOT / "wff-builder" / "keystore" / "test.keystore"
+        pem = tmp_path / "dev.pem"
+        sp.run([keytool, "-exportcert", "-rfc", "-alias", "wfftest",
+                "-storepass", "wfftest123", "-keystore", str(dev_ks),
+                "-file", str(pem)], capture_output=True, check=True)
+        sp.run([keytool, "-importcert", "-alias", "devcert", "-noprompt",
+                "-storepass", "tmpstore", "-keystore", str(ks), "-file", str(pem)],
+               capture_output=True, check=True)
+        return ks
+
+    def test_fingerprint_follows_alias_not_first_entry(self, tmp_path):
+        """多证书库: fresh alias 指纹 ≠ dev 指纹, devcert alias 指纹 == dev 指纹。"""
+        import wff_builder as wb
+        ks = self._make_keystore(tmp_path)
+        import os
+        old = (os.environ.get("WFF_KEYSTORE_PASSWORD"),)
+        os.environ["WFF_KEYSTORE_PASSWORD"] = "tmpstore"
+        try:
+            fresh_fp = wb._keystore_sha256(ks, "fresh",
+                                           "WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE")
+            dev_fp = wb._keystore_sha256(ks, "devcert",
+                                         "WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE")
+        finally:
+            os.environ["WFF_KEYSTORE_PASSWORD"] = old[0] or ""
+        assert fresh_fp != wb.DEV_CERT_SHA256_COLONS
+        assert dev_fp == wb.DEV_CERT_SHA256_COLONS  # 绑定 alias: devcert 就是 dev 证书
+
+    def test_unknown_alias_rejected(self, tmp_path):
+        import wff_builder as wb
+        ks = self._make_keystore(tmp_path)
+        import os
+        os.environ["WFF_KEYSTORE_PASSWORD"] = "tmpstore"
+        with pytest.raises(RuntimeError):
+            wb._keystore_sha256(ks, "nonexistent",
+                                "WFF_KEYSTORE_PASSWORD", "WFF_KEYSTORE_PASSWORD_FILE")
+
+    def test_verify_signed_fingerprint_mismatch_raises(self, monkeypatch, tmp_path):
+        """签名后复核: 指纹不匹配必须拒绝（mock apksigner 输出）。"""
+        import wff_builder as wb
+        import subprocess as sp
+        outputs = {
+            ("print-certs",): sp.CompletedProcess([], 0,
+                stdout="Signer #1 certificate SHA-256 digest: deadbeef", stderr=""),
+        }
+        def fake_run(cmd, **kw):
+            key = tuple(a for a in cmd if a in ("print-certs",))
+            return outputs.get(key, sp.CompletedProcess([], 0, stdout="", stderr=""))
+        monkeypatch.setattr(wb.subprocess, "run", fake_run)
+        builder = wb.WFFBuilder.__new__(wb.WFFBuilder)  # 只用方法, 不跑 __init__
+        builder.log = lambda *a, **k: None
+        with pytest.raises(RuntimeError):
+            builder._verify_signed_fingerprint(Path("/tmp/fake.apk"), "AA:BB:CC")
+
+
+# ─── 复查 R3: SSRF 生产强制白名单 ─────────────────────────
+
+class TestSSRFProductionWhitelist:
+    def test_production_without_whitelist_rejects_byok(self, monkeypatch):
+        from services.ai_gateway import AIConfigError
+        from services.ai_gateway.ssrf_guard import assert_safe_base_url
+        monkeypatch.setenv("WF_ENV", "production")
+        monkeypatch.delenv("WF_AI_ALLOWED_HOSTS", raising=False)
+        with pytest.raises(AIConfigError):
+            assert_safe_base_url("https://api.openai.com/v1")
+
+    def test_production_with_whitelist_proceeds_to_dns_check(self, monkeypatch):
+        from services.ai_gateway import AIConfigError
+        from services.ai_gateway import ssrf_guard
+        monkeypatch.setenv("WF_ENV", "production")
+        monkeypatch.setenv("WF_AI_ALLOWED_HOSTS", "api.openai.com")
+        # mock DNS: 返回公网 IP, 避免真实网络依赖
+        import ipaddress as _ipa
+        monkeypatch.setattr(ssrf_guard, "_resolve_all_ips",
+                            lambda h: [_ipa.ip_address("93.184.216.34")])
+        ssrf_guard.assert_safe_base_url("https://api.openai.com/v1")  # 不抛
+
+    def test_development_without_whitelist_still_hard_checks(self, monkeypatch):
+        from services.ai_gateway import AIConfigError
+        from services.ai_gateway import ssrf_guard
+        import ipaddress as _ipa
+        monkeypatch.setenv("WF_ENV", "development")
+        monkeypatch.delenv("WF_AI_ALLOWED_HOSTS", raising=False)
+        monkeypatch.setattr(ssrf_guard, "_resolve_all_ips",
+                            lambda h: [_ipa.ip_address("10.0.0.5")])
+        with pytest.raises(AIConfigError):
+            ssrf_guard.assert_safe_base_url("https://evil.example.com/v1")
+
+
+# ─── 复查 R6: CDM 存储降级语义 ────────────────────────────
+
+class TestCDMStoreDegradation:
+    def test_memory_fallback_has_ttl(self, monkeypatch):
+        from api.services import cdm_store
+        monkeypatch.setattr(cdm_store, "_get_redis", lambda: None)
+        cdm_store._memory_store.clear()
+        cdm_store.store_cdm("11223344", {"a": 1}, ttl=60)
+        assert cdm_store.load_cdm("11223344") == {"a": 1}
+        # 模拟过期
+        payload, exp = cdm_store._memory_store["11223344"]
+        cdm_store._memory_store["11223344"] = (payload, exp - 61)
+        assert cdm_store.load_cdm("11223344") is None
+        assert "11223344" not in cdm_store._memory_store  # 懒清理
+
+    def test_production_store_failure_fails_closed(self, monkeypatch):
+        from api.services import cdm_store
+        monkeypatch.setattr(cdm_store, "_get_redis", lambda: None)
+        monkeypatch.setenv("WF_ENV", "production")
+        with pytest.raises(RuntimeError):
+            cdm_store.store_cdm("11223344", {"a": 1})
+
+    def test_redis_failure_falls_back_to_memory(self, monkeypatch):
+        from api.services import cdm_store
+
+        class BrokenRedis:
+            def set(self, *a, **k):
+                raise ConnectionError("redis down")
+            def get(self, *a, **k):
+                raise ConnectionError("redis down")
+
+        monkeypatch.setattr(cdm_store, "_get_redis", lambda: BrokenRedis())
+        cdm_store._memory_store.clear()
+        monkeypatch.delenv("WF_ENV", raising=False)
+        cdm_store.store_cdm("11223344", {"b": 2})  # 断连 → 降级内存, 不抛
+        # load 同样断连 → 内存取回
+        assert cdm_store.load_cdm("11223344") == {"b": 2}

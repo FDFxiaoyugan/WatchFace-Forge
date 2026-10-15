@@ -16,25 +16,22 @@ from services.cdm_generator import CDMGenerator, fix_cdm
 from services.ai_gateway import (
     AIGateway,
     AIConfigError,
-    check_rate_limit,
     normalize_user_ai_config,
-    record_request,
 )
 
 
-class TestRateLimit:
-    """限流测试"""
+class TestLegacyRateLimitRemoved:
+    """复查 R4: 旧内存限流已删除, 唯一限流入口为路由层 Redis 配额"""
 
-    def test_check_rate_limit_default(self):
-        """默认用户应该通过限流"""
-        assert check_rate_limit("test_user_1") == True
+    def test_cdm_generator_no_longer_limits(self, monkeypatch):
+        import services.ai_gateway as gwmod
+        assert not hasattr(gwmod, "check_rate_limit")
+        assert not hasattr(gwmod, "record_request")
 
-    def test_rate_limit_exceeded(self):
-        """超过 10 次/小时应该被限流"""
-        uid = "test_rate_limit_user"
-        for _ in range(10):
-            record_request(uid)
-        assert check_rate_limit(uid) == False
+    def test_generate_signature_has_no_user_id(self):
+        import inspect
+        params = inspect.signature(CDMGenerator.generate).parameters
+        assert "user_id" not in params
 
 
 class TestCDMAutoFixer:

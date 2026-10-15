@@ -47,16 +47,26 @@ npx next build && npx next start -p 3000   # 生产
 | `WF_CORS_ORIGINS` | 逗号分隔来源；配置后启用 credentials，默认 `*`（禁 credentials） | `*` |
 | `WF_QUOTA_GENERATE_PER_HOUR` | generate 每 key 每小时配额 | `10` |
 | `WF_QUOTA_AI_TEST_PER_HOUR` | ai/test 每 key 每小时配额 | `20` |
-| `WF_AI_ALLOWED_HOSTS` | BYOK base_url 域名白名单（逗号分隔，支持 `*.suffix`）；空=放行任意通过 SSRF 硬检查的公网地址 | 无 |
+| `WF_AI_ALLOWED_HOSTS` | BYOK base_url 域名白名单（逗号分隔，支持 `*.suffix`）。**production 未配置 → BYOK 自定义端点被整体拒绝（R3）**；development 未配置 = 放行任意通过 SSRF 硬检查的公网地址 | 无 |
 
 ### AI 后端
 
 | 变量 | 说明 | 默认 |
 |------|------|------|
-| `AI_PROVIDER` | `zai` \| `openai` | `zai` |
-| `ZAI_API_KEY` / `OPENAI_API_KEY` | AI 密钥 | 无（缺失时 AI 端点返回 503） |
+| `OPENAI_API_KEY` | OpenAI 兼容后端密钥（gateway backend=auto 时 z-ai CLI 可用则优先 z-ai） | 无 |
 | `OPENAI_BASE_URL` | OpenAI 兼容端点 | 官方 |
 | `OPENAI_MODEL` | 服务端默认 OpenAI 模型 | `gpt-4o` |
+
+> ⚠️ 历史文档曾列 `AI_PROVIDER` / `ZAI_API_KEY`——**代码从未读取**（审计确认的
+> 文档偏差，已删除）。后端选择由 `AIGateway(backend=...)` 决定：auto 模式优先
+> 探测 z-ai CLI，回退 `OPENAI_API_KEY`。密钥缺失时 AI 生成返回普通失败响应
+> （`status: failed`），并非 503。
+
+> **BYOK（用户自定义 AI 配置）**：`WF_AI_ALLOWED_HOSTS` 是生产部署前提——
+> `WF_ENV=production` 且未配置该白名单时，用户自定义 Base URL 直接被拒绝
+> （服务端默认 AI 不受影响）。development 未配置 = 允许通过 SSRF 硬检查的
+> 任意公网地址。SSRF 检查含私网/回环/CGN/v4-mapped 全量拒绝；DNS rebinding
+> TOCTOU 为已知限制（连接级 pinning 属后续工作）。
 
 ### Celery / Redis
 
@@ -150,10 +160,29 @@ aapt2 不可用时自动使用仓库内已验证的 ARM 预编译模板。
 
 `docker-compose.yml` 提供 api + web 两个服务（开发形态：源码 bind mount +
 `next dev`）。redis 与 celery worker 按上文「服务启动顺序」在同一网络内
-宿主机上运行；若全部容器化，把 `CELERY_BROKER_URL` 指向 compose 网络的
-redis 服务并补充 worker 服务定义（当前文件未包含，属后续工作）。web 服务
-通过 `API_PROXY_TARGET=http://api:8000` 让 next rewrites 代理命中容器网络
-的 API。镜像构建排除项见根目录与 `web/.dockerignore`（审计 S6：`.env*`、
+宿主机上运行；容器内 API 连接宿主 Redis 时给 `api` 服务加：
+
+```yaml
+    environment:
+      CELERY_BROKER_URL: redis://host.docker.internal:6379/0
+      CELERY_RESULT_BACKEND: redis://host.docker.internal:6379/0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # Linux 需要; mac/win 内置
+```
+
+生产化注入安全变量（不提交真实值，用环境文件或 secret）：
+
+```yaml
+    environment:
+      WF_ENV: production
+      WFF_API_KEYS: ${WFF_API_KEYS:?set in .env}
+      WFF_KEYSTORE: /run/secrets/keystore     # 三件套其余两项见上文表格
+```
+
+若全部容器化，把 `CELERY_BROKER_URL` 指向 compose 网络的 redis 服务并补充
+worker 服务定义（当前文件未包含，属后续工作）。web 服务通过
+`API_PROXY_TARGET=http://api:8000` 让 next rewrites 代理命中容器网络的
+API。镜像构建排除项见根目录与 `web/.dockerignore`（审计 S6：`.env*`、
 运维备份、日志、Git 元数据不进镜像层；公开开发证书显式保留）。
 
 ## 部署环境参考（华为云 DevSpace 实测）

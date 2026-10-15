@@ -9,8 +9,10 @@
 可选白名单（部署者收紧）:
 - WF_AI_ALLOWED_HOSTS="api.openai.com,api.deepseek.com"（逗号分隔，
   支持 "*.example.com" 后缀通配）
-- 配置后 hostname 必须命中白名单；未配置 = 允许任意通过硬检查的公网地址
-  （保留单机 BYOK 可用性，部署者可显式收紧）
+- 配置后 hostname 必须命中白名单
+- **WF_ENV=production 且未配置 → 默认拒绝**自定义 Base URL（复查 R3：
+  生产环境显式收紧是部署前提，非可选项；development 未配置 = 允许任意
+  通过硬检查的公网地址，保留单机 BYOK 可用性）
 
 已知限制（第一阶段）:
 - 校验与实际连接间存在 DNS rebinding TOCTOU 窗口；连接级 IP pinning 属
@@ -84,6 +86,10 @@ def _hostname_allowed(hostname: str) -> bool:
     return False
 
 
+def _is_production() -> bool:
+    return os.environ.get("WF_ENV", "development").strip().lower() == "production"
+
+
 def assert_safe_base_url(base_url: str) -> None:
     """校验 BYOK base_url 的出站安全性；不安全时抛 AIConfigError。"""
     if not base_url:
@@ -99,6 +105,16 @@ def assert_safe_base_url(base_url: str) -> None:
         literal = ipaddress.ip_address(hostname)
     except ValueError:
         literal = None
+
+    # 复查 R3: 生产模式白名单是部署前提——未配置即拒绝自定义 Base URL
+    # （用户仍可用服务端默认 AI；仅 BYOK 自定义端点被收紧）。
+    # 注意放在 DNS 解析之前：不给未配置白名单的生产实例做任意域名解析探测。
+    if _is_production():
+        raw = os.environ.get("WF_AI_ALLOWED_HOSTS", "").strip()
+        if not raw:
+            raise AIConfigError(
+                "生产环境使用自定义 Base URL 需先配置 WF_AI_ALLOWED_HOSTS"
+            )
 
     if literal is not None:
         if _is_forbidden_ip(literal):

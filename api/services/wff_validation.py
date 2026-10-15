@@ -32,11 +32,13 @@ def _issue(source: str, rule: str, severity: str, message: str, hint: str = "", 
 
 def validate_wff(xml_bytes: bytes, assets: Iterable[Tuple[str, bytes]]) -> dict:
     if len(xml_bytes) > MAX_XML_BYTES:
-        return _result([_issue("xsd", "XML_SIZE", "error", "XML 超过 2MB 限制", "精简 XML 后重试")], None, assets)
+        return _result([_issue("xsd", "XML_SIZE", "error", "XML 超过 2MB 限制", "精简 XML 后重试")],
+                       None, assets, executed=("syntax",))
     try:
         xml_text = xml_bytes.decode("utf-8")
     except UnicodeDecodeError:
-        return _result([_issue("xsd", "XML_ENCODING", "error", "XML 必须使用 UTF-8 编码")], None, assets)
+        return _result([_issue("xsd", "XML_ENCODING", "error", "XML 必须使用 UTF-8 编码")],
+                       None, assets, executed=("syntax",))
 
     issues: List[dict] = []
     root = None
@@ -47,7 +49,8 @@ def validate_wff(xml_bytes: bytes, assets: Iterable[Tuple[str, bytes]]) -> dict:
     except ET.ParseError as exc:
         line = exc.position[0] if getattr(exc, "position", None) else None
         issues.append(_issue("xsd", "XML_WELL_FORMED", "error", f"XML 语法错误：{exc}", "修正标签闭合或属性格式", line=line))
-        return _result(issues, None, assets)
+        # 复查 R5: 语法失败提前返回 → XSD/official/lint 未执行, 标 not_run
+        return _result(issues, None, assets, executed=("syntax",))
 
     issues.extend(_validate_official_xsd(xml_bytes))
     issues.extend(validate_with_official_tool(xml_bytes, version=1))
@@ -70,7 +73,8 @@ def validate_wff(xml_bytes: bytes, assets: Iterable[Tuple[str, bytes]]) -> dict:
         if len(data) > MAX_ASSET_BYTES:
             issues.append(_issue("lint", "ASSET_SIZE", "error", f"资源 {name} 超过 10MB", "压缩资源后重试"))
 
-    return _result(issues, root, asset_list)
+    return _result(issues, root, asset_list,
+                   executed=("syntax", "xsd", "official_validator", "lint"))
 
 
 def _validate_official_xsd(xml_bytes: bytes) -> List[dict]:
@@ -105,19 +109,26 @@ def _official_schema():
     return xmlschema.XMLSchema11(str(OFFICIAL_XSD), allow="local")
 
 
-def _layer_statuses(issues: List[dict]) -> dict:
-    """推导各校验层状态（审计: 工具缺失时 valid=true 不可分辨）。
+def _layer_statuses(issues: List[dict], executed: Iterable[str]) -> dict:
+    """推导各校验层状态（审计: 工具缺失时 valid=true 不可分辨；复查 R5:
+    未执行的层必须标 not_run 而非静默 passed）。
+
+    not_run    — 该层未执行（XML 语法/编码/大小失败导致流程提前返回）
+    passed     — 执行且无 error
+    failed     — 执行且发现 error
+    unavailable — 执行但工具缺失（XSD 文件/运行库、Java、validator.jar）
 
     syntax — XML 语法/根元素/大小/编码（stdlib 检查, 恒可用）
     xsd    — Google 官方 XSD 1.1（缺 vendor 文件/运行库 = unavailable）
     official_validator — 官方 wff-validator.jar（缺 Java/Java 版本 = unavailable）
     lint   — 仓库 16 条规则 + 资源一致性（恒可用）
     """
+    executed = set(executed)
     statuses = {
         "syntax": "passed",
-        "xsd": "passed",
-        "official_validator": "passed",
-        "lint": "passed",
+        "xsd": "not_run",
+        "official_validator": "not_run",
+        "lint": "not_run",
     }
     syntax_rules = {"XML_SIZE", "XML_ENCODING", "XML_WELL_FORMED", "ROOT_ELEMENT"}
     for item in issues:
@@ -136,10 +147,15 @@ def _layer_statuses(issues: List[dict]) -> dict:
             # 工具缺失 → unavailable（failed 已在上面优先处理）
             if statuses[layer] != "failed":
                 statuses[layer] = "unavailable"
+    # 执行过但零 issue 的层 → passed（未执行的保持 not_run）
+    for layer in ("syntax", "xsd", "official_validator", "lint"):
+        if layer in executed and statuses[layer] == "not_run":
+            statuses[layer] = "passed"
     return statuses
 
 
-def _result(issues: List[dict], root: Optional[ET.Element], assets: Iterable[Tuple[str, bytes]]) -> dict:
+def _result(issues: List[dict], root: Optional[ET.Element],
+            assets: Iterable[Tuple[str, bytes]], executed: Iterable[str] = ("syntax",)) -> dict:
     asset_list = list(assets)
     elements = list(root.iter()) if root is not None else []
     image_count = sum(1 for node in elements if node.tag in {"PartImage", "Image"})
@@ -147,11 +163,12 @@ def _result(issues: List[dict], root: Optional[ET.Element], assets: Iterable[Tup
     asset_bytes = sum(len(data) for _, data in asset_list)
     # Conservative platform estimate until the official evaluator is vendored.
     estimated_memory = asset_bytes + image_count * 64 * 1024 + font_count * 16 * 1024
-    layers = _layer_statuses(issues)
+    layers = _layer_statuses(issues, executed)
     return {
         "valid": not any(item["severity"] == "error" for item in issues),
         # 审计修复: 显式区分"全绿"与"部分校验器未运行"
-        "degraded": any(status == "unavailable" for status in layers.values()),
+        # R5: not_run 层同样计入 degraded（结论不完整, 不可当全绿使用）
+        "degraded": any(status in ("unavailable", "not_run") for status in layers.values()),
         "layers": layers,
         "errors": issues,
         "stats": {

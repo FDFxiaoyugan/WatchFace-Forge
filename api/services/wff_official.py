@@ -38,7 +38,7 @@ def validate_with_official_tool(xml_bytes: bytes, version: int = 1) -> List[dict
             xml_path = Path(handle.name)
         process = subprocess.run(
             [java, "-jar", str(VALIDATOR_JAR), str(version), str(xml_path)],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
         )
         output = "\n".join(part for part in (process.stdout, process.stderr) if part)
         if "PASSED" in output and "FAILED" not in output and "SEVERE:" not in output:
@@ -81,7 +81,7 @@ def evaluate_memory(apk_path: Path, version: int = 1) -> dict:
         process = subprocess.run(
             [java, "-jar", str(MEMORY_JAR), "--watch-face", str(apk_path),
              "--schema-version", str(version), "--report"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
         )
     except subprocess.TimeoutExpired:
         return {"source": "official", "warning": "Google memory-footprint 超过 30 秒"}

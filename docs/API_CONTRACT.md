@@ -34,8 +34,11 @@ deployment unless that exact key happens to be configured.
 > upload, which are rejected by request validation before any WFF checking.
 
 Quotas per API key are validate 60/hour, preview 20/hour, and build 10/hour.
-The current limiter is process-local and intentionally conservative; a shared
-Redis limiter is required before horizontally scaling the API.
+Quota state lives in Redis (atomic fixed window per key per endpoint) when the
+shared instance is reachable; development falls back to a process-local window.
+The AI-consumption endpoints (`/api/generate`, `/api/ai/test`) use the
+2026-10 audit quota layer instead — see `docs/DEVELOPMENT.md` §环境变量
+(`WF_QUOTA_GENERATE_PER_HOUR`, `WF_QUOTA_AI_TEST_PER_HOUR`).
 
 ## POST `/validate`
 
@@ -50,10 +53,22 @@ curl -H 'X-API-Key: dev-key' \
   http://localhost:8000/api/v1/wff/validate
 ```
 
-The response contains `valid`, structured `errors[]`, and `stats`. The first
-validation layer uses the Apache-2.0 Google WFF v1 XSD vendored at a pinned
-upstream commit and runs through the MIT `xmlschema` XSD 1.1 engine with local-only
-resource access. Every issue
+The response contains `valid`, structured `errors[]`, and `stats`, plus two
+audit-added fields: `layers` and `degraded`. `layers` maps each validation
+stage to `passed | failed | unavailable | not_run`:
+
+- `syntax` — XML well-formedness/size/encoding/root element (always available)
+- `xsd` — vendored Google WFF v1 XSD 1.1 (Apache-2.0, pinned upstream commit)
+  through the MIT `xmlschema` engine, local-only resource access
+- `official_validator` — Google `wff-validator.jar` (needs Java 17)
+- `lint` — repo rule pack + asset cross-checks (always available)
+
+`not_run` means the layer never executed (e.g. XML syntax failure short-circuits
+the pipeline); `unavailable` means the toolchain is missing. `degraded: true`
+when any layer is `unavailable` or `not_run` — treat such results as
+incomplete, not as a pass. `WF_ENV=production` rejects `/build` with
+`503 VALIDATION_LAYER_UNAVAILABLE` when validation is degraded instead of
+silently proceeding. Every issue
 has `source` (`xsd`, `official_validator`, or `lint`), `rule`, `severity`,
 `element`, `line`, `message`, and `hint`. `validate` reports quick
 `stats.memory_source: "estimate"` figures only; the official Google
@@ -104,10 +119,11 @@ curl -H 'X-API-Key: dev-key' -F 'xml=@watchface.xml' \
 }
 ```
 
-`GET /api/v1/wff/builds/{filename}` downloads the generated APK. On the ARM64
-development environment the verified precompiled resource table supports one
-uploaded bitmap slot. A build with more bitmap resources returns an explicit
-warning; use a full aapt2 environment for complete multi-resource packaging.
+`GET /api/v1/wff/builds/{filename}` downloads the generated APK. Multi-asset
+packaging is standard: every uploaded image in `assets[]` is packed under
+`res/drawable/` (2026-09-13 `ac546db`, qemu-user aapt2 toolchain). The legacy
+"single bitmap slot on ARM precompiled templates" path only applies to
+environments without a usable aapt2 and emits an explicit warning there.
 
 `qr_url` is an optional phone convenience link, not a watch-side installation
 mechanism. Watches commonly have no camera, and scanning on a phone still needs
