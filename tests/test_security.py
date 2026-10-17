@@ -484,8 +484,9 @@ class TestKeyPassInheritance:
 class TestFingerprintAliasBinding:
     def _make_keystore(self, tmp_path):
         """两个 alias: fresh(新密钥对) + devcert(导入公开开发证书, 无私钥)。"""
+        import shutil as _sh
         import subprocess as sp
-        keytool = sp.run(["which", "keytool"], capture_output=True, text=True).stdout.strip()
+        keytool = _sh.which("keytool")
         if not keytool:
             pytest.skip("keytool not available (JDK required)")
         ks = tmp_path / "multi.ks"
@@ -534,18 +535,44 @@ class TestFingerprintAliasBinding:
         """签名后复核: 指纹不匹配必须拒绝（mock apksigner 输出）。"""
         import wff_builder as wb
         import subprocess as sp
-        outputs = {
-            ("print-certs",): sp.CompletedProcess([], 0,
-                stdout="Signer #1 certificate SHA-256 digest: deadbeef", stderr=""),
-        }
-        def fake_run(cmd, **kw):
-            key = tuple(a for a in cmd if a in ("print-certs",))
-            return outputs.get(key, sp.CompletedProcess([], 0, stdout="", stderr=""))
-        monkeypatch.setattr(wb.subprocess, "run", fake_run)
+        stdout = "Signer #1 certificate SHA-256 digest: deadbeef"
+        monkeypatch.setattr(wb.subprocess, "run", self._fake_run(stdout))
         builder = wb.WFFBuilder.__new__(wb.WFFBuilder)  # 只用方法, 不跑 __init__
         builder.log = lambda *a, **k: None
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match="fingerprint mismatch"):
             builder._verify_signed_fingerprint(Path("/tmp/fake.apk"), "AA:BB:CC")
+
+    def test_verify_signed_fingerprint_no_digest_raises(self, monkeypatch, tmp_path):
+        """签名后复核: verify 输出无指纹 → 拒绝（此前 fake_run 匹配键漏 '--'
+        导致本断言从未真正执行, 复查 T3）。"""
+        import wff_builder as wb
+        monkeypatch.setattr(wb.subprocess, "run", self._fake_run(""))
+        builder = wb.WFFBuilder.__new__(wb.WFFBuilder)
+        builder.log = lambda *a, **k: None
+        with pytest.raises(RuntimeError, match="no SHA-256 digest"):
+            builder._verify_signed_fingerprint(Path("/tmp/fake.apk"), "AA:BB:CC")
+
+    def test_verify_signed_fingerprint_match_passes(self, monkeypatch, tmp_path):
+        """签名后复核: 指纹一致 → 通过不抛。"""
+        import wff_builder as wb
+        stdout = "Signer #1 certificate SHA-256 digest: aa:bb:cc"
+        monkeypatch.setattr(wb.subprocess, "run", self._fake_run(stdout))
+        builder = wb.WFFBuilder.__new__(wb.WFFBuilder)
+        logs = []
+        builder.log = lambda msg: logs.append(msg)
+        builder._verify_signed_fingerprint(Path("/tmp/fake.apk"), "AA:BB:CC")
+        assert any("PASS" in m for m in logs)
+
+    @staticmethod
+    def _fake_run(stdout: str):
+        """构造只响应 --print-certs 的 subprocess.run 替身（匹配含 '--' 前缀）。"""
+        import subprocess as sp
+
+        def run(cmd, **kw):
+            if "--print-certs" in cmd:
+                return sp.CompletedProcess(cmd, 0, stdout=stdout, stderr="")
+            return sp.CompletedProcess(cmd, 0, stdout="", stderr="")
+        return run
 
 
 # ─── 复查 R3: SSRF 生产强制白名单 ─────────────────────────
@@ -619,3 +646,59 @@ class TestCDMStoreDegradation:
         cdm_store.store_cdm("11223344", {"b": 2})  # 断连 → 降级内存, 不抛
         # load 同样断连 → 内存取回
         assert cdm_store.load_cdm("11223344") == {"b": 2}
+
+
+# ─── 复查 F1: aapt2 缺失时模板降级不再静默 ─────────────────
+
+class TestTemplateFallbackBoundaries:
+    @staticmethod
+    def _make_builder(tmp_path, monkeypatch):
+        """构造最小 builder: AAPT2 不可用（触发模板降级）+ 双素材。"""
+        import wff_builder as wb
+        monkeypatch.setattr(wb, "AAPT2", tmp_path / "nonexistent" / "aapt2")
+        b = wb.WFFBuilder.__new__(wb.WFFBuilder)
+        b.project_dir = tmp_path / "proj"
+        b.verbose = False
+        b.config = {"package_name": "com.test.custom", "version_code": 1,
+                    "version_name": "1.0"}
+        b.build_dir = b.project_dir / "_build"
+        b.compiled_dir = b.build_dir / "compiled"
+        b.template_fallback = False
+        b.fallback_warnings = []
+        b.project_dir.mkdir(parents=True)
+        (b.project_dir / "watchface.xml").write_text(
+            '<WatchFace width="450" height="450"/>', encoding="utf-8")
+        res = b.build_dir / "res"
+        (res / "drawable").mkdir(parents=True)
+        (res / "raw").mkdir(parents=True)
+        png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 8
+        (res / "drawable" / "background.png").write_bytes(png)
+        (res / "drawable" / "icon.png").write_bytes(png)
+        (res / "drawable" / "preview.png").write_bytes(png)
+        (res / "raw" / "watchface.xml").write_text(
+            '<WatchFace width="450" height="450"/>', encoding="utf-8")
+        return b
+
+    def test_dev_fallback_records_structured_warnings(self, tmp_path, monkeypatch):
+        """dev: 降级出包, 但未打包素材/包名不一致必须结构化告警（非仅日志）。"""
+        monkeypatch.delenv("WF_ENV", raising=False)
+        b = self._make_builder(tmp_path, monkeypatch)
+        b.compile_resources()
+        assert b.template_fallback is True
+        text = "\n".join(b.fallback_warnings)
+        assert "aapt2" in text                      # 降级原因
+        assert "icon.png" in text                   # 未进包素材点名
+        assert "com.test.custom" in text            # 包名不一致点名
+
+    def test_production_rejects_template_fallback(self, tmp_path, monkeypatch):
+        """production: aapt2 缺失 → 拒绝构建（不静默降级出包）。"""
+        import wff_builder as wb
+        monkeypatch.setenv("WF_ENV", "production")
+        b = self._make_builder(tmp_path, monkeypatch)
+        # stub build() 前置步骤（本测试只验 compile 后的生产拒绝分支）
+        b.load_config = lambda: None
+        monkeypatch.setattr(wb, "validate_watchface_xml", lambda *a, **k: [])
+        b.generate_manifest = lambda: None
+        b.generate_resource_files = lambda: None
+        with pytest.raises(RuntimeError, match="production build rejected"):
+            b.build()

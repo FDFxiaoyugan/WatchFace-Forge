@@ -82,7 +82,8 @@ class AIGateway:
     ):
         """
         backend: "z-ai" | "openai" | "auto"
-        auto = 优先 z-ai, 不可用则 openai
+        auto = 有 api_key（显式或 OPENAI_API_KEY）时直接 openai；
+        否则探测 z-ai CLI；均不可用则调用时报错
         """
         self.backend = backend
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")

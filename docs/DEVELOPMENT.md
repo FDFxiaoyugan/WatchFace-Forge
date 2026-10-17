@@ -53,14 +53,15 @@ npx next build && npx next start -p 3000   # 生产
 
 | 变量 | 说明 | 默认 |
 |------|------|------|
-| `OPENAI_API_KEY` | OpenAI 兼容后端密钥（gateway backend=auto 时 z-ai CLI 可用则优先 z-ai） | 无 |
+| `OPENAI_API_KEY` | OpenAI 兼容后端密钥（gateway backend=auto 时**有 key 即选 OpenAI**；无 key 才探测 z-ai CLI） | 无 |
 | `OPENAI_BASE_URL` | OpenAI 兼容端点 | 官方 |
 | `OPENAI_MODEL` | 服务端默认 OpenAI 模型 | `gpt-4o` |
 
 > ⚠️ 历史文档曾列 `AI_PROVIDER` / `ZAI_API_KEY`——**代码从未读取**（审计确认的
-> 文档偏差，已删除）。后端选择由 `AIGateway(backend=...)` 决定：auto 模式优先
-> 探测 z-ai CLI，回退 `OPENAI_API_KEY`。密钥缺失时 AI 生成返回普通失败响应
-> （`status: failed`），并非 503。
+> 文档偏差，已删除）。后端选择由 `AIGateway(backend=...)` 决定：auto 模式下
+> **有 api_key（显式参数或 `OPENAI_API_KEY`）时直接选 OpenAI**；无 key 才探测
+> z-ai CLI；两者都不可用则 AI 生成返回普通失败响应（`status: failed`），
+> 并非 503。
 
 > **BYOK（用户自定义 AI 配置）**：`WF_AI_ALLOWED_HOSTS` 是生产部署前提——
 > `WF_ENV=production` 且未配置该白名单时，用户自定义 Base URL 直接被拒绝

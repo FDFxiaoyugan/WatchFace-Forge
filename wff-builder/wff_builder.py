@@ -991,6 +991,10 @@ class WFFBuilder:
         self.config = {}
         self.build_dir = self.project_dir / "_build"
         self.compiled_dir = self.build_dir / "compiled"
+        # 复查 F1: 模板降级的结构化状态（供 API 层转发 warnings /
+        # production 拒绝判断），不再只靠 verbose 日志
+        self.template_fallback = False
+        self.fallback_warnings: list = []
 
     def log(self, msg: str):
         if self.verbose:
@@ -1186,6 +1190,34 @@ class WFFBuilder:
                 shutil.copy2(self.build_dir / "res" / "drawable" / "preview.png",
                              self.compiled_dir / "res_drawable_preview.png")
             self.log("  aapt2 unavailable: using verified precompiled ARM template")
+            # 复查 F1: 模板降级不再静默——结构化记录能力边界，供 API 转发
+            # warnings 与 production 拒绝判断
+            self.template_fallback = True
+            self.fallback_warnings.append(
+                "aapt2 不可用：本次构建使用预编译 ARM 模板回退，"
+                "仅支持单个 background 素材（映射到 preview 槽位）")
+            # 未进包素材清单（drawable 除 background/preview 外 + 全部 font）
+            drawable_dir = self.build_dir / "res" / "drawable"
+            for f in sorted(drawable_dir.glob("*")) if drawable_dir.is_dir() else []:
+                if f.name not in ("background.png", "preview.png"):
+                    self.fallback_warnings.append(
+                        f"素材未打包：drawable/{f.name}（模板槽位仅支持 background）")
+            font_dir = self.build_dir / "res" / "font"
+            for f in sorted(font_dir.glob("*")) if font_dir.is_dir() else []:
+                self.fallback_warnings.append(
+                    f"素材未打包：font/{f.name}（模板不支持自定义字体）")
+            # APK 身份一致性：模板 Manifest 为预编译固定包名/版本
+            # （二进制 AXML 中字符串以 UTF-16LE 存储，按字节探测即可）
+            manifest_bytes = (self.compiled_dir / "AndroidManifest.xml").read_bytes()
+            try:
+                manifest_text = manifest_bytes.decode("utf-16-le", errors="ignore")
+            except Exception:
+                manifest_text = ""
+            pkg = self.config.get("package_name", "")
+            if pkg and pkg not in manifest_text:
+                self.fallback_warnings.append(
+                    f"APK 包名与请求不一致：预编译模板固定为模板包名，"
+                    f"请求的 {pkg} 未生效")
             return
 
         compiled_res = self.build_dir / "compiled_res.zip"
@@ -1509,6 +1541,15 @@ class WFFBuilder:
 
         self.log("\n[4/5] Compile (aapt2)")
         self.compile_resources()
+
+        # 复查 F1: 生产模式拒绝模板降级——多素材/自定义包名的构建结果
+        # 与请求语义不符，静默降级出包不可接受
+        if self.template_fallback and os.environ.get("WF_ENV", "development").strip().lower() == "production":
+            raise RuntimeError(
+                "production build rejected: aapt2 unavailable, template fallback "
+                "would silently drop resources / mismatch APK identity "
+                "(deploy a full aapt2 toolchain on production nodes)"
+            )
 
         self.log("\n[5/5] Package + Sign")
         signed_apk = self.build_final_apk()

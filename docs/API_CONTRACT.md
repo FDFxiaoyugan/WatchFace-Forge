@@ -121,9 +121,12 @@ curl -H 'X-API-Key: dev-key' -F 'xml=@watchface.xml' \
 
 `GET /api/v1/wff/builds/{filename}` downloads the generated APK. Multi-asset
 packaging is standard: every uploaded image in `assets[]` is packed under
-`res/drawable/` (2026-09-13 `ac546db`, qemu-user aapt2 toolchain). The legacy
-"single bitmap slot on ARM precompiled templates" path only applies to
-environments without a usable aapt2 and emits an explicit warning there.
+`res/drawable/` (2026-09-13 `ac546db`, qemu-user aapt2 toolchain). When aapt2
+is unavailable the build falls back to the ARM precompiled template: the
+response then carries structured `warnings[]` naming the fallback reason, every
+dropped resource, and any package-name mismatch against the fixed template
+identity (2026-10-17 audit fix). `WF_ENV=production` rejects such builds with
+`500 BUILD_FAILED` instead of silently downgrading.
 
 `qr_url` is an optional phone convenience link, not a watch-side installation
 mechanism. Watches commonly have no camera, and scanning on a phone still needs

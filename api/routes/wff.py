@@ -184,7 +184,10 @@ async def build_endpoint(
             f'package_name: {package}\nversion_code: {version}\nversion_name: "{version}.0"\nwatch_face_name: "{safe_name}"\nwff_version: 1\n',
             encoding="utf-8",
         )
-        apk_path = WFFBuilder(str(project_dir), verbose=False).build()
+        builder = WFFBuilder(str(project_dir), verbose=False)
+        apk_path = builder.build()
+        # 复查 F1: 转发模板降级的结构化 warnings（资源未打包/包名不一致等）
+        warnings.extend(builder.fallback_warnings)
         filename = f"{package.rsplit('.', 1)[-1]}-{build_id}.apk"
         final_path = OUTPUT_DIR / filename
         shutil.copy2(apk_path, final_path)
