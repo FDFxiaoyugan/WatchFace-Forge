@@ -46,6 +46,16 @@ def _get_redis():
 
 def reset_for_tests() -> None:
     global _redis_client, _redis_checked
+    # 真实 Redis 环境（如 DevSpace）下, 配额计数键跨测试残留会让
+    # 后续测试的 429 提前/错位出现——reset 时主动清掉 wff:quota:*
+    client = _get_redis()
+    if client is not None:
+        try:
+            keys = list(client.scan_iter("wff:quota:*"))
+            if keys:
+                client.delete(*keys)
+        except Exception:
+            pass
     _redis_client = None
     _redis_checked = False
     limiter.reset()

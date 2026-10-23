@@ -115,8 +115,16 @@ def load_cdm(task_id: str) -> Optional[dict]:
 
 
 def reset_for_tests() -> None:
-    """测试隔离：清内存存储与 Redis 客户端缓存。"""
+    """测试隔离：清内存存储与 Redis 客户端缓存（含 wff:cdm:* 残留键）。"""
     global _memory_store
     _memory_store = {}
     from api.services import quota as _q
+    client = _q.get_redis()
+    if client is not None:
+        try:
+            keys = list(client.scan_iter("wff:cdm:*"))
+            if keys:
+                client.delete(*keys)
+        except Exception:
+            pass
     _q.reset_for_tests()
