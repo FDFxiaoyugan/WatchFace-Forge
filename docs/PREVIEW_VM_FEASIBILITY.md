@@ -247,3 +247,19 @@ POC 清单（全部命令级，可直接执行）：
 ### 10.4 开建默认方案
 
 独立仓库 wear-vm-farm：bootstrap（SDK/镜像/依赖全自动）+ doctor（能力探测）+ API 契约骨架先行（约 1 天），然后 doctor 实测出 Go/No-Go 与 profile 档位。
+
+### 10.5 GitHub 二次搜证（2026-10-24，用户提出适用面放宽至 Wear OS app 后复查）
+
+> 9 组关键词 × 6 个最接近项目全部核实。**成品空位确认**：无项目同时满足「Wear OS 镜像 + emulator 农场容器化 + web 交互串流 + 传感器/健康 mock 面板 + 一键装载 + API-first」。
+
+| 项目 | 定位 | 与本项目关系 |
+|---|---|---|
+| openstf/DeviceFarmer STF（~12k★） | 真机农场 web 控制，明确不支持 emulator；minicap 在新 Android 已知损坏 | 产品形态参考（会话占用 UX） |
+| google/android-emulator-container-scripts | 官方容器化 + 端到端 WebRTC 串流架构 | **直接复用**：编排+串流骨架 |
+| google/android-emulator-webrtc | 官方 web 交互组件（video/audio/mouse/touch/keyboard） | **直接复用**：web 播放器 |
+| callstack/agent-device（2026-02） | AI agent 设备自动化 CLI/MCP | 未来 farm MCP 接口先例 |
+| ws-scrcpy（NetrisTV，低维护） | web 控制多设备 | 备选串流薄层 |
+| shamanec/GADS | 真机农场 | 参考 |
+
+- 串流层决策更新：Google 官方 WebRTC 两件套优先于自研 scrcpy-WS 薄层（官方维护、交互完整）；x86 host 生态为主，ARM host 适配度 POC 验证
+- **适用面放宽至 Wear OS app 的架构增量**：arm64 guest 升级刚需（app 可含 arm64-only native 库）→ worker 装双 guest 镜像（+2-3GB 磁盘）；会话创建时 aapt 读 APK `lib/` 目录自动路由 profile（arm64-v8a 存在 → fidelity 强制；纯 Java/XML → speed 可用，WFF 表盘全属后者）；API/commands 信封零改动
