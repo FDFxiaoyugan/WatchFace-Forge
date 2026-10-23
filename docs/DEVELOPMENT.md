@@ -43,10 +43,13 @@ npx next build && npx next start -p 3000   # 生产
 | 变量 | 说明 | 默认 |
 |------|------|------|
 | `WF_ENV` | `development` \| `production`；production 强制外部签名、强制 API key、配额 fail-closed | `development` |
-| `WFF_API_KEYS` | 逗号分隔 API Key；**generate/ai-test/v1 全部消费**；production 未配置 → 503 | 无 |
+| `WFF_API_KEYS` | 逗号分隔 API Key；**generate/ai-test/v1/旧 build/CDM 读取/图片处理全部消费**（2026-10-23 入口统一）；production 未配置 → 503 | 无 |
 | `WF_CORS_ORIGINS` | 逗号分隔来源；配置后启用 credentials，默认 `*`（禁 credentials） | `*` |
 | `WF_QUOTA_GENERATE_PER_HOUR` | generate 每 key 每小时配额 | `10` |
 | `WF_QUOTA_AI_TEST_PER_HOUR` | ai/test 每 key 每小时配额 | `20` |
+| `WF_QUOTA_BUILD_LEGACY_PER_HOUR` | 旧 `/api/build` 每 key 每小时配额（dev 匿名走开发身份桶） | `10` |
+| `WF_QUOTA_CDM_READ_PER_HOUR` | `/api/editor/cdm/{id}` 读取配额；CDM 按生成者身份绑定所有权，key 不匹配 → 404 | `60` |
+| `WF_QUOTA_IMAGE_PER_HOUR` | 图片处理（process/upload）配额；请求预算：b64 ≤14M 字符、原始字节 ≤12MB、解码像素 ≤50MP、max_size clamp ≤2048 | `30` |
 | `WF_AI_ALLOWED_HOSTS` | BYOK base_url 域名白名单（逗号分隔，支持 `*.suffix`）。**production 未配置 → BYOK 自定义端点被整体拒绝（R3）**；development 未配置 = 放行任意通过 SSRF 硬检查的公网地址 | 无 |
 
 ### AI 后端

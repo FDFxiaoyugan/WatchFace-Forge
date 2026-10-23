@@ -161,10 +161,14 @@ async def build_endpoint(
     project_dir = OUTPUT_DIR / ("wff-" + build_id)
     project_dir.mkdir(parents=True)
     warnings = []
+    from starlette.concurrency import run_in_threadpool
     try:
         xml_text = xml_bytes.decode("utf-8")
         asset_map = {filename: data for filename, data in asset_list}
-        preview = render_wff_frame(xml_text, asset_map, datetime(2026, 8, 24, 10, 8, 32), "active", "round", 384)
+        # 复查 G1b: 预览渲染与构建为同步 CPU 重活, 移出事件循环
+        preview = await run_in_threadpool(
+            render_wff_frame, xml_text, asset_map,
+            datetime(2026, 8, 24, 10, 8, 32), "active", "round", 384)
         (project_dir / "preview.png").write_bytes(preview)
         # 2026-09-13: qemu-user + aapt2 + JDK17 全工具链就绪, 切换多资源标准打包
         # (替代旧 "ARM 预编译模板" 仅打包首个图片当 background 的降级实现)。
@@ -185,7 +189,8 @@ async def build_endpoint(
             encoding="utf-8",
         )
         builder = WFFBuilder(str(project_dir), verbose=False)
-        apk_path = builder.build()
+        # 复查 G1b: 构建重活移出事件循环
+        apk_path = await run_in_threadpool(builder.build)
         # 复查 F1: 转发模板降级的结构化 warnings（资源未打包/包名不一致等）
         warnings.extend(builder.fallback_warnings)
         filename = f"{package.rsplit('.', 1)[-1]}-{build_id}.apk"

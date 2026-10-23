@@ -88,14 +88,23 @@ def _consume_redis(key: str, limit: int) -> Optional[int]:
 
 
 def consume_ai_quota(identity: str, operation: str) -> None:
-    """消耗一次 AI 调用配额；超限抛 WFFAPIError(429)。
+    """消耗一次配额；超限抛 WFFAPIError(429)。
 
-    operation: "generate" | "ai_test"（决定默认配额与环境变量名）。
+    operation 决定默认配额与环境变量名:
+    - "generate" | "ai_test": AI 消耗端点
+    - "build_legacy" | "cdm_read" | "image": 复查 G1/G2/G3 入口统一
+      （旧 CDM 构建/CDM 取回/图片处理, 2026-10-23）
     """
-    defaults = {"generate": 10, "ai_test": 20}
+    defaults = {
+        "generate": 10, "ai_test": 20,
+        "build_legacy": 10, "cdm_read": 60, "image": 30,
+    }
     env_names = {
         "generate": "WF_QUOTA_GENERATE_PER_HOUR",
         "ai_test": "WF_QUOTA_AI_TEST_PER_HOUR",
+        "build_legacy": "WF_QUOTA_BUILD_LEGACY_PER_HOUR",
+        "cdm_read": "WF_QUOTA_CDM_READ_PER_HOUR",
+        "image": "WF_QUOTA_IMAGE_PER_HOUR",
     }
     limit = int(os.environ.get(env_names[operation], defaults[operation]))
     key = f"wff:quota:{operation}:{identity}"
@@ -131,3 +140,23 @@ def authorize_ai_endpoint(api_key: Optional[str], operation: str) -> str:
     if not api_key or api_key not in keys:
         raise WFFAPIError(401, "INVALID_API_KEY", "X-API-Key 无效或缺失")
     return api_key
+
+
+def owner_digest(identity: str) -> str:
+    """身份 → 稳定摘要（CDM 所有权绑定用, 不落存 key 原文）。
+
+    identity = authorize_ai_endpoint 返回值（API key 原文或 "dev-anonymous"）。
+    """
+    import hashlib
+    return "sha256:" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
+
+
+def authorize_and_consume(api_key: Optional[str], operation: str) -> str:
+    """鉴权 + 扣配额一步到位（复查 G1/G2/G3 入口统一用）。
+
+    authorize_ai_endpoint 只鉴权不扣额（generate/ai_test 历史调用方自行
+    两步组合）；新入口统一走本函数, 避免漏扣导致限流失效。
+    """
+    identity = authorize_ai_endpoint(api_key, operation)
+    consume_ai_quota(identity, operation)
+    return identity

@@ -35,6 +35,16 @@ class ProcessOptions:
     output_format: str = "png"      # png (无损) | webp (有损但小)
     webp_quality: int = 90
 
+    # 复查 G3 (2026-10-23): 所有构造路径（HTTP/celery/内部调用）统一 clamp,
+    # 防超大 max_size 绕过缩放 / 巨大羽化半径放大 flood-fill 成本
+    def __post_init__(self):
+        self.max_size = min(max(self.max_size, 64), 2048)
+        self.bg_tolerance = min(max(self.bg_tolerance, 0), 255)
+        self.feather_radius = min(max(self.feather_radius, 0), 32)
+        self.webp_quality = min(max(self.webp_quality, 1), 100)
+        if self.output_format not in ("png", "webp"):
+            self.output_format = "png"
+
 
 @dataclass
 class ProcessResult:
@@ -176,17 +186,27 @@ def encode(img: Image.Image, fmt: str, webp_quality: int = 90) -> bytes:
 def process_image(data: bytes, opts: Optional[ProcessOptions] = None) -> ProcessResult:
     """
     图像后处理管线:
-      解码 → [缩放] → [抠图] → [裁剪] → [编码]
+      [长度预算] → 解码 → [像素预算] → [缩放] → [抠图] → [裁剪] → [编码]
     """
     opts = opts or ProcessOptions()
     result = ProcessResult()
     result.original_size = len(data)
+
+    # 复查 G3: 集中预算防线（b64 限长在路由层, 此处兜底覆盖 celery task
+    # 等其他入口——12MB 原始字节 / 50MP 解码像素上限, 防 decompression bomb）
+    if len(data) > 12 * 1024 * 1024:
+        result.error = "image too large (max 12MB raw bytes)"
+        return result
 
     try:
         img = Image.open(io.BytesIO(data))
         img = ImageOps.exif_transpose(img)  # 处理 EXIF 旋转
     except Exception as e:
         result.error = f"decode failed: {e}"
+        return result
+
+    if img.width * img.height > 50_000_000:
+        result.error = f"image exceeds pixel budget ({img.width}x{img.height} > 50MP)"
         return result
 
     # 缩放

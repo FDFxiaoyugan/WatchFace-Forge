@@ -30,6 +30,9 @@ class BuildResponse(BaseModel):
     apk_size: Optional[int] = None
     download_url: Optional[str] = None
     error: Optional[str] = None
+    # 复查 G1: 旧 /api/build 与 v1 直通入口对齐——转发 builder 结构化降级
+    # warnings（aapt2 缺失模板回退时点名未打包素材/包名不一致）
+    warnings: list = []
 
 
 class TemplateSummary(BaseModel):

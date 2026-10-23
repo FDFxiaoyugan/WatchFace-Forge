@@ -56,16 +56,22 @@ def _load_from_memory(task_id: str) -> Optional[str]:
     return payload
 
 
-def store_cdm(task_id: str, cdm: dict, ttl: int = _CDM_TTL_SECONDS) -> None:
+def store_cdm(task_id: str, cdm: dict, ttl: int = _CDM_TTL_SECONDS,
+              owner: Optional[str] = None) -> None:
     """存档 CDM。
 
     development: Redis 可用写 Redis；不可用/断连降级进程内存。
     production: Redis 不可用或写入失败 → RuntimeError（调用方应失败该次
     生成，不得返回"已存档"的成功响应）。
+    owner: 复查 G2 所有权摘要（quota.owner_digest(identity)），存为
+    payload 顶层 ``_owner`` 字段；取回时由路由层校验（key 不匹配 → 404）。
+    存 None 则不绑定（历史记录/匿名）。
     """
     task_id = str(task_id)
     if not _TASK_ID_RE.fullmatch(task_id):
         raise ValueError("invalid task id")
+    if owner is not None:
+        cdm = {**cdm, "_owner": owner}
     payload = json.dumps(cdm, ensure_ascii=False)
     redis = _get_redis()
     if redis is not None:

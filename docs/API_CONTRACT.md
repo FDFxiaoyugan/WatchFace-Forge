@@ -13,6 +13,16 @@ deployment unless that exact key happens to be configured.
 {"error":{"code":"INVALID_API_KEY","message":"X-API-Key 无效或缺失"}}
 ```
 
+> **入口一致性（2026-10-23 G1/G2/G3）**：除 v1 直通路由外，旧 CDM 入口
+> `POST /api/build`、`GET /api/editor/cdm/{task_id}` 与图片端点
+> `POST /api/editor/image/{process,upload}` 同样消费 `X-API-Key`：
+> production fail-closed（未配 keys → 503、无效 → 401、Redis 配额后端不可用
+> → 503）；development 匿名请求走固定开发身份并计入配额桶（前端 dev 流程
+> 不变）。`POST /api/build` 在 production 还要求分层校验非 degraded，且
+> 响应携带 `warnings[]`（模板降级时点名未打包资源）。CDM 记录按生成者
+> 身份摘要绑定所有权——他人 key 取回 → 404。图片请求预算：b64 ≤ 14M
+> 字符、原始字节 ≤ 12MB、解码像素 ≤ 50MP、`max_size` clamp 到 [64, 2048]。
+
 | HTTP | code | Meaning |
 |---|---|---|
 | 401 | `INVALID_API_KEY` | Missing or unknown key |

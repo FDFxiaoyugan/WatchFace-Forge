@@ -1,10 +1,13 @@
 """构建路由 — CDM → WFF XML → APK"""
+import os
 import sys
 import shutil
 import base64
 import io
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import FileResponse
 
 from api.models import BuildRequest, BuildResponse
@@ -65,17 +68,31 @@ def _write_background_asset(project_dir: Path, background) -> None:
 
 
 @router.post("/build", response_model=BuildResponse)
-async def build_apk(req: BuildRequest):
-    """CDM → WFF XML → APK 全流程构建"""
+async def build_apk(req: BuildRequest,
+                    x_api_key: Optional[str] = Header(default=None, alias="X-API-Key")):
+    """CDM → WFF XML → APK 全流程构建
+
+    复查 G1 (2026-10-23): 与 /api/v1/wff/build 统一安全边界——
+    鉴权+配额（build_legacy 10/h; production fail-closed / dev 匿名走
+    开发身份）、production 官方校验门槛（分层校验 degraded 即拒绝）、
+    builder 模板降级 warnings 转发、同步重活移出事件循环。
+    """
     # S5: server-generated id only; never derived from user input.
     task_id = new_task_id(8)
+
+    from api.services.quota import authorize_and_consume
+    from starlette.concurrency import run_in_threadpool
+    authorize_and_consume(x_api_key, "build_legacy")
+
+    def _is_production() -> bool:
+        return os.environ.get("WF_ENV", "development").strip().lower() == "production"
 
     try:
         # 1. 编译 CDM → WFF XML
         compiler = WFFCompiler()
         wff_xml = compiler.compile(req.cdm)
 
-        # 2. 校验
+        # 2. 校验（内部 62 条规则）
         failures = validate_watchface_xml(wff_xml)
         errors = [f for f in failures if f["severity"] == "error"]
         if errors:
@@ -85,6 +102,18 @@ async def build_apk(req: BuildRequest):
                 error=f"Validation failed: {errors[0]['detail']}",
             )
 
+        # 2b. 复查 G1: production 官方校验门槛（对齐 v1 直通入口）——
+        # 分层校验（XSD/官方 validator）degraded 即拒绝, 不允许生产静默放行
+        from api.services.wff_validation import validate_wff
+        validation = await run_in_threadpool(
+            validate_wff, wff_xml.encode("utf-8"), [])
+        if validation.get("degraded") and _is_production():
+            return BuildResponse(
+                task_id=task_id,
+                status="failed",
+                error="Validation toolchain degraded in production: build rejected",
+            )
+
         # 3. 创建临时项目目录 (task_id 白名单校验, S5)
         project_dir = task_id_dir(task_id)
         project_dir.mkdir(exist_ok=True)
@@ -92,10 +121,10 @@ async def build_apk(req: BuildRequest):
         # 4. 写入项目文件
         (project_dir / "watchface.xml").write_text(wff_xml, encoding="utf-8")
 
-        # 5. 生成预览图
-        _write_background_asset(project_dir, req.cdm.background)
+        # 5. 生成预览图 (复查 G1b: 同步 CPU 活移出事件循环)
+        await run_in_threadpool(_write_background_asset, project_dir, req.cdm.background)
         from api.services.preview_renderer import render_preview
-        render_preview(project_dir / "preview.png", req.cdm)
+        await run_in_threadpool(render_preview, project_dir / "preview.png", req.cdm)
 
         # 6. 写入 project.yaml
         import yaml
@@ -110,9 +139,9 @@ async def build_apk(req: BuildRequest):
             yaml.dump(config, default_flow_style=False)
         )
 
-        # 7. 调用 wff-builder 构建
+        # 7. 调用 wff-builder 构建 (复查 G1b: 不阻塞事件循环)
         builder = WFFBuilder(str(project_dir), verbose=False)
-        apk_path = builder.build()
+        apk_path = await run_in_threadpool(builder.build)
 
         # 8. 复制到输出目录 (S5: 文件名仅来自服务端 task_id; 表盘名仅作展示字段)
         final_apk = final_apk_path(task_id)
@@ -127,6 +156,7 @@ async def build_apk(req: BuildRequest):
             apk_filename=final_apk.name,
             apk_size=final_apk.stat().st_size,
             download_url=f"/api/download/{final_apk.name}",
+            warnings=builder.fallback_warnings,  # 复查 G1: 模板降级结构化告警
         )
 
     except ValueError as e:

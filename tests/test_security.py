@@ -702,3 +702,191 @@ class TestTemplateFallbackBoundaries:
         b.generate_resource_files = lambda: None
         with pytest.raises(RuntimeError, match="production build rejected"):
             b.build()
+
+
+# ─── 复查 G1/G2/G3 (2026-10-23): 入口一致性统一 ─────────────
+
+_CDM = {
+    "metadata": {"name": "T", "package_name": "com.t.entry", "version_code": 1, "version_name": "1.0"},
+    "clock_type": "DIGITAL",
+    "digital_time": {"enabled": True, "format": "HH:mm",
+                     "font": {"size": 100, "weight": "BOLD", "color": "#ff00F5FF"}},
+}
+
+
+class TestEntryUnification:
+    """旧 /api/build、CDM 取回、图片处理三入口纳入同一安全边界。"""
+
+    @pytest.fixture(autouse=True)
+    def _reset(self):
+        import api.services.quota as quota
+        import api.services.cdm_store as cdm_store
+        quota.reset_for_tests()
+        cdm_store.reset_for_tests()
+        yield
+        quota.reset_for_tests()
+        cdm_store.reset_for_tests()
+
+    @staticmethod
+    def _fake_builder(monkeypatch, tmp_path):
+        """WFFBuilder 替身: 记录调用并返回假 APK（复查者同款手法）。"""
+        import wff_builder as wb
+        calls = []
+        fake_apk = tmp_path / "fake.apk"
+        fake_apk.write_bytes(b"PK\x05\x06")
+
+        class FakeBuilder:
+            def __init__(self, project_dir, verbose=True):
+                self.template_fallback = False
+                self.fallback_warnings = ["aapt2 不可用：模板回退（测试）"]
+
+            def build(self):
+                calls.append("build")
+                return fake_apk
+
+        monkeypatch.setattr(wb, "WFFBuilder", FakeBuilder)
+        monkeypatch.setattr("api.routes.build.WFFBuilder", FakeBuilder)
+        return calls
+
+    def test_legacy_build_dev_anonymous_allowed(self, monkeypatch, tmp_path):
+        """dev 无 keys: 匿名可用（前端兼容）, 响应含 warnings 字段。"""
+        monkeypatch.delenv("WF_ENV", raising=False)
+        monkeypatch.delenv("WFF_API_KEYS", raising=False)
+        calls = self._fake_builder(monkeypatch, tmp_path)
+        c = TestClient(app)
+        r = c.post("/api/build", json={"cdm": _CDM})
+        assert r.status_code == 200
+        data = r.json()
+        assert data["status"] == "success"
+        assert calls == ["build"]          # 真的触发了构建
+        assert "warnings" in data          # G1: 降级告警字段已透出
+
+    def test_legacy_build_production_fail_closed(self, monkeypatch, tmp_path):
+        """production 未配 keys → 503（不允许匿名消耗构建资源）。"""
+        monkeypatch.setenv("WF_ENV", "production")
+        monkeypatch.delenv("WFF_API_KEYS", raising=False)
+        calls = self._fake_builder(monkeypatch, tmp_path)
+        c = TestClient(app)
+        r = c.post("/api/build", json={"cdm": _CDM})
+        assert r.status_code == 503
+        assert r.json()["error"]["code"] == "API_KEYS_NOT_CONFIGURED"
+        assert calls == []                 # 构建未被触发
+
+    def test_legacy_build_production_invalid_key(self, monkeypatch, tmp_path):
+        """production 有 keys: 无 key / 错 key → 401, 构建不触发。"""
+        monkeypatch.setenv("WF_ENV", "production")
+        monkeypatch.setenv("WFF_API_KEYS", "goodkey")
+        calls = self._fake_builder(monkeypatch, tmp_path)
+        c = TestClient(app)
+        for hdrs in ({}, {"X-API-Key": "wrong"}, {"X-API-Key": ""}):
+            r = c.post("/api/build", json={"cdm": _CDM}, headers=hdrs)
+            assert r.status_code == 401, hdrs
+        assert calls == []
+
+    def test_legacy_build_production_degraded_rejected(self, monkeypatch, tmp_path):
+        """production 分层校验 degraded → 构建拒绝（对齐 v1 直通门槛）。"""
+        monkeypatch.setenv("WF_ENV", "production")
+        monkeypatch.setenv("WFF_API_KEYS", "goodkey")
+        # 本测试聚焦校验门槛: 配额走 no-op（真实 Redis 缺席时 production
+        # 的 503 QUOTA_BACKEND_UNAVAILABLE 是正确 fail-closed, 不在此重叠测）
+        monkeypatch.setattr("api.services.quota.consume_ai_quota",
+                            lambda *a, **k: None)
+        calls = self._fake_builder(monkeypatch, tmp_path)
+        monkeypatch.setattr(
+            "api.services.wff_validation.validate_wff",
+            lambda *a, **k: {"valid": True, "degraded": True, "layers": {}})
+        c = TestClient(app)
+        r = c.post("/api/build", json={"cdm": _CDM},
+                   headers={"X-API-Key": "goodkey"})
+        assert r.status_code == 200
+        data = r.json()
+        assert data["status"] == "failed"
+        assert "degraded" in data["error"]
+        assert calls == []                 # 未走到签名/打包
+
+    def test_cdm_ownership_binding(self, monkeypatch, tmp_path):
+        """_owner 不匹配 → 404（不泄漏存在性）; 匹配 → 200 且 _owner 已剥离。"""
+        monkeypatch.delenv("WF_ENV", raising=False)
+        monkeypatch.delenv("WFF_API_KEYS", raising=False)
+        import api.services.cdm_store as cdm_store
+        from api.services.quota import owner_digest
+        c = TestClient(app)
+        # 他人身份存的 CDM
+        cdm_store.store_cdm("abcd1234", {"metadata": {"name": "x"}},
+                             owner=owner_digest("someone-else"))
+        r = c.get("/api/editor/cdm/abcd1234")
+        assert r.status_code == 404
+        # 自己（dev-anonymous）身份存的
+        cdm_store.store_cdm("abce1234", {"metadata": {"name": "y"}},
+                             owner=owner_digest("dev-anonymous"))
+        r = c.get("/api/editor/cdm/abce1234")
+        assert r.status_code == 200
+        body = r.json()
+        assert "_owner" not in body["cdm"]   # 内部字段不出响应
+        assert body["cdm"]["metadata"]["name"] == "y"
+
+    def test_cdm_read_quota_enforced(self, monkeypatch, tmp_path):
+        """cdm_read 限额生效（dev 匿名桶, WFF_QUOTA_CDM_READ_PER_HOUR=2）。"""
+        monkeypatch.delenv("WF_ENV", raising=False)
+        monkeypatch.delenv("WFF_API_KEYS", raising=False)
+        monkeypatch.setenv("WF_QUOTA_CDM_READ_PER_HOUR", "2")
+        c = TestClient(app)
+        for i in range(3):
+            r = c.get("/api/editor/cdm/ffff000%d" % i)
+            # 前两次 404（不存在, 但配额已扣）; 第三次 429 限额
+            if i < 2:
+                assert r.status_code == 404
+            else:
+                assert r.status_code == 429
+
+    def test_image_endpoints_production_fail_closed(self, monkeypatch):
+        """production 无 keys: 图片两端点 → 503, 不再匿名可用。"""
+        monkeypatch.setenv("WF_ENV", "production")
+        monkeypatch.delenv("WFF_API_KEYS", raising=False)
+        c = TestClient(app)
+        tiny = "iVBORw0KGgo="  # 无效图也行——先被鉴权挡住
+        r = c.post("/api/editor/image/process", json={"image_b64": tiny})
+        assert r.status_code == 503
+        r2 = c.post("/api/editor/image/upload",
+                    files={"file": ("a.png", b"\x89PNG", "image/png")})
+        assert r2.status_code == 503
+
+    def test_image_b64_length_limit(self):
+        """image_b64 超长 → pydantic 422（防超大 JSON 内存放大）。"""
+        from pydantic import ValidationError
+        from api.routes.editor import ImageProcessRequest
+        with pytest.raises(ValidationError):
+            ImageProcessRequest(image_b64="x" * 14_000_001)
+
+    def test_image_process_options_clamp(self):
+        """ProcessOptions 构造即 clamp（覆盖 HTTP/celery/内部全部路径）。"""
+        from api.services.image.processor import ProcessOptions
+        opts = ProcessOptions(max_size=999999, bg_tolerance=999,
+                              feather_radius=100, output_format="jpg",
+                              webp_quality=1000)
+        assert opts.max_size == 2048
+        assert opts.bg_tolerance == 255
+        assert opts.feather_radius == 32
+        assert opts.output_format == "png"
+        assert opts.webp_quality == 100
+        assert ProcessOptions(max_size=-5).max_size == 64
+
+    def test_image_pixel_budget(self):
+        """解码像素超 50MP → 拒绝（decompression bomb 防线）。"""
+        import io
+        from PIL import Image
+        from api.services.image.processor import process_image, ProcessOptions
+        # 8250x6250 = 51.5MP 纯色图（PNG 压缩快）
+        img = Image.new("RGB", (8250, 6250), (255, 0, 0))
+        buf = io.BytesIO()
+        img.save(buf, "PNG")
+        result = process_image(buf.getvalue(), ProcessOptions())
+        assert not result.success
+        assert "pixel budget" in (result.error or "")
+
+    def test_image_raw_bytes_budget(self):
+        """原始字节超 12MB → 拒绝（celery 等入口的兜底防线）。"""
+        from api.services.image.processor import process_image
+        result = process_image(b"\x00" * (12 * 1024 * 1024 + 1))
+        assert not result.success
+        assert "too large" in (result.error or "")

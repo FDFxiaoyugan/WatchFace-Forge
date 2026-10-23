@@ -151,8 +151,10 @@ async def generate_watchface(req: dict, x_api_key: str = Header(default=None, al
 
     # CDM 校验通过即持久化（Redis TTL 1h）：APK 构建失败也可进编辑器调整
     from api.services.cdm_store import store_cdm
+    from api.services.quota import owner_digest
     try:
-        store_cdm(task_id, cdm_dict)
+        # 复查 G2: 绑定生成者身份摘要, 取回时校验所有权（key 不匹配 → 404）
+        store_cdm(task_id, cdm_dict, owner=owner_digest(identity))
     except ValueError:
         pass  # task_id 由服务端生成, 此分支仅为防御
     except RuntimeError as exc:
