@@ -206,3 +206,44 @@ POC 清单（全部命令级，可直接执行）：
 ---
 
 *附：本分析的原始搜索证据存档于 research/preview-vm/（s1–s9）；上游规范版本背景（WFF v1–v5、R53–R55 矩阵）见 unpack-audit/ 与 ROADMAP.md。*
+
+---
+
+## 10. 部署架构演进（2026-10-24 与用户对齐，四轮结论）
+
+> 本节为模块定性升级的记录：从「平台内嵌模块」改为**独立项目 wear-vm-farm**，安装/调试全部封装在服务内，对外只露 API。
+
+### 10.1 独立项目定案
+
+| 决策点 | 结论 |
+|---|---|
+| 项目形态 | 独立仓库 wear-vm-farm；WatchFace-Forge 平台作为纯 API 客户端 |
+| API 面 | /health（能力报告）· POST /sessions · WS /sessions/{id}/stream · POST /sessions/{id}/commands（统一命令信封：sensor/battery/health/time/power）· GET /sessions/{id}/screenshot · DELETE /sessions/{id} |
+| 鉴权 | 照抄平台 X-API-Key + 配额模式；串流 WS 用一次性 token |
+| 契约文档 | 独立 docs/API_PREVIEW_FARM.md，与 API_CONTRACT.md 并列 |
+| 架构收益 | 消化两个结构性坑：有状态 emulator vs 无状态容器冲突；ARM 风险与主力机绑定（可平移） |
+
+### 10.2 Docker 形态
+
+- **control-plane 容器**（无状态：API/会话/配额/doctor）+ **worker 容器 ×N**（一容器一 emulator）
+- worker 必需参数：`--device /dev/kvm`（无 KVM 走 TCG 降档）· `--security-opt seccomp=unconfined` · `--shm-size=1g` · `--memory` 限额
+- 磁盘分层：system image 5GB 只读共享 + data 层 per-instance COW（多实例磁盘省一半以上）
+- 单容器 all-in-one 方案否决：OOM 连坐 / 6-8GB 巨镜像更新耦合 / 无法水平扩展；compose 一键（`docker compose up`）满足同等部署体验
+- 前端归宿：生产预览组件嵌平台前端（VPS）；farm 自带极简 demo UI（MB 级静态页）作独立调试入口
+
+### 10.3 架构矩阵（guest × host 解耦）
+
+| Profile | Host | Guest 镜像 | 执行方式 | 性能 | 用途 |
+|---|---|---|---|---|---|
+| fidelity（默认） | ARM64 | arm64-v8a | KVM 同架构直执行 | ★★★★ | 与真机指令级一致，保真天花板 |
+| speed | x86_64 | x86_64 | KVM 直执行 | ★★★★★ | ARM 二进制不可得时的平移档；WFF 纯 XML 无 native，渲染结果几乎无损 |
+| fallback | 任意 | 任意 | TCG | ★★（同架构 5-7 折） | 无 KVM 降档；跨架构仅配截图模式 |
+
+- Guest 统一 arm64-v8a：WFF 最低 WOS4 (API33) 全为 ARM64，arm32 排除；Google 不发 wear arm32 镜像
+- Host 二进制跟机器走：Docker multi-arch 镜像（buildx 双平台 manifest），同一 tag 自动分发
+- aarch64 emulator 二进制风险 → 完整逃逸路径：fidelity 不可得 → 平移 x86 机跑 speed 档，API/平台零改动
+- doctor 命令 = 探测当前机器可用 profile（原 POC 六项沉淀为子命令）
+
+### 10.4 开建默认方案
+
+独立仓库 wear-vm-farm：bootstrap（SDK/镜像/依赖全自动）+ doctor（能力探测）+ API 契约骨架先行（约 1 天），然后 doctor 实测出 Go/No-Go 与 profile 档位。
