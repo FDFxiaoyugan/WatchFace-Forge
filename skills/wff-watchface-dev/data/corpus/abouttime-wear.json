@@ -1,0 +1,38 @@
+{
+  "input": "/home/z/my-project/unpack-audit/abouttime",
+  "extracted_at": "2026-10-24T02:08:58.096806+00:00",
+  "construct_counts": {
+    "WatchFace": 1,
+    "Scene": 1,
+    "PartDraw": 1,
+    "Ellipse": 1,
+    "Fill": 1,
+    "Condition": 14,
+    "Expressions": 14,
+    "Expression": 301,
+    "Compare": 301,
+    "PartText": 770,
+    "Variant": 768,
+    "Text": 770,
+    "Font": 770,
+    "Template": 2,
+    "Parameter": 4,
+    "Default": 1
+  },
+  "data_sources": [
+    "DAY",
+    "HOUR_0_23",
+    "MINUTE"
+  ],
+  "resource_refs": [],
+  "xml_bytes": 268650,
+  "kind": "wff-source",
+  "watchface_xml_path": "/home/z/my-project/unpack-audit/abouttime/app/src/main/res/raw/watchface.xml",
+  "package": null,
+  "minSdk": null,
+  "targetSdk": null,
+  "wff_version": "4",
+  "name": "abouttime-wear",
+  "license": "MIT",
+  "source": "github.com/Praepes/AboutTime-Wear"
+}

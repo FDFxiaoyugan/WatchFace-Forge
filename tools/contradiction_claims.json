@@ -1,0 +1,23 @@
+[
+  {
+    "id": "R53",
+    "claim": "WOS6 渲染器只执行帧序列动画; Transform+Animation 不渲染 (动效铁律)",
+    "elements": ["Transform"],
+    "broken_versions": ["all"],
+    "evidence_label": "真机实证(仅 version=1, 仅 Transform+Animation 构造, 2026-09-13) — 2026-10-23 被 Rush-Hour-Reply v2 成品证伪(纯表达式构造), 待矩阵终判"
+  },
+  {
+    "id": "R54",
+    "claim": "WOS6 渲染器不渲染 Gyro 视差",
+    "elements": ["Gyro"],
+    "broken_versions": ["all"],
+    "evidence_label": "真机实证(仅 version=1, 官方示例表达式, 2026-09-13) — 版本混淆变量未排除, 待矩阵终判"
+  },
+  {
+    "id": "R61",
+    "claim": "BitmapFont 在 WOS6 全通道不渲染",
+    "elements": ["BitmapFont"],
+    "broken_versions": ["all"],
+    "evidence_label": "真机实证(仅 version=1, A/B/C/D 四通道矩阵, 2026-09-15) — 版本混淆变量未排除, 待矩阵终判"
+  }
+]

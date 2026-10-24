@@ -1,0 +1,9 @@
+{
+  "input": "/home/z/my-project/unpack-audit/utility-wff",
+  "extracted_at": "2026-10-24T02:08:58.207622+00:00",
+  "kind": "unknown",
+  "note": "未找到 watchface.xml (可能未包含 res/raw 或非 WFF)",
+  "name": "utility-wff",
+  "license": "MIT",
+  "source": "github.com/SamakaCD/utility-wff"
+}
