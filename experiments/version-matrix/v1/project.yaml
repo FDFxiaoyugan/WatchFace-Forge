@@ -1,0 +1,8 @@
+# version×construct 矩阵探针 (REPAIR_PLAN P1)
+package_name: com.watchface.matrixv1
+version_code: 1
+version_name: "1.0"
+watch_face_name: Matrix Probe v1
+wff_version: 1
+min_sdk: 34
+target_sdk: 34

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.watchface.matrixv4"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <uses-sdk
+        android:minSdkVersion="34"
+        android:targetSdkVersion="34" />
+
+    <application
+        android:label="@string/watch_face_name"
+        android:hasCode="false"
+        tools:ignore="MissingApplicationIcon">
+
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
+
+        <property
+            android:name="com.google.wear.watchface.format.version"
+            android:value="4" />
+
+    </application>
+</manifest>
